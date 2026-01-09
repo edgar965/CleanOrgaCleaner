@@ -4,11 +4,34 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:views="clr-namespace:CleanOrgaCleaner.Views"
-    Shell.FlyoutBehavior="Disabled">
+    Shell.FlyoutBehavior="Disabled"
+    Shell.NavBarIsVisible="False">
 
+    <!-- Login Page (shown first, no tabs) -->
     <ShellContent
-        Title="Heute"
-        ContentTemplate="{DataTemplate views:HeutePage}"
-        Route="HeutePage" />
+        Route="LoginPage"
+        ContentTemplate="{DataTemplate views:LoginPage}"
+        Shell.TabBarIsVisible="False" />
+
+    <!-- Main Tab Bar (after login) -->
+    <TabBar Route="MainTabs">
+        <ShellContent
+            Title="Heute"
+            Icon="{OnPlatform Android='home_icon.png', Default=''}"
+            Route="TodayPage"
+            ContentTemplate="{DataTemplate views:TodayPage}" />
+
+        <ShellContent
+            Title="Chat"
+            Icon="{OnPlatform Android='chat_icon.png', Default=''}"
+            Route="ChatPage"
+            ContentTemplate="{DataTemplate views:ChatPage}" />
+
+        <ShellContent
+            Title="Einstellungen"
+            Icon="{OnPlatform Android='settings_icon.png', Default=''}"
+            Route="SettingsPage"
+            ContentTemplate="{DataTemplate views:SettingsPage}" />
+    </TabBar>
 
 </Shell>

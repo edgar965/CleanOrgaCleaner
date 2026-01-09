@@ -8,11 +8,14 @@
         <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
 
             <!-- Logo/Title -->
-            <Label Text="🧹 CleanOrga"
-                   FontSize="36"
-                   FontAttributes="Bold"
-                   TextColor="White"
-                   HorizontalOptions="Center"/>
+            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
+                <Image Source="logo.jpg" WidthRequest="50" HeightRequest="50"><Image.Clip><EllipseGeometry Center="25,25" RadiusX="25" RadiusY="25"/></Image.Clip></Image>
+                <Label Text="CleanOrga"
+                       FontSize="36"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
 
             <Label Text="Reinigungsmanagement"
                    FontSize="16"
@@ -22,10 +25,13 @@
                    Margin="0,0,0,30"/>
 
             <!-- Login Form -->
-            <Frame BackgroundColor="White"
-                   CornerRadius="20"
-                   Padding="25"
-                   HasShadow="True">
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 20"
+                    Stroke="Transparent"
+                    Padding="25">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
                 <VerticalStackLayout Spacing="15">
 
                     <Label Text="Property ID"
@@ -69,10 +75,10 @@
                            IsVisible="False"/>
 
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- Version -->
-            <Label Text="v0.39"
+            <Label Text="v0.40"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

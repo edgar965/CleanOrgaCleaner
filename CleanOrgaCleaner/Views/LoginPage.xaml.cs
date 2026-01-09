@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Views;
@@ -57,12 +58,20 @@ public partial class LoginPage : ContentPage
 
             if (result.Success)
             {
-                // Save credentials for next time
+                // Save credentials
                 Preferences.Set("property_id", PropertyIdEntry.Text);
                 Preferences.Set("username", UsernameEntry.Text);
+                Preferences.Set("is_logged_in", true);
 
-                // Navigate to main page
-                Application.Current!.MainPage = new AppShell();
+                // Save and apply cleaner's language
+                var language = result.CleanerLanguage ?? "de";
+                Preferences.Set("language", language);
+                Translations.CurrentLanguage = language;
+
+                System.Diagnostics.Debug.WriteLine($"[Login] Language set to: {language}");
+
+                // Navigate to main tabs (TodayPage)
+                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
             }
             else
             {

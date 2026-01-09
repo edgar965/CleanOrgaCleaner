@@ -1,5 +1,3 @@
-using CleanOrgaCleaner.Views;
-
 namespace CleanOrgaCleaner;
 
 public partial class App : Application
@@ -11,7 +9,7 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        // Start with Login page
-        return new Window(new NavigationPage(new LoginPage()));
+        // Use AppShell for navigation
+        return new Window(new AppShell());
     }
 }

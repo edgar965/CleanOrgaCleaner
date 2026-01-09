@@ -1,7 +1,10 @@
 using System.Text.Json.Serialization;
 
-namespace CleanOrgaCleaner.Services;
+namespace CleanOrgaCleaner.Models;
 
+/// <summary>
+/// Represents a cleaning task assigned to a cleaner
+/// </summary>
 public class CleaningTask
 {
     [JsonPropertyName("id")]
@@ -10,11 +13,20 @@ public class CleaningTask
     [JsonPropertyName("apartment_name")]
     public string ApartmentName { get; set; } = "";
 
+    [JsonPropertyName("apartment_id")]
+    public int ApartmentId { get; set; }
+
     [JsonPropertyName("aufgabenart")]
     public string Aufgabenart { get; set; } = "Reinigung";
 
+    [JsonPropertyName("aufgabenart_farbe")]
+    public string AufgabenartFarbe { get; set; } = "#667eea";
+
     [JsonPropertyName("status")]
     public string Status { get; set; } = "pending";
+
+    [JsonPropertyName("state_completed")]
+    public string StateCompleted { get; set; } = "not_started";
 
     [JsonPropertyName("planned_date")]
     public string PlannedDate { get; set; } = "";
@@ -22,49 +34,115 @@ public class CleaningTask
     [JsonPropertyName("wichtiger_hinweis")]
     public string? WichtigerHinweis { get; set; }
 
-    [JsonPropertyName("checklist")]
-    public List<ChecklistItem>? Checklist { get; set; }
+    [JsonPropertyName("anmerkung_mitarbeiter")]
+    public string? AnmerkungMitarbeiter { get; set; }
 
-    public string StatusDisplay => Status switch
+    [JsonPropertyName("checkliste")]
+    public List<string>? Checkliste { get; set; }
+
+    [JsonPropertyName("checklist_status")]
+    public Dictionary<string, bool>? ChecklistStatus { get; set; }
+
+    [JsonPropertyName("probleme")]
+    public List<Problem>? Probleme { get; set; }
+
+    #region Computed Properties for UI
+
+    /// <summary>
+    /// Display text for current status
+    /// </summary>
+    public string StatusDisplay => StateCompleted switch
     {
-        "pending" => "Offen",
-        "in_progress" => "In Arbeit",
-        "completed" => "Erledigt",
-        _ => Status
+        "not_started" => "Offen",
+        "started" => "Laeuft",
+        "completed" => "Fertig",
+        _ => Status switch
+        {
+            "pending" => "Offen",
+            "in_progress" => "Laeuft",
+            "completed" => "Fertig",
+            _ => Status
+        }
     };
 
-    public Color StatusColor => Status switch
+    /// <summary>
+    /// Color for status display
+    /// </summary>
+    public Color StatusColor => StateCompleted switch
     {
-        "pending" => Colors.Orange,
-        "in_progress" => Colors.Blue,
-        "completed" => Colors.Green,
-        _ => Colors.Gray
+        "not_started" => Color.FromArgb("#ff9800"),
+        "started" => Color.FromArgb("#2196F3"),
+        "completed" => Color.FromArgb("#4CAF50"),
+        _ => Color.FromArgb("#9e9e9e")
     };
-}
 
-public class ChecklistItem
-{
-    [JsonPropertyName("text")]
-    public string Text { get; set; } = "";
+    /// <summary>
+    /// Background color based on task type
+    /// </summary>
+    public Color TaskColor
+    {
+        get
+        {
+            try { return Color.FromArgb(AufgabenartFarbe); }
+            catch { return Color.FromArgb("#667eea"); }
+        }
+    }
 
-    [JsonPropertyName("checked")]
-    public bool IsChecked { get; set; }
-}
+    /// <summary>
+    /// Is the task completed?
+    /// Checks both state_completed (from detail API) and status (from today-data API)
+    /// </summary>
+    public bool IsCompleted => StateCompleted == "completed"
+        || Status == "completed" || Status == "cleaned" || Status == "checked";
 
-public class TodayDataResponse
-{
-    [JsonPropertyName("tasks")]
-    public List<CleaningTask> Tasks { get; set; } = new();
+    /// <summary>
+    /// Is the task currently in progress?
+    /// Checks both state_completed (from detail API) and status (from today-data API)
+    /// </summary>
+    public bool IsStarted => StateCompleted == "started"
+        || Status == "in_progress" || Status == "cleaning_in_progress";
 
-    [JsonPropertyName("work_status")]
-    public WorkStatus WorkStatus { get; set; } = new();
-}
+    /// <summary>
+    /// Has the task not been started yet?
+    /// </summary>
+    public bool IsNotStarted => !IsCompleted && !IsStarted;
 
-public class WorkStatus
-{
-    [JsonPropertyName("is_working")]
-    public bool IsWorking { get; set; }
+    /// <summary>
+    /// Does this task have a checklist?
+    /// </summary>
+    public bool HasChecklist => Checkliste != null && Checkliste.Count > 0;
 
-    [JsonPropertyName("start_time")]
-    public string? StartTime { get; set; }
+    /// <summary>
+    /// Number of checklist items
+    /// </summary>
+    public int ChecklistCount => Checkliste?.Count ?? 0;
+
+    /// <summary>
+    /// Number of completed checklist items
+    /// </summary>
+    public int ChecklistCompletedCount
+    {
+        get
+        {
+            if (ChecklistStatus == null) return 0;
+            return ChecklistStatus.Count(x => x.Value);
+        }
+    }
+
+    /// <summary>
+    /// Does this task have problems reported?
+    /// </summary>
+    public bool HasProblems => Probleme != null && Probleme.Count > 0;
+
+    /// <summary>
+    /// Number of problems
+    /// </summary>
+    public int ProblemCount => Probleme?.Count ?? 0;
+
+    /// <summary>
+    /// Does this task have an important notice?
+    /// </summary>
+    public bool HasWichtigerHinweis => !string.IsNullOrEmpty(WichtigerHinweis);
+
+    #endregion
 }

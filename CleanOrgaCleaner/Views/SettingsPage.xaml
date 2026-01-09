@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CleanOrgaCleaner.Views.SettingsPage"
+             Title="Einstellungen"
+             BackgroundColor="#f5f5f5">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="20" Padding="20">
+
+            <!-- Header Icon -->
+            <Border BackgroundColor="#667eea"
+                    WidthRequest="80"
+                    HeightRequest="80"
+                    StrokeShape="RoundRectangle 40"
+                    Stroke="Transparent"
+                    HorizontalOptions="Center"
+                    Padding="0">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#667eea" Offset="0"/>
+                        <GradientStop Color="#764ba2" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <Label Text="⚙"
+                       FontSize="40"
+                       TextColor="White"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
+            </Border>
+
+            <Label Text="Einstellungen"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="#333"
+                   HorizontalOptions="Center"/>
+
+            <!-- User Info -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 15"
+                    Stroke="Transparent"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Angemeldet als"
+                           FontSize="14"
+                           TextColor="#888"/>
+                    <Label x:Name="UserNameLabel"
+                           Text=""
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           TextColor="#333"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Language Selection -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 15"
+                    Stroke="Transparent"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="15">
+                    <Label Text="Sprache"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#333"/>
+
+                    <Picker x:Name="LanguagePicker"
+                            Title="Sprache waehlen"
+                            FontSize="16"
+                            TextColor="#333"
+                            SelectedIndexChanged="OnLanguageChanged">
+                        <Picker.Items>
+                            <x:String>DE Deutsch</x:String>
+                            <x:String>GB English</x:String>
+                            <x:String>ES Espanol</x:String>
+                            <x:String>RO Romana</x:String>
+                            <x:String>PL Polski</x:String>
+                            <x:String>RU Russkij</x:String>
+                            <x:String>UA Ukrainska</x:String>
+                            <x:String>VN Tieng Viet</x:String>
+                        </Picker.Items>
+                    </Picker>
+
+                    <Label Text="Die Sprache wird fuer Chat-Uebersetzungen verwendet"
+                           FontSize="12"
+                           TextColor="#888"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- App Info -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 15"
+                    Stroke="Transparent"
+                    Padding="20">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="App Info"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#333"/>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Version"
+                               TextColor="#666"/>
+                        <Label Grid.Column="1"
+                               Text="0.40"
+                               TextColor="#333"/>
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="Server"
+                               TextColor="#666"/>
+                        <Label Grid.Column="1"
+                               Text="cleanorga.com"
+                               TextColor="#333"/>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Logout Section -->
+            <BoxView HeightRequest="1"
+                     Color="#e0e0e0"
+                     Margin="0,10"/>
+
+            <Button x:Name="LogoutButton"
+                    Text="Abmelden"
+                    BackgroundColor="#ffebee"
+                    TextColor="#c62828"
+                    FontSize="16"
+                    CornerRadius="15"
+                    Padding="20,15"
+                    Clicked="OnLogoutClicked"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

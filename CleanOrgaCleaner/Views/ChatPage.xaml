@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CleanOrgaCleaner.Views.ChatPage"
+             Title="Chat"
+             BackgroundColor="#f5f5f5">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="#667eea" Padding="15">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#667eea" Offset="0"/>
+                    <GradientStop Color="#764ba2" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
+
+            <Label Text="Chat"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"/>
+        </Grid>
+
+        <!-- Messages List -->
+        <CollectionView Grid.Row="1"
+                        x:Name="MessagesCollection"
+                        Margin="10"
+                        ItemsUpdatingScrollMode="KeepLastItemInView">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="5,3"
+                            Padding="12"
+                            StrokeShape="RoundRectangle 12"
+                            BackgroundColor="{Binding BackgroundColor}">
+                        <Border.Triggers>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding FromCleaner}"
+                                         Value="True">
+                                <Setter Property="Stroke" Value="#9c27b0"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Border"
+                                         Binding="{Binding FromCleaner}"
+                                         Value="False">
+                                <Setter Property="Stroke" Value="#2196F3"/>
+                            </DataTrigger>
+                        </Border.Triggers>
+
+                        <VerticalStackLayout Spacing="5">
+                            <!-- Header: Sender + Time -->
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding Sender}"
+                                       FontSize="13"
+                                       FontAttributes="Bold"
+                                       TextColor="#333"/>
+
+                                <Label Grid.Column="1"
+                                       Text="{Binding DatumZeit}"
+                                       FontSize="11"
+                                       TextColor="#888"/>
+                            </Grid>
+
+                            <!-- Message Text (possibly translated) -->
+                            <Label Text="{Binding DisplayText}"
+                                   FontSize="15"
+                                   TextColor="#333"
+                                   LineBreakMode="WordWrap"/>
+
+                            <!-- Original Text (if translated) -->
+                            <Label Text="{Binding OriginalText, StringFormat='(Original: {0})'}"
+                                   FontSize="11"
+                                   TextColor="#888"
+                                   FontAttributes="Italic"
+                                   IsVisible="{Binding HasTranslation}"/>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+            <CollectionView.EmptyView>
+                <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                    <Label Text="💬"
+                           FontSize="60"
+                           Opacity="0.3"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Noch keine Nachrichten"
+                           FontSize="16"
+                           TextColor="#999"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
+
+        <!-- Input Area -->
+        <Border Grid.Row="2"
+                BackgroundColor="White"
+                Padding="10"
+                Stroke="Transparent">
+            <Border.Shadow>
+                <Shadow Brush="Gray" Offset="0,-2" Radius="5" Opacity="0.2"/>
+            </Border.Shadow>
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*" RowSpacing="10">
+
+                <!-- Text Input -->
+                <Editor x:Name="MessageEditor"
+                        Grid.Row="0"
+                        Placeholder="Nachricht schreiben..."
+                        HeightRequest="70"
+                        BackgroundColor="#f5f5f5"/>
+
+                <!-- Buttons -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+
+                    <Button Grid.Column="1"
+                            x:Name="PreviewButton"
+                            Text="Vorschau"
+                            BackgroundColor="#ff9800"
+                            TextColor="White"
+                            CornerRadius="10"
+                            WidthRequest="100"
+                            Clicked="OnPreviewClicked"/>
+
+                    <Button Grid.Column="2"
+                            x:Name="SendButton"
+                            Text="Senden"
+                            CornerRadius="10"
+                            WidthRequest="100"
+                            Clicked="OnSendClicked">
+                        <Button.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#667eea" Offset="0"/>
+                                <GradientStop Color="#764ba2" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Button.Background>
+                    </Button>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <!-- Translation Preview Overlay -->
+        <Border x:Name="TranslationPreview"
+                Grid.RowSpan="3"
+                BackgroundColor="#fff3e0"
+                Padding="15"
+                IsVisible="False"
+                VerticalOptions="Center"
+                HorizontalOptions="Center"
+                Margin="20"
+                StrokeShape="RoundRectangle 15"
+                Stroke="Transparent">
+            <VerticalStackLayout Spacing="15" WidthRequest="300">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="Uebersetzungsvorschau"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="#e65100"/>
+                    <Button Grid.Column="1"
+                            Text="X"
+                            BackgroundColor="Transparent"
+                            TextColor="#e65100"
+                            Clicked="OnClosePreviewClicked"/>
+                </Grid>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Dein Text:"
+                           FontSize="12"
+                           TextColor="#888"/>
+                    <Label x:Name="PreviewOriginalLabel"
+                           FontSize="14"
+                           TextColor="#333"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Uebersetzung (fuer Admin):"
+                           FontSize="12"
+                           TextColor="#888"/>
+                    <Label x:Name="PreviewTranslatedLabel"
+                           FontSize="14"
+                           TextColor="#333"
+                           FontAttributes="Bold"/>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Rueckuebersetzung:"
+                           FontSize="12"
+                           TextColor="#888"/>
+                    <Label x:Name="PreviewBackLabel"
+                           FontSize="14"
+                           TextColor="#333"
+                           FontAttributes="Italic"/>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </Border>
+    </Grid>
+</ContentPage>
