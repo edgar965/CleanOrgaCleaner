@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CleanOrgaCleaner.Views.HeutePage"
+             Title="Heute"
+             BackgroundColor="#f5f5f5">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header with Work Status -->
+        <Frame Grid.Row="0"
+               BackgroundColor="#667eea"
+               CornerRadius="0"
+               Padding="20"
+               HasShadow="True">
+            <VerticalStackLayout Spacing="10">
+                <Label Text="🧹 CleanOrga"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+
+                <HorizontalStackLayout Spacing="15" HorizontalOptions="Center">
+                    <Button x:Name="StartWorkButton"
+                            Text="▶ Arbeit starten"
+                            BackgroundColor="#4CAF50"
+                            TextColor="White"
+                            CornerRadius="20"
+                            Clicked="OnStartWorkClicked"/>
+
+                    <Button x:Name="EndWorkButton"
+                            Text="⏹ Arbeit beenden"
+                            BackgroundColor="#f44336"
+                            TextColor="White"
+                            CornerRadius="20"
+                            IsVisible="False"
+                            Clicked="OnEndWorkClicked"/>
+                </HorizontalStackLayout>
+
+                <Label x:Name="WorkStatusLabel"
+                       Text="Nicht angemeldet"
+                       TextColor="White"
+                       Opacity="0.8"
+                       HorizontalOptions="Center"/>
+            </VerticalStackLayout>
+        </Frame>
+
+        <!-- Task List -->
+        <RefreshView Grid.Row="1"
+                     x:Name="TaskRefreshView"
+                     Refreshing="OnRefreshing">
+            <CollectionView x:Name="TasksCollection"
+                            Margin="10">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Frame Margin="5"
+                               Padding="15"
+                               BackgroundColor="White"
+                               CornerRadius="10"
+                               HasShadow="True">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+
+                                <!-- Apartment Name -->
+                                <Label Grid.Row="0" Grid.Column="0"
+                                       Text="{Binding ApartmentName}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"
+                                       TextColor="#333"/>
+
+                                <!-- Status Badge -->
+                                <Frame Grid.Row="0" Grid.Column="1"
+                                       BackgroundColor="{Binding StatusColor}"
+                                       CornerRadius="10"
+                                       Padding="10,5"
+                                       HasShadow="False">
+                                    <Label Text="{Binding StatusDisplay}"
+                                           TextColor="White"
+                                           FontSize="12"/>
+                                </Frame>
+
+                                <!-- Task Type -->
+                                <Label Grid.Row="1" Grid.ColumnSpan="2"
+                                       Text="{Binding Aufgabenart}"
+                                       FontSize="14"
+                                       TextColor="#666"
+                                       Margin="0,5,0,0"/>
+
+                                <!-- Important Note -->
+                                <Label Grid.Row="2" Grid.ColumnSpan="2"
+                                       Text="{Binding WichtigerHinweis}"
+                                       FontSize="12"
+                                       TextColor="#f44336"
+                                       IsVisible="{Binding WichtigerHinweis, Converter={StaticResource StringToBoolConverter}}"
+                                       Margin="0,5,0,0"/>
+
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnTaskTapped"
+                                                          CommandParameter="{Binding .}"/>
+                                </Grid.GestureRecognizers>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center">
+                        <Label Text="✓"
+                               FontSize="60"
+                               TextColor="#4CAF50"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Keine Aufgaben fuer heute"
+                               FontSize="18"
+                               TextColor="#999"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Bottom Navigation -->
+        <Grid Grid.Row="2"
+              BackgroundColor="White"
+              Padding="10"
+              ColumnDefinitions="*,*,*">
+
+            <Button Grid.Column="0"
+                    Text="📅 Heute"
+                    BackgroundColor="#667eea"
+                    TextColor="White"
+                    CornerRadius="10"/>
+
+            <Button Grid.Column="1"
+                    Text="💬 Chat"
+                    BackgroundColor="#e0e0e0"
+                    TextColor="#333"
+                    CornerRadius="10"
+                    Clicked="OnChatClicked"/>
+
+            <Button Grid.Column="2"
+                    Text="⚙ Mehr"
+                    BackgroundColor="#e0e0e0"
+                    TextColor="#333"
+                    CornerRadius="10"
+                    Clicked="OnSettingsClicked"/>
+        </Grid>
+    </Grid>
+</ContentPage>

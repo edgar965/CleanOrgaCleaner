@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CleanOrgaCleaner.Views.LoginPage"
+             BackgroundColor="#667eea">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+
+            <!-- Logo/Title -->
+            <Label Text="🧹 CleanOrga"
+                   FontSize="36"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"/>
+
+            <Label Text="Reinigungsmanagement"
+                   FontSize="16"
+                   TextColor="White"
+                   Opacity="0.8"
+                   HorizontalOptions="Center"
+                   Margin="0,0,0,30"/>
+
+            <!-- Login Form -->
+            <Frame BackgroundColor="White"
+                   CornerRadius="20"
+                   Padding="25"
+                   HasShadow="True">
+                <VerticalStackLayout Spacing="15">
+
+                    <Label Text="Property ID"
+                           FontSize="14"
+                           TextColor="#666"/>
+                    <Entry x:Name="PropertyIdEntry"
+                           Placeholder="z.B. 1"
+                           Keyboard="Numeric"
+                           FontSize="18"/>
+
+                    <Label Text="Benutzername"
+                           FontSize="14"
+                           TextColor="#666"/>
+                    <Entry x:Name="UsernameEntry"
+                           Placeholder="Dein Benutzername"
+                           FontSize="18"/>
+
+                    <Label Text="Passwort"
+                           FontSize="14"
+                           TextColor="#666"/>
+                    <Entry x:Name="PasswordEntry"
+                           Placeholder="Dein Passwort"
+                           IsPassword="True"
+                           FontSize="18"/>
+
+                    <Button x:Name="LoginButton"
+                            Text="Anmelden"
+                            BackgroundColor="#667eea"
+                            TextColor="White"
+                            FontSize="18"
+                            FontAttributes="Bold"
+                            CornerRadius="10"
+                            HeightRequest="50"
+                            Margin="0,10,0,0"
+                            Clicked="OnLoginClicked"/>
+
+                    <Label x:Name="ErrorLabel"
+                           TextColor="Red"
+                           FontSize="14"
+                           HorizontalOptions="Center"
+                           IsVisible="False"/>
+
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Version -->
+            <Label Text="v0.39"
+                   FontSize="12"
+                   TextColor="White"
+                   Opacity="0.6"
+                   HorizontalOptions="Center"
+                   Margin="0,20,0,0"/>
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
