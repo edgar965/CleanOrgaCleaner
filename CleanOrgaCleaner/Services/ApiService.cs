@@ -374,23 +374,103 @@ public class ApiService
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Start - TaskId={taskId}, Path={imagePath}");
+
+            if (!File.Exists(imagePath))
+            {
+                System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Datei existiert nicht: {imagePath}");
+                return new ApiResponse { Success = false, Error = "Bilddatei nicht gefunden" };
+            }
+
             var formData = new MultipartFormDataContent();
             var bytes = await File.ReadAllBytesAsync(imagePath);
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Datei gelesen, {bytes.Length} bytes");
+
             var fileContent = new ByteArrayContent(bytes);
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+
+            // Content-Type basierend auf Dateiendung
+            var extension = Path.GetExtension(imagePath).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+
             formData.Add(fileContent, "image", Path.GetFileName(imagePath));
             if (!string.IsNullOrEmpty(notiz))
                 formData.Add(new StringContent(notiz), "notiz");
 
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Sende POST zu /api/task/{taskId}/bilder/upload/");
             var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
             var responseText = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"UploadBildStatus: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: EXCEPTION - {ex.Message}\n{ex.StackTrace}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> DeleteBildStatusAsync(int bildId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: Lösche Bild {bildId}");
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/delete/", new StringContent("{}"));
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> UpdateBildStatusAsync(int bildId, string notiz)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: Update Bild {bildId} mit Notiz");
+            var data = new { notiz = notiz };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/update/", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: EXCEPTION - {ex.Message}");
             return new ApiResponse { Success = false, Error = ex.Message };
         }
     }

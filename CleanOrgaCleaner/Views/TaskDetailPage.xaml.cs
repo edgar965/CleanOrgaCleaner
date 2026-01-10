@@ -13,6 +13,7 @@ public partial class TaskDetailPage : ContentPage
     private CleaningTask? _task;
     private List<string> _selectedPhotoPaths = new();
     private string? _selectedBildPath;
+    private BildStatus? _currentBildDetail;
 
     public string TaskId
     {
@@ -346,12 +347,203 @@ public partial class TaskDetailPage : ContentPage
     {
         BilderStack.Children.Clear();
         if (_task?.Bilder == null || _task.Bilder.Count == 0) return;
+
         foreach (var bild in _task.Bilder)
         {
-            var container = new Border { StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 }, Stroke = Colors.Transparent, Margin = new Thickness(0,0,8,8) };
-            var image = new Image { Source = bild.Url, WidthRequest = 80, HeightRequest = 80, Aspect = Aspect.AspectFill };
-            container.Content = image;
-            BilderStack.Children.Add(container);
+            // Container mit Bild und Delete-Button
+            var grid = new Grid
+            {
+                WidthRequest = 80,
+                HeightRequest = 80,
+                Margin = new Thickness(0, 0, 10, 10)
+            };
+
+            // Bild
+            var imageBorder = new Border
+            {
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
+                Stroke = Colors.LightGray,
+                StrokeThickness = 1
+            };
+            var image = new Image
+            {
+                Source = bild.ThumbnailUrl ?? bild.FullUrl ?? bild.Url,
+                WidthRequest = 80,
+                HeightRequest = 80,
+                Aspect = Aspect.AspectFill
+            };
+            imageBorder.Content = image;
+
+            // Tap zum Vergrößern
+            var tapGesture = new TapGestureRecognizer();
+            var bildCopy = bild; // Closure fix
+            tapGesture.Tapped += (s, e) => ShowBildDetail(bildCopy);
+            imageBorder.GestureRecognizers.Add(tapGesture);
+
+            // Delete-Button (X oben rechts)
+            var deleteBtn = new Border
+            {
+                BackgroundColor = Color.FromArgb("#CC000000"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
+                Stroke = Colors.Transparent,
+                WidthRequest = 24,
+                HeightRequest = 24,
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Start,
+                Margin = new Thickness(0, 4, 4, 0),
+                Content = new Label
+                {
+                    Text = "✕",
+                    TextColor = Colors.White,
+                    FontSize = 14,
+                    HorizontalTextAlignment = TextAlignment.Center,
+                    VerticalTextAlignment = TextAlignment.Center
+                }
+            };
+            var deleteTap = new TapGestureRecognizer();
+            deleteTap.Tapped += async (s, e) => await DeleteBild(bildCopy.Id);
+            deleteBtn.GestureRecognizers.Add(deleteTap);
+
+            // Notiz-Indikator (unten links)
+            if (!string.IsNullOrWhiteSpace(bild.Notiz))
+            {
+                var notizIndicator = new Border
+                {
+                    BackgroundColor = Color.FromArgb("#CCFF9800"),
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+                    Stroke = Colors.Transparent,
+                    Padding = new Thickness(4, 2),
+                    HorizontalOptions = LayoutOptions.Start,
+                    VerticalOptions = LayoutOptions.End,
+                    Margin = new Thickness(4, 0, 0, 4),
+                    Content = new Label
+                    {
+                        Text = "📝",
+                        FontSize = 10
+                    }
+                };
+                grid.Children.Add(notizIndicator);
+            }
+
+            grid.Children.Add(imageBorder);
+            grid.Children.Add(deleteBtn);
+            BilderStack.Children.Add(grid);
+        }
+    }
+
+    private void ShowBildDetail(BildStatus bild)
+    {
+        _currentBildDetail = bild;
+
+        // Popup befüllen
+        var imageUrl = bild.FullUrl ?? bild.ThumbnailUrl ?? bild.Url;
+        BildDetailImage.Source = imageUrl;
+        BildDetailDatum.Text = $"Erstellt: {bild.ErstelltAm}";
+        BildDetailNotizEditor.Text = bild.Notiz ?? "";
+
+        // Popup anzeigen
+        BildDetailPopupOverlay.IsVisible = true;
+    }
+
+    private void OnBildDetailPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        BildDetailPopupOverlay.IsVisible = false;
+        _currentBildDetail = null;
+    }
+
+    private void OnCloseBildDetailClicked(object sender, EventArgs e)
+    {
+        BildDetailPopupOverlay.IsVisible = false;
+        _currentBildDetail = null;
+    }
+
+    private async void OnSaveBildDetailClicked(object sender, EventArgs e)
+    {
+        if (_currentBildDetail == null) return;
+
+        SaveBildDetailButton.IsEnabled = false;
+        SaveBildDetailButton.Text = "Speichern...";
+
+        try
+        {
+            var notiz = BildDetailNotizEditor.Text?.Trim() ?? "";
+            var response = await _apiService.UpdateBildStatusAsync(_currentBildDetail.Id, notiz);
+
+            if (response.Success)
+            {
+                BildDetailPopupOverlay.IsVisible = false;
+                _currentBildDetail = null;
+                await DisplayAlert("Gespeichert", "Notiz wurde aktualisiert", "OK");
+                await LoadTaskAsync();
+            }
+            else
+            {
+                await DisplayAlert("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SaveBildDetail error: {ex.Message}");
+            await DisplayAlert("Fehler", "Notiz konnte nicht gespeichert werden", "OK");
+        }
+        finally
+        {
+            SaveBildDetailButton.Text = "Speichern";
+            SaveBildDetailButton.IsEnabled = true;
+        }
+    }
+
+    private async void OnDeleteBildDetailClicked(object sender, EventArgs e)
+    {
+        if (_currentBildDetail == null) return;
+
+        var confirm = await DisplayAlert("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
+        if (!confirm) return;
+
+        try
+        {
+            var response = await _apiService.DeleteBildStatusAsync(_currentBildDetail.Id);
+            if (response.Success)
+            {
+                BildDetailPopupOverlay.IsVisible = false;
+                _currentBildDetail = null;
+                await DisplayAlert("Gelöscht", "Bild wurde gelöscht", "OK");
+                await LoadTaskAsync();
+            }
+            else
+            {
+                await DisplayAlert("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteBildDetail error: {ex.Message}");
+            await DisplayAlert("Fehler", "Bild konnte nicht gelöscht werden", "OK");
+        }
+    }
+
+    private async Task DeleteBild(int bildId)
+    {
+        var confirm = await DisplayAlert("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
+        if (!confirm) return;
+
+        try
+        {
+            var response = await _apiService.DeleteBildStatusAsync(bildId);
+            if (response.Success)
+            {
+                await DisplayAlert("Gelöscht", "Bild wurde gelöscht", "OK");
+                await LoadTaskAsync(); // Refresh
+            }
+            else
+            {
+                await DisplayAlert("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteBild error: {ex.Message}");
+            await DisplayAlert("Fehler", "Bild konnte nicht gelöscht werden", "OK");
         }
     }
 
@@ -371,58 +563,124 @@ public partial class TaskDetailPage : ContentPage
     {
         try
         {
+            // Kamera-Berechtigung anfordern
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+                    return;
+                }
+            }
+
             if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK"); return; }
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photo.FileName);
-                using var stream = await photo.OpenReadAsync();
-                using var newStream = File.OpenWrite(localPath);
-                await stream.CopyToAsync(newStream);
+                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
+                using (var stream = await photo.OpenReadAsync())
+                using (var newStream = File.Create(localPath))
+                {
+                    await stream.CopyToAsync(newStream);
+                    await newStream.FlushAsync();
+                }
                 _selectedBildPath = localPath;
                 BildPreviewImage.Source = ImageSource.FromFile(localPath);
                 BildPreviewBorder.IsVisible = true;
                 SaveBildButton.IsEnabled = true;
+                System.Diagnostics.Debug.WriteLine($"Bild Camera: Gespeichert unter {localPath}");
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}"); await DisplayAlert("Fehler", $"Kamera-Fehler: {ex.Message}", "OK"); }
     }
 
     private async void OnBildPickPhotoClicked(object sender, EventArgs e)
     {
         try
         {
+            // Foto-Berechtigung anfordern
+            var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
+            if (photosStatus != PermissionStatus.Granted)
+            {
+                photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
+                if (photosStatus != PermissionStatus.Granted)
+                {
+                    // Fallback: StorageRead versuchen (für ältere Android-Versionen)
+                    var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
+                    if (storageStatus != PermissionStatus.Granted)
+                    {
+                        storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
+                        if (storageStatus != PermissionStatus.Granted)
+                        {
+                            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Foto-Zugriff in den App-Einstellungen", "OK");
+                            return;
+                        }
+                    }
+                }
+            }
+
             var photo = await MediaPicker.Default.PickPhotoAsync();
             if (photo != null)
             {
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photo.FileName);
-                using var stream = await photo.OpenReadAsync();
-                using var newStream = File.OpenWrite(localPath);
-                await stream.CopyToAsync(newStream);
+                var ext = System.IO.Path.GetExtension(photo.FileName) ?? ".jpg";
+                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}{ext}");
+                using (var stream = await photo.OpenReadAsync())
+                using (var newStream = File.Create(localPath))
+                {
+                    await stream.CopyToAsync(newStream);
+                    await newStream.FlushAsync();
+                }
                 _selectedBildPath = localPath;
                 BildPreviewImage.Source = ImageSource.FromFile(localPath);
                 BildPreviewBorder.IsVisible = true;
                 SaveBildButton.IsEnabled = true;
+                System.Diagnostics.Debug.WriteLine($"Bild Gallery: Gespeichert unter {localPath}");
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}"); await DisplayAlert("Fehler", $"Galerie-Fehler: {ex.Message}", "OK"); }
     }
 
     private async void OnSaveBildClicked(object sender, EventArgs e)
     {
-        if (string.IsNullOrEmpty(_selectedBildPath)) return;
-        BildPopupOverlay.IsVisible = false;
+        if (string.IsNullOrEmpty(_selectedBildPath))
+        {
+            await DisplayAlert("Fehler", "Kein Bild ausgewählt", "OK");
+            return;
+        }
+
+        // Button deaktivieren während Upload
+        SaveBildButton.IsEnabled = false;
+        SaveBildButton.Text = "Wird hochgeladen...";
+
         try
         {
+            System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Start Upload für {_selectedBildPath}");
             var notiz = BildNotizEditor.Text?.Trim() ?? "";
             var response = await _apiService.UploadBildStatusAsync(_taskId, _selectedBildPath, notiz);
+
             if (response.Success)
             {
+                BildPopupOverlay.IsVisible = false;
                 await DisplayAlert("Gespeichert", "Bild wurde hochgeladen", "OK");
                 await LoadTaskAsync();
             }
-            else await DisplayAlert("Fehler", response.Error ?? "Upload fehlgeschlagen", "OK");
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Upload fehlgeschlagen - {response.Error}");
+                await DisplayAlert("Fehler", response.Error ?? "Upload fehlgeschlagen", "OK");
+            }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Upload Bild error: {ex.Message}"); await DisplayAlert("Fehler", "Bild konnte nicht hochgeladen werden", "OK"); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Upload Bild error: {ex.Message}\n{ex.StackTrace}");
+            await DisplayAlert("Fehler", $"Upload-Fehler: {ex.Message}", "OK");
+        }
+        finally
+        {
+            SaveBildButton.Text = "Speichern";
+            SaveBildButton.IsEnabled = !string.IsNullOrEmpty(_selectedBildPath);
+        }
     }
 }

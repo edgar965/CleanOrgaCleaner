@@ -113,5 +113,38 @@
 </Border>
 </Grid>
 <!-- Bild hinzufuegen Popup --><Grid x:Name="BildPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="2"><BoxView Color="Transparent"><BoxView.GestureRecognizers><TapGestureRecognizer Tapped="OnBildPopupBackgroundTapped"/></BoxView.GestureRecognizers></BoxView><Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="500"><Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow><Grid RowDefinitions="Auto,*"><Grid Padding="20,15,15,0"><Label Text="Bild hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/><Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelBildClicked"/></Grid><ScrollView Grid.Row="1" Padding="20,10,20,20"><VerticalStackLayout Spacing="15"><VerticalStackLayout Spacing="8"><Label Text="Bild auswaehlen" FontSize="14" FontAttributes="Bold" TextColor="#555"/><Grid ColumnDefinitions="*,*" ColumnSpacing="10"><Button x:Name="BildTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildTakePhotoClicked"/><Button x:Name="BildPickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildPickPhotoClicked"/></Grid><Border x:Name="BildPreviewBorder" StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" Padding="5" IsVisible="False" HorizontalOptions="Center"><Image x:Name="BildPreviewImage" WidthRequest="150" HeightRequest="150" Aspect="AspectFill"/></Border></VerticalStackLayout><VerticalStackLayout Spacing="5"><Label Text="Notiz" FontSize="14" FontAttributes="Bold" TextColor="#555"/><Editor x:Name="BildNotizEditor" Placeholder="Optionale Notiz zum Bild..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5"/></VerticalStackLayout><Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0"><Button x:Name="SaveBildButton" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveBildClicked" IsEnabled="False"/><Button Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelBildClicked"/></Grid></VerticalStackLayout></ScrollView></Grid></Border></Grid>
+<!-- Bild Detail Popup -->
+<Grid x:Name="BildDetailPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1001" Grid.RowSpan="2">
+<BoxView Color="Transparent"><BoxView.GestureRecognizers><TapGestureRecognizer Tapped="OnBildDetailPopupBackgroundTapped"/></BoxView.GestureRecognizers></BoxView>
+<Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="500" MaximumHeightRequest="700">
+<Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+<Grid RowDefinitions="Auto,*,Auto">
+<!-- Header -->
+<Grid Padding="20,15,15,15" BackgroundColor="#FF9800">
+<Label Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+<Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
+</Grid>
+<!-- Content -->
+<ScrollView Grid.Row="1" Padding="20">
+<VerticalStackLayout Spacing="15">
+<Border StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" HorizontalOptions="Center">
+<Image x:Name="BildDetailImage" WidthRequest="280" HeightRequest="280" Aspect="AspectFill"/>
+</Border>
+<Label x:Name="BildDetailDatum" Text="" FontSize="12" TextColor="#999"/>
+<VerticalStackLayout Spacing="5">
+<Label Text="Notiz:" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+<Editor x:Name="BildDetailNotizEditor" Placeholder="Notiz zum Bild..." HeightRequest="100" FontSize="15" BackgroundColor="#f5f5f5"/>
+</VerticalStackLayout>
+</VerticalStackLayout>
+</ScrollView>
+<!-- Footer Buttons -->
+<Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*" ColumnSpacing="10" BackgroundColor="#f8f9fa">
+<Button Text="Loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteBildDetailClicked"/>
+<Button Grid.Column="1" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseBildDetailClicked"/>
+<Button Grid.Column="2" x:Name="SaveBildDetailButton" Text="Speichern" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveBildDetailClicked"/>
+</Grid>
+</Grid>
+</Border>
+</Grid>
 </Grid>
 </ContentPage>
