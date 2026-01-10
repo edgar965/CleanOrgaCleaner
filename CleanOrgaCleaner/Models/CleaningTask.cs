@@ -43,6 +43,9 @@ public class CleaningTask
     [JsonPropertyName("checklist_status")]
     public Dictionary<string, bool>? ChecklistStatus { get; set; }
 
+    [JsonPropertyName("bilder")]
+    public List<BildStatus>? Bilder { get; set; }
+
     [JsonPropertyName("probleme")]
     public List<Problem>? Probleme { get; set; }
 

@@ -365,6 +365,36 @@ public class ApiService
 
     #endregion
 
+    public async Task<ApiResponse> UpdateTaskNotesAsync(int taskId, string notes)
+    {
+        return await SaveTaskNoteAsync(taskId, notes);
+    }
+
+    public async Task<ApiResponse> UploadBildStatusAsync(int taskId, string imagePath, string notiz)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            var bytes = await File.ReadAllBytesAsync(imagePath);
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            formData.Add(fileContent, "image", Path.GetFileName(imagePath));
+            if (!string.IsNullOrEmpty(notiz))
+                formData.Add(new StringContent(notiz), "notiz");
+
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: {response.StatusCode} - {responseText}");
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #region Chat
 
     public async Task<List<ChatMessage>> GetChatMessagesAsync()

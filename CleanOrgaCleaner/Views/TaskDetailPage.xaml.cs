@@ -12,6 +12,7 @@ public partial class TaskDetailPage : ContentPage
     private int _taskId;
     private CleaningTask? _task;
     private List<string> _selectedPhotoPaths = new();
+    private string? _selectedBildPath;
 
     public string TaskId
     {
@@ -63,6 +64,7 @@ public partial class TaskDetailPage : ContentPage
             BuildChecklist();
             NotesEditor.Text = _task.AnmerkungMitarbeiter ?? "";
             BuildProblems();
+            LoadBilder();
         }
         catch (Exception ex)
         {
@@ -313,4 +315,114 @@ public partial class TaskDetailPage : ContentPage
     }
 
     private void OnCancelProblemClicked(object sender, EventArgs e) { ProblemPopupOverlay.IsVisible = false; }
+
+    // Cancel button - go back
+    private async void OnCancelClicked(object sender, EventArgs e) { await Shell.Current.GoToAsync(".."); }
+
+    // Save notes when editor loses focus
+    private async void OnNotesEditorUnfocused(object sender, FocusEventArgs e)
+    {
+        if (_task == null) return;
+        var newNotes = NotesEditor.Text?.Trim() ?? "";
+        if (newNotes == (_task.AnmerkungMitarbeiter ?? "")) return;
+        try
+        {
+            NotesStatusLabel.Text = "Speichern...";
+            var response = await _apiService.UpdateTaskNotesAsync(_taskId, newNotes);
+            if (response.Success)
+            {
+                _task.AnmerkungMitarbeiter = newNotes;
+                NotesStatusLabel.Text = "Gespeichert";
+                await Task.Delay(2000);
+                NotesStatusLabel.Text = "";
+            }
+            else NotesStatusLabel.Text = "Fehler: " + (response.Error ?? "");
+        }
+        catch { NotesStatusLabel.Text = "Fehler beim Speichern"; }
+    }
+
+    // Bilder section
+    private void LoadBilder()
+    {
+        BilderStack.Children.Clear();
+        if (_task?.Bilder == null || _task.Bilder.Count == 0) return;
+        foreach (var bild in _task.Bilder)
+        {
+            var container = new Border { StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 }, Stroke = Colors.Transparent, Margin = new Thickness(0,0,8,8) };
+            var image = new Image { Source = bild.Url, WidthRequest = 80, HeightRequest = 80, Aspect = Aspect.AspectFill };
+            container.Content = image;
+            BilderStack.Children.Add(container);
+        }
+    }
+
+    private void OnAddBildClicked(object sender, EventArgs e)
+    {
+        _selectedBildPath = null;
+        BildPreviewBorder.IsVisible = false;
+        BildNotizEditor.Text = "";
+        SaveBildButton.IsEnabled = false;
+        BildPopupOverlay.IsVisible = true;
+    }
+
+    private void OnBildPopupBackgroundTapped(object sender, EventArgs e) { BildPopupOverlay.IsVisible = false; }
+    private void OnCancelBildClicked(object sender, EventArgs e) { BildPopupOverlay.IsVisible = false; }
+
+    private async void OnBildTakePhotoClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK"); return; }
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            if (photo != null)
+            {
+                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+                using var stream = await photo.OpenReadAsync();
+                using var newStream = File.OpenWrite(localPath);
+                await stream.CopyToAsync(newStream);
+                _selectedBildPath = localPath;
+                BildPreviewImage.Source = ImageSource.FromFile(localPath);
+                BildPreviewBorder.IsVisible = true;
+                SaveBildButton.IsEnabled = true;
+            }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}"); }
+    }
+
+    private async void OnBildPickPhotoClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var photo = await MediaPicker.Default.PickPhotoAsync();
+            if (photo != null)
+            {
+                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photo.FileName);
+                using var stream = await photo.OpenReadAsync();
+                using var newStream = File.OpenWrite(localPath);
+                await stream.CopyToAsync(newStream);
+                _selectedBildPath = localPath;
+                BildPreviewImage.Source = ImageSource.FromFile(localPath);
+                BildPreviewBorder.IsVisible = true;
+                SaveBildButton.IsEnabled = true;
+            }
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}"); }
+    }
+
+    private async void OnSaveBildClicked(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_selectedBildPath)) return;
+        BildPopupOverlay.IsVisible = false;
+        try
+        {
+            var notiz = BildNotizEditor.Text?.Trim() ?? "";
+            var response = await _apiService.UploadBildStatusAsync(_taskId, _selectedBildPath, notiz);
+            if (response.Success)
+            {
+                await DisplayAlert("Gespeichert", "Bild wurde hochgeladen", "OK");
+                await LoadTaskAsync();
+            }
+            else await DisplayAlert("Fehler", response.Error ?? "Upload fehlgeschlagen", "OK");
+        }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Upload Bild error: {ex.Message}"); await DisplayAlert("Fehler", "Bild konnte nicht hochgeladen werden", "OK"); }
+    }
 }
