@@ -57,6 +57,19 @@
                            IsPassword="True"
                            FontSize="18"/>
 
+                    <!-- Auto-Login Checkbox -->
+                    <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
+                        <CheckBox x:Name="RememberMeCheckbox" Color="#667eea" />
+                        <Label Text="Angemeldet bleiben"
+                               TextColor="#666"
+                               FontSize="14"
+                               VerticalOptions="Center">
+                            <Label.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnRememberMeLabelTapped"/>
+                            </Label.GestureRecognizers>
+                        </Label>
+                    </HorizontalStackLayout>
+
                     <Button x:Name="LoginButton"
                             Text="Anmelden"
                             BackgroundColor="#667eea"
@@ -78,7 +91,7 @@
             </Border>
 
             <!-- Version -->
-            <Label Text="v0.40"
+            <Label Text="v0.41"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

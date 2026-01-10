@@ -111,14 +111,34 @@ public partial class SettingsPage : ContentPage
         // Clear stored credentials
         Preferences.Remove("property_id");
         Preferences.Remove("username");
-        Preferences.Remove("password");
         Preferences.Remove("language");
         Preferences.Remove("is_logged_in");
+        Preferences.Remove("remember_me");
+
+        // Clear secure storage
+        SecureStorage.Remove("password");
 
         // Disconnect WebSocket
         WebSocketService.Instance.Dispose();
 
         // Navigate to login page
         await Shell.Current.GoToAsync("//LoginPage");
+    }
+
+    private async void OnExitClicked(object? sender, EventArgs e)
+    {
+        var confirm = await DisplayAlert(
+            "App beenden",
+            "Moechtest du die App wirklich beenden?",
+            "Ja", "Nein");
+
+        if (!confirm)
+            return;
+
+        // Disconnect WebSocket
+        WebSocketService.Instance.Dispose();
+
+        // Exit the application
+        Application.Current?.Quit();
     }
 }

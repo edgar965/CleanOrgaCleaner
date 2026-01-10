@@ -25,8 +25,28 @@ public partial class ChatPage : ContentPage
     {
         base.OnAppearing();
 
+        // Check for pending message from notification
+        if (App.PendingChatMessage != null)
+        {
+            // Small delay to ensure message is saved on server
+            await Task.Delay(500);
+        }
+
         // Load existing messages
         await LoadMessagesAsync();
+
+        // Add pending message if not already in list
+        if (App.PendingChatMessage != null)
+        {
+            var pending = App.PendingChatMessage;
+            App.PendingChatMessage = null;
+
+            // Check if message is already in the list
+            if (!_messages.Any(m => m.Id == pending.Id))
+            {
+                _messages.Insert(0, pending);
+            }
+        }
 
         // Connect WebSocket for real-time updates
         WebSocketService.Instance.OnChatMessageReceived += OnNewMessageReceived;
@@ -43,31 +63,13 @@ public partial class ChatPage : ContentPage
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Add to collection (messages displayed newest first)
-            _messages.Insert(0, message);
-
-            // Show notification if from admin
-            if (!message.FromCleaner)
+            // Check if message already exists (avoid duplicates)
+            if (!_messages.Any(m => m.Id == message.Id))
             {
-                ShowNewMessageNotification(message);
+                // Add to collection (messages displayed newest first)
+                _messages.Insert(0, message);
             }
         });
-    }
-
-    private async void ShowNewMessageNotification(ChatMessage message)
-    {
-        // Vibrate
-        try
-        {
-            Vibration.Vibrate(TimeSpan.FromMilliseconds(200));
-        }
-        catch { }
-
-        // Show alert
-        await DisplayAlert(
-            $"Neue Nachricht von {message.Sender}",
-            message.DisplayText,
-            "OK");
     }
 
     private async Task LoadMessagesAsync()

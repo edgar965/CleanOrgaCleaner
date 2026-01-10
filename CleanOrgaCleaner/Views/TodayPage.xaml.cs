@@ -31,6 +31,9 @@ public partial class TodayPage : ContentPage
         // Set date
         DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
 
+        // Ensure WebSocket is connected (for auto-login case)
+        _ = App.InitializeWebSocketAsync();
+
         // Load data
         await LoadDataAsync();
     }
@@ -228,13 +231,14 @@ public partial class TodayPage : ContentPage
         {
             if (_isWorking)
             {
-                // Show confirmation dialog
+                // Show confirmation dialog with visible cancel button
                 var result = await DisplayActionSheet(
                     Translations.Get("cleaning_finished"),
-                    Translations.Get("cancel"),
-                    null,
+                    null,  // No hidden cancel
+                    null,  // No destructive button
                     Translations.Get("yes"),
-                    Translations.Get("no"));
+                    Translations.Get("no"),
+                    Translations.Get("cancel"));  // Cancel as visible option
 
                 if (result == Translations.Get("yes"))
                 {
@@ -352,6 +356,8 @@ public partial class TodayPage : ContentPage
             Preferences.Remove("is_logged_in");
             Preferences.Remove("property_id");
             Preferences.Remove("username");
+            Preferences.Remove("remember_me");
+            SecureStorage.Remove("password");
 
             // Clear API service
             _apiService.Logout();
