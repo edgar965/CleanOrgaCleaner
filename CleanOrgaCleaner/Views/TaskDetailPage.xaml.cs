@@ -9,6 +9,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class TaskDetailPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private int _taskId;
     private CleaningTask? _task;
     private List<(string FileName, byte[] Bytes)> _selectedPhotos = new(); // Store photo bytes for Problem
@@ -29,6 +30,7 @@ public partial class TaskDetailPage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     public TaskDetailPage(int taskId) : this() { _taskId = taskId; }
@@ -36,8 +38,33 @@ public partial class TaskDetailPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Subscribe to connection status
+        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        UpdateOfflineBanner(!_webSocketService.IsOnline);
+
         ApplyTranslations();
         await LoadTaskAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+
+    private void OnConnectionStatusChanged(bool isConnected)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            UpdateOfflineBanner(!isConnected);
+        });
+    }
+
+    private void UpdateOfflineBanner(bool showOffline)
+    {
+        OfflineBanner.IsVisible = showOffline;
+        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()

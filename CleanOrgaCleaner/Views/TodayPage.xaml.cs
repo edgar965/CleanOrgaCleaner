@@ -12,6 +12,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class TodayPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private bool _isWorking = false;
     private List<CleaningTask> _tasks = new();
 
@@ -19,11 +20,16 @@ public partial class TodayPage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Subscribe to connection status
+        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        UpdateOfflineBanner(!_webSocketService.IsOnline);
 
         // Apply translations
         ApplyTranslations();
@@ -36,6 +42,26 @@ public partial class TodayPage : ContentPage
 
         // Load data
         await LoadDataAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+
+    private void OnConnectionStatusChanged(bool isConnected)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            UpdateOfflineBanner(!isConnected);
+        });
+    }
+
+    private void UpdateOfflineBanner(bool showOffline)
+    {
+        OfflineBanner.IsVisible = showOffline;
+        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()

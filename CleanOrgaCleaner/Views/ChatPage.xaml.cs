@@ -9,15 +9,28 @@ namespace CleanOrgaCleaner.Views;
 /// Chat page for messaging with admin
 /// Supports translations and real-time updates via WebSocket
 /// </summary>
-public partial class ChatPage : ContentPage
+public partial class ChatPage : ContentPage, IQueryAttributable
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private readonly ObservableCollection<ChatMessage> _messages;
+    private string _partnerId = "admin";
+    private string _partnerName = "Admin";
+
+    public void ApplyQueryAttributes(IDictionary<string, object> query)
+    {
+        if (query.ContainsKey("partner"))
+        {
+            _partnerId = query["partner"]?.ToString() ?? "admin";
+            _partnerName = _partnerId == "admin" ? "Admin" : "Kollege";
+        }
+    }
 
     public ChatPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
         _messages = new ObservableCollection<ChatMessage>();
         MessagesCollection.ItemsSource = _messages;
 
@@ -39,6 +52,11 @@ public partial class ChatPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Subscribe to connection status
+        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        UpdateOfflineBanner(!_webSocketService.IsOnline);
+
         ApplyTranslations();
 
         // Check for pending message from notification
@@ -65,14 +83,29 @@ public partial class ChatPage : ContentPage
         }
 
         // Connect WebSocket for real-time updates
-        WebSocketService.Instance.OnChatMessageReceived += OnNewMessageReceived;
-        await WebSocketService.Instance.ConnectChatAsync();
+        _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
+        await _webSocketService.ConnectChatAsync();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        WebSocketService.Instance.OnChatMessageReceived -= OnNewMessageReceived;
+        _webSocketService.OnChatMessageReceived -= OnNewMessageReceived;
+        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+
+    private void OnConnectionStatusChanged(bool isConnected)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            UpdateOfflineBanner(!isConnected);
+        });
+    }
+
+    private void UpdateOfflineBanner(bool showOffline)
+    {
+        OfflineBanner.IsVisible = showOffline;
+        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()
@@ -165,7 +198,7 @@ public partial class ChatPage : ContentPage
 
         try
         {
-            var response = await _apiService.SendChatMessageAsync(text);
+            var response = await _apiService.SendChatMessageAsync(text, _partnerId);
 
             if (response.Success && response.Message != null)
             {

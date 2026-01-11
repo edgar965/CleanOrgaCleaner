@@ -22,10 +22,10 @@
             ContentTemplate="{DataTemplate views:TodayPage}" />
 
         <ShellContent
-            Title="Chat"
+            Title="Chats"
             Icon="{OnPlatform Android='chat_icon.png', Default=''}"
-            Route="ChatPage"
-            ContentTemplate="{DataTemplate views:ChatPage}" />
+            Route="ChatListPage"
+            ContentTemplate="{DataTemplate views:ChatListPage}" />
 
         <ShellContent
             Title="Einstellungen"

@@ -9,6 +9,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class SettingsPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private readonly Dictionary<int, string> _languageMap = new()
     {
         { 0, "de" },  // Deutsch
@@ -25,14 +26,40 @@ public partial class SettingsPage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
+
+        // Subscribe to connection status
+        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        UpdateOfflineBanner(!_webSocketService.IsOnline);
+
         ApplyTranslations();
         LoadUserInfo();
         LoadCurrentLanguage();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+
+    private void OnConnectionStatusChanged(bool isConnected)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            UpdateOfflineBanner(!isConnected);
+        });
+    }
+
+    private void UpdateOfflineBanner(bool showOffline)
+    {
+        OfflineBanner.IsVisible = showOffline;
+        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()

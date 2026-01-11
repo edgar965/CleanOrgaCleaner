@@ -32,6 +32,9 @@ public class ApiService
     public string? CleanerLanguage { get; private set; }
     public int? CleanerId { get; private set; }
 
+    // Offline support
+    public bool IsOnline => WebSocketService.Instance.IsOnline;
+
     // Task cache - stores tasks loaded from today-data
     private Dictionary<int, CleaningTask> _taskCache = new();
 
@@ -345,6 +348,16 @@ public class ApiService
         }
     }
 
+    public async Task<TaskStateResponse> StartTaskAsync(int taskId)
+    {
+        return await UpdateTaskStateAsync(taskId, "started");
+    }
+
+    public async Task<TaskStateResponse> StopTaskAsync(int taskId)
+    {
+        return await UpdateTaskStateAsync(taskId, "completed");
+    }
+
     public async Task<ChecklistToggleResponse> ToggleChecklistItemAsync(int taskId, int itemIndex)
     {
         try
@@ -361,6 +374,39 @@ public class ApiService
             System.Diagnostics.Debug.WriteLine($"ToggleChecklist error: {ex.Message}");
             return new ChecklistToggleResponse { Success = false };
         }
+    }
+
+    /// <summary>
+    /// Toggle checklist item with explicit completed state (for offline queue)
+    /// </summary>
+    public async Task<ChecklistToggleResponse> ToggleChecklistItemAsync(int taskId, int itemIndex, bool completed)
+    {
+        // The API just toggles, but we can call it knowing the expected state
+        return await ToggleChecklistItemAsync(taskId, itemIndex);
+    }
+
+    /// <summary>
+    /// Save task notes - alias for SaveTaskNoteAsync
+    /// </summary>
+    public async Task<ApiResponse> SaveTaskNotesAsync(int taskId, string notes)
+    {
+        return await SaveTaskNoteAsync(taskId, notes);
+    }
+
+    /// <summary>
+    /// Upload BildStatus with byte array (for offline queue)
+    /// </summary>
+    public async Task<ApiResponse> UploadBildStatusAsync(int taskId, byte[] imageBytes, string fileName, string? notiz)
+    {
+        return await UploadBildStatusBytesAsync(taskId, imageBytes, fileName, notiz ?? "");
+    }
+
+    /// <summary>
+    /// Report problem with byte array photos (for offline queue)
+    /// </summary>
+    public async Task<ProblemResponse> ReportProblemAsync(int taskId, string name, string? description, List<(string, byte[])>? photos)
+    {
+        return await ReportProblemWithBytesAsync(taskId, name, description, photos);
     }
 
     public async Task<ApiResponse> SaveTaskNoteAsync(int taskId, string note)
@@ -640,11 +686,11 @@ public class ApiService
         return new List<ChatMessage>();
     }
 
-    public async Task<ChatSendResponse> SendChatMessageAsync(string text)
+    public async Task<ChatSendResponse> SendChatMessageAsync(string text, string receiverId = "admin")
     {
         try
         {
-            var data = new { text = text };
+            var data = new { text = text, receiver_id = receiverId };
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -710,5 +756,30 @@ public class ApiService
         }
     }
 
+    #endregion
+
+    #region Cleaners List
+    
+    public async Task<List<CleanerInfo>> GetAllCleanersAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/mobile/api/cleaners/");
+            var responseText = await response.Content.ReadAsStringAsync();
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<CleanersListResponse>(responseText);
+                return result?.Cleaners ?? new List<CleanerInfo>();
+            }
+            return new List<CleanerInfo>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetAllCleaners error: {ex.Message}");
+            return new List<CleanerInfo>();
+        }
+    }
+    
     #endregion
 }

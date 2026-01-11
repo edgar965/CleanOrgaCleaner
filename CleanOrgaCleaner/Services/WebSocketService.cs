@@ -14,14 +14,33 @@ public class WebSocketService : IDisposable
     private ClientWebSocket? _taskSocket;
     private CancellationTokenSource? _chatCts;
     private CancellationTokenSource? _taskCts;
-    private int _reconnectAttempts = 0;
-    private const int MaxReconnectAttempts = 5;
+    private int _chatReconnectAttempts = 0;
+    private int _taskReconnectAttempts = 0;
+    private const int MaxReconnectDelay = 30000; // 30 seconds max
+    private const int InitialReconnectDelay = 1000; // 1 second initial
     private const string WsBaseUrl = "wss://cleanorga.com";
+    private bool _isOnline = false;
+    private bool _shouldReconnect = true;
 
     // Events for UI updates
     public event Action<ChatMessage>? OnChatMessageReceived;
     public event Action<string>? OnTaskUpdate;
     public event Action<bool>? OnConnectionStatusChanged;
+
+    /// <summary>
+    /// Indicates if the WebSocket connections are currently online
+    /// </summary>
+    public bool IsOnline => _isOnline;
+
+    /// <summary>
+    /// Indicates if chat WebSocket is connected
+    /// </summary>
+    public bool IsChatConnected => _chatSocket?.State == WebSocketState.Open;
+
+    /// <summary>
+    /// Indicates if tasks WebSocket is connected
+    /// </summary>
+    public bool IsTasksConnected => _taskSocket?.State == WebSocketState.Open;
 
     private static WebSocketService? _instance;
     public static WebSocketService Instance => _instance ??= new WebSocketService();
@@ -58,19 +77,29 @@ public class WebSocketService : IDisposable
 
             if (_chatSocket.State == WebSocketState.Open)
             {
-                _reconnectAttempts = 0;
+                _chatReconnectAttempts = 0;
+                var wasOffline = !_isOnline;
+                _isOnline = true;
                 OnConnectionStatusChanged?.Invoke(true);
                 System.Diagnostics.Debug.WriteLine("Chat WebSocket connected");
 
                 // Start listening for messages
                 _ = ListenForChatMessagesAsync();
+
+                // Process offline queue if we were offline
+                if (wasOffline)
+                {
+                    _ = ProcessOfflineQueueAsync();
+                }
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Chat WebSocket error: {ex.Message}");
+            _isOnline = false;
             OnConnectionStatusChanged?.Invoke(false);
-            await TryReconnectChatAsync();
+            if (_shouldReconnect)
+                await TryReconnectChatAsync();
         }
     }
 
@@ -105,6 +134,7 @@ public class WebSocketService : IDisposable
 
             if (_taskSocket.State == WebSocketState.Open)
             {
+                _taskReconnectAttempts = 0;
                 System.Diagnostics.Debug.WriteLine("Tasks WebSocket connected");
                 _ = ListenForTaskUpdatesAsync();
             }
@@ -112,6 +142,8 @@ public class WebSocketService : IDisposable
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Tasks WebSocket error: {ex.Message}");
+            if (_shouldReconnect)
+                await TryReconnectTasksAsync();
         }
     }
 
@@ -153,8 +185,10 @@ public class WebSocketService : IDisposable
             System.Diagnostics.Debug.WriteLine($"Chat listen error: {ex.Message}");
         }
 
+        _isOnline = false;
         OnConnectionStatusChanged?.Invoke(false);
-        await TryReconnectChatAsync();
+        if (_shouldReconnect)
+            await TryReconnectChatAsync();
     }
 
     private async Task ListenForTaskUpdatesAsync()
@@ -193,6 +227,9 @@ public class WebSocketService : IDisposable
         {
             System.Diagnostics.Debug.WriteLine($"Task listen error: {ex.Message}");
         }
+
+        if (_shouldReconnect)
+            await TryReconnectTasksAsync();
     }
 
     private void ProcessChatMessage(string json)
@@ -250,18 +287,55 @@ public class WebSocketService : IDisposable
 
     private async Task TryReconnectChatAsync()
     {
-        if (_reconnectAttempts >= MaxReconnectAttempts)
-        {
-            System.Diagnostics.Debug.WriteLine("Max reconnect attempts reached");
-            return;
-        }
+        if (!_shouldReconnect) return;
 
-        _reconnectAttempts++;
-        var delay = Math.Min(1000 * Math.Pow(2, _reconnectAttempts), 30000);
-        System.Diagnostics.Debug.WriteLine($"Reconnecting in {delay}ms (attempt {_reconnectAttempts})");
+        _chatReconnectAttempts++;
+        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _chatReconnectAttempts - 1), MaxReconnectDelay);
+        System.Diagnostics.Debug.WriteLine($"Chat reconnecting in {delay}ms (attempt {_chatReconnectAttempts})");
 
         await Task.Delay((int)delay);
-        await ConnectChatAsync();
+        if (_shouldReconnect)
+            await ConnectChatAsync();
+    }
+
+    private async Task TryReconnectTasksAsync()
+    {
+        if (!_shouldReconnect) return;
+
+        _taskReconnectAttempts++;
+        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _taskReconnectAttempts - 1), MaxReconnectDelay);
+        System.Diagnostics.Debug.WriteLine($"Tasks reconnecting in {delay}ms (attempt {_taskReconnectAttempts})");
+
+        await Task.Delay((int)delay);
+        if (_shouldReconnect)
+            await ConnectTasksAsync();
+    }
+
+    /// <summary>
+    /// Force reconnect both WebSockets (e.g., when coming back online)
+    /// </summary>
+    public async Task ReconnectAsync()
+    {
+        _shouldReconnect = true;
+        _chatReconnectAttempts = 0;
+        _taskReconnectAttempts = 0;
+        await Task.WhenAll(ConnectChatAsync(), ConnectTasksAsync());
+    }
+
+    /// <summary>
+    /// Process offline queue after coming back online
+    /// </summary>
+    private async Task ProcessOfflineQueueAsync()
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine("[WebSocket] Processing offline queue...");
+            await OfflineQueueService.Instance.ProcessQueueAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WebSocket] Error processing offline queue: {ex.Message}");
+        }
     }
 
     /// <summary>
@@ -269,6 +343,7 @@ public class WebSocketService : IDisposable
     /// </summary>
     public async Task DisconnectAsync()
     {
+        _shouldReconnect = false;
         _chatCts?.Cancel();
         _taskCts?.Cancel();
 
@@ -290,6 +365,7 @@ public class WebSocketService : IDisposable
             catch { }
         }
 
+        _isOnline = false;
         OnConnectionStatusChanged?.Invoke(false);
     }
 
