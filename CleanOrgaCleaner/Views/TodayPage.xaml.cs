@@ -75,6 +75,12 @@ public partial class TodayPage : ContentPage
 
         // Menu button shows current view
         MenuButton.Text = $"{t("today")} ▼";
+        
+        // Menu items
+        MenuTodayLabel.Text = $"🏠 {t("today")}";
+        MenuChatLabel.Text = $"💬 {t("chat")}";
+        MenuMyTasksLabel.Text = $"📋 {t("new_task")}";
+        MenuSettingsLabel.Text = $"⚙️ {t("settings")}";
 
         System.Diagnostics.Debug.WriteLine($"[TodayPage] Language: {Translations.CurrentLanguage}");
     }
@@ -357,7 +363,13 @@ public partial class TodayPage : ContentPage
     private async void OnMenuChatClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatPage");
+        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
+    }
+
+    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
     }
 
     private async void OnMenuSettingsClicked(object sender, EventArgs e)

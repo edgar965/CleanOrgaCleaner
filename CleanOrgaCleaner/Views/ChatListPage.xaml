@@ -13,8 +13,8 @@
         <Grid Grid.Row="0" Padding="15,45,15,15">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#667eea" Offset="0"/>
-                    <GradientStop Color="#764ba2" Offset="1"/>
+                    <GradientStop Color="#2196F3" Offset="0"/>
+                    <GradientStop Color="#1976D2" Offset="1"/>
                 </LinearGradientBrush>
             </Grid.Background>
 
@@ -28,33 +28,54 @@
                     <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
                 </HorizontalStackLayout>
 
-                <Label Grid.Column="1" Text="Chats" FontSize="18" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                <!-- Menu Dropdown Button -->
+                <Button Grid.Column="1"
+                        x:Name="MenuButton"
+                        Text="Chat ▼"
+                        BackgroundColor="#1565C0"
+                        TextColor="White"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        HorizontalOptions="Center"
+                        Clicked="OnMenuButtonClicked"/>
+
+                <Button Grid.Column="2"
+                        x:Name="LogoutButton"
+                        Text="Logout"
+                        BackgroundColor="#1565C0"
+                        TextColor="White"
+                        FontSize="13"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        Clicked="OnLogoutClicked"/>
             </Grid>
         </Grid>
 
         <!-- Content -->
-        <ScrollView Grid.Row="1" Padding="15">
+        <ScrollView Grid.Row="1" Padding="15,15,15,50">
             <VerticalStackLayout Spacing="15">
                 
                 <!-- Header Card -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Nachrichten" FontSize="20" FontAttributes="Bold" TextColor="#333"/>
-                        <Label Text="Waehle einen Kontakt" FontSize="14" TextColor="#666"/>
+                        <Label x:Name="MessagesLabel" Text="Nachrichten" FontSize="20" FontAttributes="Bold" TextColor="#333"/>
+                        <Label x:Name="SelectContactLabel" Text="Waehle einen Kontakt" FontSize="14" TextColor="#666"/>
                     </VerticalStackLayout>
                 </Border>
 
                 <!-- Admin Section -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
                     <VerticalStackLayout>
-                        <Label Text="ADMINISTRATION" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
+                        <Label x:Name="AdminSectionLabel" Text="ADMINISTRATION" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
                         
                         <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
                             <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="Transparent">
                                 <Border.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#667eea" Offset="0"/>
-                                        <GradientStop Color="#764ba2" Offset="1"/>
+                                        <GradientStop Color="#2196F3" Offset="0"/>
+                                        <GradientStop Color="#1976D2" Offset="1"/>
                                     </LinearGradientBrush>
                                 </Border.Background>
                                 <Label Text="A" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
@@ -73,7 +94,7 @@
                 <!-- Colleagues Section -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
                     <VerticalStackLayout>
-                        <Label Text="KOLLEGEN" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
+                        <Label x:Name="ColleaguesSectionLabel" Text="KOLLEGEN" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
                         
                         <CollectionView x:Name="CleanersCollection" SelectionMode="None">
                             <CollectionView.ItemTemplate>
@@ -104,6 +125,65 @@
 
             </VerticalStackLayout>
         </ScrollView>
+
+
+        <!-- Menu Overlay -->
+        <Grid x:Name="MenuOverlayGrid"
+              Grid.RowSpan="2"
+              IsVisible="False"
+              ZIndex="1000">
+
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnOverlayTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border StrokeShape="RoundRectangle 12"
+                    Stroke="Transparent"
+                    Padding="0"
+                    Margin="60,95,60,0"
+                    VerticalOptions="Start">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2196F3" Offset="0"/>
+                        <GradientStop Color="#1976D2" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="0">
+                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuTodayClicked"/>
+                                </Border.GestureRecognizers>
+                                <Label x:Name="MenuTodayLabel" Text="🏠 Heute" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                            </Border>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
+                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuChatsClicked"/>
+                                </Border.GestureRecognizers>
+                                <Label x:Name="MenuChatLabel" Text="💬 Chat" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                            </Border>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
+                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuMyTasksClicked"/>
+                                </Border.GestureRecognizers>
+                                <Label x:Name="MenuMyTasksLabel" Text="📋 Neue Aufgabe" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                            </Border>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
+                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnMenuSettingsClicked"/>
+                                </Border.GestureRecognizers>
+                                <Label x:Name="MenuSettingsLabel" Text="⚙️ Einstellungen" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                            </Border>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
 
     </Grid>
 </ContentPage>

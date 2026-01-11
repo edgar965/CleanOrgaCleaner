@@ -13,8 +13,8 @@
         <Grid Grid.Row="0" Padding="15,45,15,15">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#667eea" Offset="0"/>
-                    <GradientStop Color="#764ba2" Offset="1"/>
+                    <GradientStop Color="#2196F3" Offset="0"/>
+                    <GradientStop Color="#1976D2" Offset="1"/>
                 </LinearGradientBrush>
             </Grid.Background>
 
@@ -33,7 +33,7 @@
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
                         Text="Aufgabe ▼"
-                        BackgroundColor="#ffffff33"
+                        BackgroundColor="#1565C0"
                         TextColor="White"
                         FontSize="13"
                         FontAttributes="Bold"
@@ -43,7 +43,7 @@
                         Clicked="OnMenuButtonClicked"/>
 
                 <!-- Apartment Badge -->
-                <Border Grid.Column="2" x:Name="TaskTypeBadge" BackgroundColor="#ffffff33" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,4">
+                <Border Grid.Column="2" x:Name="TaskTypeBadge" BackgroundColor="#1565C0" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,4">
                     <Label x:Name="TaskTypeLabel" Text="" FontSize="12" FontAttributes="Bold" TextColor="White"/>
                 </Border>
             </Grid>
@@ -73,7 +73,7 @@
             <VerticalStackLayout Spacing="15" Padding="15">
 
                 <!-- Header mit Apartment -->
-                <Label x:Name="ApartmentLabel" Text="" FontSize="28" FontAttributes="Bold" TextColor="#667eea"/>
+                <Label x:Name="ApartmentLabel" Text="" FontSize="28" FontAttributes="Bold" TextColor="#2196F3"/>
 
                 <!-- Wichtiger Hinweis -->
                 <Border x:Name="NoticeFrame" BackgroundColor="#fff8e1" Stroke="#ff9800" StrokeShape="RoundRectangle 20" Padding="20" IsVisible="False">
@@ -164,8 +164,8 @@
                     VerticalOptions="Start">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#667eea" Offset="0"/>
-                        <GradientStop Color="#764ba2" Offset="1"/>
+                        <GradientStop Color="#2196F3" Offset="0"/>
+                        <GradientStop Color="#1976D2" Offset="1"/>
                     </LinearGradientBrush>
                 </Border.Background>
                 <Border.Shadow>
@@ -296,7 +296,7 @@
                     <!-- Header -->
                     <Grid Padding="20,15,15,15" BackgroundColor="#2196F3">
                         <Label x:Name="BildDetailTitle" Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
-                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
+                        <Button Text="X" BackgroundColor="#2196F3" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
                     </Grid>
                     <!-- Content -->
                     <ScrollView Grid.Row="1" Padding="20">

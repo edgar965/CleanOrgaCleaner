@@ -91,6 +91,7 @@ public partial class SettingsPage : ContentPage
         // Menu items
         MenuTodayButton.Text = $"🏠 {t("today")}";
         MenuChatButton.Text = $"💬 {t("chat")}";
+        MenuMyTasksButton.Text = $"📋 {t("new_task")}";
         MenuSettingsButton.Text = $"⚙️ {t("settings")}";
     }
 
@@ -114,7 +115,13 @@ public partial class SettingsPage : ContentPage
     private async void OnMenuChatClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//ChatPage");
+        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
+    }
+
+    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
     }
 
     private void OnMenuSettingsClicked(object sender, EventArgs e)

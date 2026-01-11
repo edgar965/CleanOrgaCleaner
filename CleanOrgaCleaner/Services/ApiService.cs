@@ -782,4 +782,125 @@ public class ApiService
     }
     
     #endregion
+
+    #region My Tasks
+
+    public async Task<MyTasksPageDataResponse> GetMyTasksDataAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/mobile/api/my-tasks-data/");
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"GetMyTasksData: {response.StatusCode}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonSerializer.Deserialize<MyTasksPageDataResponse>(responseText, _jsonOptions)
+                    ?? new MyTasksPageDataResponse { Success = false, Error = "Parse error" };
+            }
+            return new MyTasksPageDataResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetMyTasksData error: {ex.Message}");
+            return new MyTasksPageDataResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<MyTaskDetailResponse> GetMyTaskAsync(int taskId)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/");
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonSerializer.Deserialize<MyTaskDetailResponse>(responseText, _jsonOptions)
+                    ?? new MyTaskDetailResponse { Success = false, Error = "Parse error" };
+            }
+            return new MyTaskDetailResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
+        }
+        catch (Exception ex)
+        {
+            return new MyTaskDetailResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> CreateMyTaskAsync(string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
+    {
+        try
+        {
+            var data = new
+            {
+                name = name,
+                planned_date = plannedDate,
+                apartment_id = apartmentId,
+                aufgabenart_id = aufgabenartId,
+                wichtiger_hinweis = hinweis ?? "",
+                status = status,
+                assignments = assignments ?? new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() }
+            };
+
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/mobile/api/task/create/", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"CreateMyTask: {response.StatusCode} - {responseText}");
+
+            // Check if response is JSON
+            if (string.IsNullOrWhiteSpace(responseText) || !responseText.TrimStart().StartsWith("{"))
+            {
+                return new ApiResponse { Success = false, Error = response.IsSuccessStatusCode ? "Ungueltiges Antwortformat" : $"Server-Fehler: {response.StatusCode}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> UpdateMyTaskAsync(int taskId, string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
+    {
+        try
+        {
+            var data = new
+            {
+                name = name,
+                planned_date = plannedDate,
+                apartment_id = apartmentId,
+                aufgabenart_id = aufgabenartId,
+                wichtiger_hinweis = hinweis ?? "",
+                status = status,
+                assignments = assignments ?? new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() }
+            };
+
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/update/", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UpdateMyTask: {response.StatusCode} - {responseText}");
+
+            // Check if response is JSON
+            if (string.IsNullOrWhiteSpace(responseText) || !responseText.TrimStart().StartsWith("{"))
+            {
+                return new ApiResponse { Success = false, Error = response.IsSuccessStatusCode ? "Ungueltiges Antwortformat" : $"Server-Fehler: {response.StatusCode}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    #endregion
+
 }

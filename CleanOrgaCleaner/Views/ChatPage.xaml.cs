@@ -112,7 +112,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         var t = Translations.Get;
         Title = t("chat");
-        HeaderLabel.Text = t("chat");
+        
         MessageEditor.Placeholder = t("message_placeholder");
         PreviewButton.Text = t("preview");
         SendButton.Text = t("send");
@@ -145,6 +145,12 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         MenuOverlayGrid.IsVisible = false;
         // Already on chat
+    }
+
+    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//MyTasksPage");
     }
 
     private async void OnMenuSettingsClicked(object sender, EventArgs e)
@@ -263,8 +269,48 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
     }
 
+    private async void OnCancelClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
+    }
+
+    private void OnReadAloudClicked(object sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.CommandParameter is string text)
+        {
+            SpeakText(text);
+        }
+    }
+
+    private async void SpeakText(string text)
+    {
+        try
+        {
+            var settings = new SpeechOptions
+            {
+                Pitch = 1.0f,
+                Volume = 1.0f
+            };
+            
+            // Get language from preferences
+            var lang = Preferences.Get("language", "de");
+            
+            await TextToSpeech.Default.SpeakAsync(text, settings);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
+        }
+    }
+
     private void OnClosePreviewClicked(object sender, EventArgs e)
     {
         TranslationPreview.IsVisible = false;
+    }
+
+    private async void OnLogoutClicked(object sender, EventArgs e)
+    {
+        _apiService.Logout();
+        await Shell.Current.GoToAsync("//LoginPage");
     }
 }

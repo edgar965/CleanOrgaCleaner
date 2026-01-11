@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
@@ -5,10 +7,18 @@ namespace CleanOrgaCleaner.Models;
 /// </summary>
 public class CleanerInfo
 {
+    [JsonPropertyName("id")]
     public int Id { get; set; }
+
+    [JsonPropertyName("name")]
     public string Name { get; set; } = "";
+
     public string Initial => string.IsNullOrEmpty(Name) ? "?" : Name[0].ToString().ToUpper();
+
+    [JsonPropertyName("unread_count")]
     public int UnreadCount { get; set; }
+
+    [JsonPropertyName("is_working")]
     public bool IsWorking { get; set; }
 }
 
@@ -17,6 +27,9 @@ public class CleanerInfo
 /// </summary>
 public class CleanersListResponse
 {
+    [JsonPropertyName("success")]
     public bool Success { get; set; }
+
+    [JsonPropertyName("cleaners")]
     public List<CleanerInfo> Cleaners { get; set; } = new();
 }

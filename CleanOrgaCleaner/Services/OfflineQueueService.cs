@@ -1,5 +1,6 @@
 using SQLite;
 using System.Text.Json;
+using CleanOrgaCleaner.Models;
 
 namespace CleanOrgaCleaner.Services;
 
@@ -156,6 +157,43 @@ public class OfflineQueueService : IDisposable
     }
 
     /// <summary>
+    /// Enqueue task creation for offline sync
+    /// </summary>
+    public async Task EnqueueTaskCreateAsync(string name, string? plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, object? assignments)
+    {
+        var payload = JsonSerializer.Serialize(new {
+            name,
+            plannedDate,
+            apartmentId,
+            aufgabenartId,
+            hinweis,
+            status,
+            assignments,
+            timestamp = DateTime.UtcNow
+        });
+        await EnqueueAsync("task_create", payload, priority: 2);
+    }
+
+    /// <summary>
+    /// Enqueue task update for offline sync
+    /// </summary>
+    public async Task EnqueueTaskUpdateAsync(int taskId, string name, string? plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, object? assignments)
+    {
+        var payload = JsonSerializer.Serialize(new {
+            taskId,
+            name,
+            plannedDate,
+            apartmentId,
+            aufgabenartId,
+            hinweis,
+            status,
+            assignments,
+            timestamp = DateTime.UtcNow
+        });
+        await EnqueueAsync("task_update", payload, priority: 2);
+    }
+
+    /// <summary>
     /// Generic enqueue method
     /// </summary>
     private async Task EnqueueAsync(string operationType, string payload, int priority)
@@ -279,6 +317,10 @@ public class OfflineQueueService : IDisposable
                 return await ProcessNotesAsync(item, apiService);
             case "problem":
                 return await ProcessProblemAsync(item, apiService);
+            case "task_create":
+                return await ProcessTaskCreateAsync(item, apiService);
+            case "task_update":
+                return await ProcessTaskUpdateAsync(item, apiService);
             default:
                 System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Unknown operation type: {item.OperationType}");
                 return true; // Remove unknown items
@@ -365,6 +407,47 @@ public class OfflineQueueService : IDisposable
         }
 
         var response = await api.ReportProblemAsync(taskId, name, description, photos);
+        return response.Success;
+    }
+
+    private async Task<bool> ProcessTaskCreateAsync(OfflineQueueItem item, ApiService api)
+    {
+        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
+        var name = data.GetProperty("name").GetString() ?? "";
+        var plannedDate = data.TryGetProperty("plannedDate", out var pdEl) ? pdEl.GetString() : null;
+        var apartmentId = data.TryGetProperty("apartmentId", out var aiEl) && aiEl.ValueKind != JsonValueKind.Null ? aiEl.GetInt32() : (int?)null;
+        var aufgabenartId = data.TryGetProperty("aufgabenartId", out var aaEl) && aaEl.ValueKind != JsonValueKind.Null ? aaEl.GetInt32() : (int?)null;
+        var hinweis = data.TryGetProperty("hinweis", out var hEl) ? hEl.GetString() : null;
+        var status = data.TryGetProperty("status", out var sEl) ? sEl.GetString() ?? "offen" : "offen";
+
+        TaskAssignments? assignments = null;
+        if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
+        {
+            assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
+        }
+
+        var response = await api.CreateMyTaskAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
+        return response.Success;
+    }
+
+    private async Task<bool> ProcessTaskUpdateAsync(OfflineQueueItem item, ApiService api)
+    {
+        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
+        var taskId = data.GetProperty("taskId").GetInt32();
+        var name = data.GetProperty("name").GetString() ?? "";
+        var plannedDate = data.TryGetProperty("plannedDate", out var pdEl) ? pdEl.GetString() : null;
+        var apartmentId = data.TryGetProperty("apartmentId", out var aiEl) && aiEl.ValueKind != JsonValueKind.Null ? aiEl.GetInt32() : (int?)null;
+        var aufgabenartId = data.TryGetProperty("aufgabenartId", out var aaEl) && aaEl.ValueKind != JsonValueKind.Null ? aaEl.GetInt32() : (int?)null;
+        var hinweis = data.TryGetProperty("hinweis", out var hEl) ? hEl.GetString() : null;
+        var status = data.TryGetProperty("status", out var sEl) ? sEl.GetString() ?? "offen" : "offen";
+
+        TaskAssignments? assignments = null;
+        if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
+        {
+            assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
+        }
+
+        var response = await api.UpdateMyTaskAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
         return response.Success;
     }
 

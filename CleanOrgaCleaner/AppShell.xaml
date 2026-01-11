@@ -17,19 +17,25 @@
     <TabBar Route="MainTabs">
         <ShellContent
             Title="Heute"
-            Icon="{OnPlatform Android='home_icon.png', Default=''}"
+            Icon="home_icon.png"
             Route="TodayPage"
             ContentTemplate="{DataTemplate views:TodayPage}" />
 
         <ShellContent
             Title="Chats"
-            Icon="{OnPlatform Android='chat_icon.png', Default=''}"
+            Icon="chat_icon.png"
             Route="ChatListPage"
             ContentTemplate="{DataTemplate views:ChatListPage}" />
 
         <ShellContent
+            Title="Aufgaben"
+            Icon="home_icon.png"
+            Route="MyTasksPage"
+            ContentTemplate="{DataTemplate views:MyTasksPage}" />
+
+        <ShellContent
             Title="Einstellungen"
-            Icon="{OnPlatform Android='settings_icon.png', Default=''}"
+            Icon="settings_icon.png"
             Route="SettingsPage"
             ContentTemplate="{DataTemplate views:SettingsPage}" />
     </TabBar>
