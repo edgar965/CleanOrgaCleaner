@@ -3,12 +3,14 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CleanOrgaCleaner.Views.ChatPage"
              Title="Chat"
-             BackgroundColor="#f5f5f5">
+             BackgroundColor="#f5f5f5"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
 
     <Grid RowDefinitions="Auto,*,Auto">
 
-        <!-- Header -->
-        <Grid Grid.Row="0" BackgroundColor="#667eea" Padding="15">
+        <!-- Header mit Menu - mit SafeArea Padding oben -->
+        <Grid Grid.Row="0" Padding="15,45,15,15">
             <Grid.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                     <GradientStop Color="#667eea" Offset="0"/>
@@ -16,11 +18,33 @@
                 </LinearGradientBrush>
             </Grid.Background>
 
-            <Label Text="Chat"
-                   FontSize="20"
-                   FontAttributes="Bold"
-                   TextColor="White"
-                   HorizontalOptions="Center"/>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Logo and App Name -->
+                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                    <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
+                        <Image.Clip>
+                            <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
+                        </Image.Clip>
+                    </Image>
+                    <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <!-- Menu Dropdown Button -->
+                <Button Grid.Column="1"
+                        x:Name="MenuButton"
+                        Text="Chat ▼"
+                        BackgroundColor="#ffffff33"
+                        TextColor="White"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        HorizontalOptions="Center"
+                        Clicked="OnMenuButtonClicked"/>
+
+                <!-- Header Label (hidden, for reference) -->
+                <Label Grid.Column="2" x:Name="HeaderLabel" IsVisible="False"/>
+            </Grid>
         </Grid>
 
         <!-- Messages List -->
@@ -192,5 +216,60 @@
                 </VerticalStackLayout>
             </VerticalStackLayout>
         </Border>
+
+        <!-- Dropdown Menu Overlay -->
+        <Grid x:Name="MenuOverlayGrid"
+              Grid.RowSpan="3"
+              IsVisible="False"
+              ZIndex="1000">
+
+            <!-- Background tap to close -->
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnOverlayTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <!-- Menu dropdown -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="Transparent"
+                    Padding="0"
+                    Margin="60,95,60,0"
+                    VerticalOptions="Start">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="0">
+                    <Button x:Name="MenuTodayButton"
+                            Text="🏠 Heute"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuTodayClicked"/>
+                    <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                    <Button x:Name="MenuChatButton"
+                            Text="💬 Chat"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuChatClicked"/>
+                    <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                    <Button x:Name="MenuSettingsButton"
+                            Text="⚙️ Einstellungen"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuSettingsClicked"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
     </Grid>
 </ContentPage>

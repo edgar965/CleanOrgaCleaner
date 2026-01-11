@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Models.Responses;
 
@@ -18,6 +19,13 @@ public class ApiService
 
     private static ApiService? _instance;
     private static readonly object _lock = new();
+
+    // JSON Serializer Options - wichtig für korrekte Deserialisierung
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     // Store cleaner info after login
     public string? CleanerName { get; private set; }
@@ -55,6 +63,8 @@ public class ApiService
             Timeout = TimeSpan.FromSeconds(30)
         };
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+        _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache, no-store");
+        _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
     }
 
     #region Authentication
@@ -79,7 +89,7 @@ public class ApiService
             var responseJson = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"Login response: {response.StatusCode} - {responseJson}");
 
-            var result = JsonSerializer.Deserialize<LoginResponse>(responseJson);
+            var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
 
             if (result?.Success == true)
             {
@@ -148,6 +158,40 @@ public class ApiService
         return string.Join("; ", cookieStrings);
     }
 
+    /// <summary>
+    /// Download an image with authentication cookies
+    /// </summary>
+    public async Task<ImageSource?> GetImageAsync(string url)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+
+            // Make URL absolute if relative
+            if (!url.StartsWith("http"))
+                url = $"{BaseUrl}{url}";
+
+            System.Diagnostics.Debug.WriteLine($"GetImageAsync: {url}");
+            var response = await _httpClient.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+                System.Diagnostics.Debug.WriteLine($"GetImageAsync: Got {bytes.Length} bytes");
+                return ImageSource.FromStream(() => new MemoryStream(bytes));
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"GetImageAsync: Failed {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetImageAsync error: {ex.Message}");
+        }
+        return null;
+    }
+
     #endregion
 
     #region Today / Tasks
@@ -156,20 +200,41 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/today-data/");
+            // Cache-Buster hinzufügen um sicherzustellen dass wir frische Daten bekommen
+            var cacheBuster = DateTime.Now.Ticks;
+            var response = await _httpClient.GetAsync($"/mobile/api/today-data/?_={cacheBuster}");
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"TodayData: {json}");
-                var data = JsonSerializer.Deserialize<TodayDataResponse>(json) ?? new TodayDataResponse();
-                
-                // Cache tasks for later use in TaskDetailPage
+                System.Diagnostics.Debug.WriteLine($"TodayData JSON length: {json.Length}");
+
+                // Check if bilder is in the response
+                if (json.Contains("\"bilder\""))
+                {
+                    System.Diagnostics.Debug.WriteLine("TodayData: 'bilder' field found in JSON");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("TodayData: WARNING - 'bilder' field NOT in JSON!");
+                }
+
+                var data = JsonSerializer.Deserialize<TodayDataResponse>(json, _jsonOptions) ?? new TodayDataResponse();
+
+                // Cache tasks and log bilder count
                 _taskCache.Clear();
                 foreach (var task in data.Tasks)
                 {
                     _taskCache[task.Id] = task;
+                    System.Diagnostics.Debug.WriteLine($"Task {task.Id}: Bilder={task.Bilder?.Count ?? 0}");
+                    if (task.Bilder != null)
+                    {
+                        foreach (var bild in task.Bilder)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"  Bild {bild.Id}: thumb='{bild.ThumbnailUrl}', full='{bild.FullUrl}'");
+                        }
+                    }
                 }
-                
+
                 return data;
             }
         }
@@ -180,22 +245,25 @@ public class ApiService
         return new TodayDataResponse();
     }
 
-    public async Task<CleaningTask?> GetTaskDetailAsync(int taskId)
+    public async Task<CleaningTask?> GetTaskDetailAsync(int taskId, bool forceRefresh = true)
     {
-        // First check cache (tasks loaded from today-data)
-        if (_taskCache.TryGetValue(taskId, out var cachedTask))
+        // Always reload to get fresh data with images
+        // forceRefresh=true by default to ensure images are loaded
+        if (!forceRefresh && _taskCache.TryGetValue(taskId, out var cachedTask))
         {
-            System.Diagnostics.Debug.WriteLine($"TaskDetail from cache: {taskId}");
+            System.Diagnostics.Debug.WriteLine($"TaskDetail from cache: {taskId}, Bilder: {cachedTask.Bilder?.Count ?? 0}");
             return cachedTask;
         }
 
-        // Fallback: reload today data to get fresh tasks
+        // Reload today data to get fresh tasks with images
         try
         {
             System.Diagnostics.Debug.WriteLine($"TaskDetail: reloading today data for task {taskId}");
+            _taskCache.Clear(); // Clear cache to force fresh data
             var todayData = await GetTodayDataAsync();
             if (_taskCache.TryGetValue(taskId, out var task))
             {
+                System.Diagnostics.Debug.WriteLine($"TaskDetail loaded: {taskId}, Bilder: {task.Bilder?.Count ?? 0}");
                 return task;
             }
         }
@@ -347,6 +415,37 @@ public class ApiService
         }
     }
 
+    public async Task<ProblemResponse> ReportProblemWithBytesAsync(int taskId, string name, string? beschreibung, List<(string FileName, byte[] Bytes)>? photos)
+    {
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(name), "name");
+            if (!string.IsNullOrEmpty(beschreibung))
+                formData.Add(new StringContent(beschreibung), "beschreibung");
+
+            if (photos != null)
+            {
+                foreach (var photo in photos)
+                {
+                    var fileContent = new ByteArrayContent(photo.Bytes);
+                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                    formData.Add(fileContent, "fotos", photo.FileName);
+                }
+            }
+
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData);
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<ProblemResponse>(responseText)
+                ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ProblemResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     public async Task<ApiResponse> DeleteProblemAsync(int problemId)
     {
         try
@@ -419,6 +518,50 @@ public class ApiService
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"UploadBildStatus: EXCEPTION - {ex.Message}\n{ex.StackTrace}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> UploadBildStatusBytesAsync(int taskId, byte[] imageBytes, string fileName, string notiz)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: Start - TaskId={taskId}, FileName={fileName}, Size={imageBytes.Length}");
+
+            var formData = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(imageBytes);
+
+            // Content-Type basierend auf Dateiendung
+            var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+
+            formData.Add(fileContent, "image", fileName);
+            if (!string.IsNullOrEmpty(notiz))
+                formData.Add(new StringContent(notiz), "notiz");
+
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: POST /api/task/{taskId}/bilder/upload/");
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: EXCEPTION - {ex.Message}\n{ex.StackTrace}");
             return new ApiResponse { Success = false, Error = ex.Message };
         }
     }

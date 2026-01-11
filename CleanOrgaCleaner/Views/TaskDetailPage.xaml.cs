@@ -11,8 +11,9 @@ public partial class TaskDetailPage : ContentPage
     private readonly ApiService _apiService;
     private int _taskId;
     private CleaningTask? _task;
-    private List<string> _selectedPhotoPaths = new();
+    private List<(string FileName, byte[] Bytes)> _selectedPhotos = new(); // Store photo bytes for Problem
     private string? _selectedBildPath;
+    private byte[]? _selectedBildBytes; // Store bytes in memory for BildStatus upload
     private BildStatus? _currentBildDetail;
 
     public string TaskId
@@ -35,7 +36,87 @@ public partial class TaskDetailPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        ApplyTranslations();
         await LoadTaskAsync();
+    }
+
+    private void ApplyTranslations()
+    {
+        var t = Translations.Get;
+        Title = t("task");
+
+        // Menu
+        MenuButton.Text = $"{t("task")} ▼";
+        MenuTodayButton.Text = $"🏠 {t("today")}";
+        MenuChatButton.Text = $"💬 {t("chat")}";
+        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+
+        // Content Labels
+        NoticeTitleLabel.Text = t("important_notice");
+        MyNotesLabel.Text = t("my_notes");
+        NotesEditor.Placeholder = t("note_placeholder");
+        ChecklistTitleLabel.Text = t("checklist");
+        ImagesTitleLabel.Text = t("images");
+
+        // Buttons
+        CancelButton.Text = t("cancel");
+        AddProblemButton.Text = $"⚠️ {t("report_problem")}";
+        AddBildButton.Text = $"+ {t("add_image").ToUpper()}";
+
+        // Problem Popup
+        ProblemPopupTitle.Text = t("report_problem");
+        ProblemNameLabel.Text = $"{t("problem_name")} *";
+        DescriptionLabel.Text = t("description");
+        PhotosLabel.Text = t("photos");
+        TakePhotoButton.Text = t("camera");
+        PickPhotoButton.Text = t("gallery");
+        SaveProblemButton.Text = t("save");
+        CancelProblemButton.Text = t("cancel");
+
+        // Bild Popup
+        BildPopupTitle.Text = t("add_image");
+        SelectImageLabel.Text = t("select_image");
+        BildTakePhotoButton.Text = t("camera");
+        BildPickPhotoButton.Text = t("gallery");
+        NoteLabel.Text = t("note");
+        SaveBildButton.Text = t("save");
+        CancelBildButton.Text = t("cancel");
+
+        // Bild Detail Popup
+        BildDetailTitle.Text = t("image_details");
+        BildDetailNoteLabel.Text = $"{t("note")}:";
+        DeleteBildButton.Text = t("delete");
+        CloseBildButton.Text = t("cancel");
+        SaveBildDetailButton.Text = t("save");
+    }
+
+    // Menu handling
+    private void OnMenuButtonClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private void OnOverlayTapped(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+    }
+
+    private async void OnMenuTodayClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//TodayPage");
+    }
+
+    private async void OnMenuChatClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//ChatPage");
+    }
+
+    private async void OnMenuSettingsClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//SettingsPage");
     }
 
     private async Task LoadTaskAsync()
@@ -77,20 +158,21 @@ public partial class TaskDetailPage : ContentPage
     private void UpdateStartStopButton()
     {
         if (_task == null) return;
+        var t = Translations.Get;
         switch (_task.StateCompleted)
         {
             case "not_started":
-                StartStopButton.Text = "Start";
+                StartStopButton.Text = t("start");
                 StartStopButton.BackgroundColor = Color.FromArgb("#9e9e9e");
                 StartStopButton.IsEnabled = true;
                 break;
             case "started":
-                StartStopButton.Text = "Beenden";
+                StartStopButton.Text = t("stop");
                 StartStopButton.BackgroundColor = Color.FromArgb("#2196F3");
                 StartStopButton.IsEnabled = true;
                 break;
             case "completed":
-                StartStopButton.Text = "Erledigt";
+                StartStopButton.Text = t("completed");
                 StartStopButton.BackgroundColor = Color.FromArgb("#4CAF50");
                 StartStopButton.IsEnabled = false;
                 break;
@@ -233,7 +315,7 @@ public partial class TaskDetailPage : ContentPage
     private void OnAddProblemClicked(object sender, EventArgs e)
     {
         ProblemNameEntry.Text = ""; ProblemDescriptionEditor.Text = "";
-        _selectedPhotoPaths.Clear(); UpdatePhotoPreview(); CharCountLabel.Text = "0 / 300";
+        _selectedPhotos.Clear(); UpdatePhotoPreview(); CharCountLabel.Text = "0 / 300";
         ProblemPopupOverlay.IsVisible = true;
     }
 
@@ -250,51 +332,63 @@ public partial class TaskDetailPage : ContentPage
     {
         try
         {
-            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK"); return; }
+            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfügbar", "OK"); return; }
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photo.FileName);
                 using var stream = await photo.OpenReadAsync();
-                using var newStream = File.OpenWrite(localPath);
-                await stream.CopyToAsync(newStream);
-                _selectedPhotoPaths.Add(localPath); UpdatePhotoPreview();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+                var fileName = $"problem_photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                _selectedPhotos.Add((fileName, bytes));
+                UpdatePhotoPreview();
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}"); await DisplayAlert("Fehler", "Kamera konnte nicht geoeffnet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}"); await DisplayAlert("Fehler", "Kamera konnte nicht geöffnet werden", "OK"); }
     }
 
     private async void OnPickPhotoClicked(object sender, EventArgs e)
     {
         try
         {
-            var photos = await MediaPicker.Default.PickPhotoAsync();
-            if (photos != null)
+            // FilePicker für bessere Android Scoped Storage Unterstützung
+            var options = new PickOptions
             {
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, photos.FileName);
-                using var stream = await photos.OpenReadAsync();
-                using var newStream = File.OpenWrite(localPath);
-                await stream.CopyToAsync(newStream);
-                _selectedPhotoPaths.Add(localPath); UpdatePhotoPreview();
+                PickerTitle = "Foto auswählen",
+                FileTypes = FilePickerFileType.Images
+            };
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result != null)
+            {
+                using var stream = await result.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+                var ext = System.IO.Path.GetExtension(result.FileName) ?? ".jpg";
+                var fileName = $"problem_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
+                _selectedPhotos.Add((fileName, bytes));
+                UpdatePhotoPreview();
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}"); await DisplayAlert("Fehler", "Galerie konnte nicht geoeffnet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}"); await DisplayAlert("Fehler", "Galerie konnte nicht geöffnet werden", "OK"); }
     }
 
     private void UpdatePhotoPreview()
     {
         PhotoPreviewStack.Children.Clear();
-        if (_selectedPhotoPaths.Count == 0) { PhotoPreviewStack.IsVisible = false; PhotoCountLabel.Text = "Keine Fotos ausgewaehlt"; return; }
-        PhotoPreviewStack.IsVisible = true; PhotoCountLabel.Text = $"{_selectedPhotoPaths.Count} Foto(s) ausgewaehlt";
-        foreach (var path in _selectedPhotoPaths)
+        if (_selectedPhotos.Count == 0) { PhotoPreviewStack.IsVisible = false; PhotoCountLabel.Text = "Keine Fotos ausgewählt"; return; }
+        PhotoPreviewStack.IsVisible = true; PhotoCountLabel.Text = $"{_selectedPhotos.Count} Foto(s) ausgewählt";
+        for (int i = 0; i < _selectedPhotos.Count; i++)
         {
+            var photo = _selectedPhotos[i];
+            var index = i;
             var grid = new Grid { WidthRequest = 70, HeightRequest = 70 };
             var imageContainer = new Border { StrokeShape = new RoundRectangle { CornerRadius = 8 }, Stroke = Colors.Transparent };
-            imageContainer.Content = new Image { Source = ImageSource.FromFile(path), Aspect = Aspect.AspectFill };
+            imageContainer.Content = new Image { Source = ImageSource.FromStream(() => new MemoryStream(photo.Bytes)), Aspect = Aspect.AspectFill };
             grid.Children.Add(imageContainer);
             var deleteBtn = new Button { Text = "X", BackgroundColor = Color.FromArgb("#c62828"), TextColor = Colors.White, FontSize = 10, WidthRequest = 22, HeightRequest = 22, CornerRadius = 11, Padding = 0, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 2, 2, 0) };
-            var pathToRemove = path;
-            deleteBtn.Clicked += (s, e) => { _selectedPhotoPaths.Remove(pathToRemove); UpdatePhotoPreview(); };
+            deleteBtn.Clicked += (s, e) => { _selectedPhotos.RemoveAt(index); UpdatePhotoPreview(); };
             grid.Children.Add(deleteBtn);
             PhotoPreviewStack.Children.Add(grid);
         }
@@ -303,12 +397,12 @@ public partial class TaskDetailPage : ContentPage
     private async void OnSaveProblemClicked(object sender, EventArgs e)
     {
         var name = ProblemNameEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(name)) { await DisplayAlert("Fehler", "Bitte gib einen Namen fuer das Problem ein", "OK"); return; }
+        if (string.IsNullOrEmpty(name)) { await DisplayAlert("Fehler", "Bitte gib einen Namen für das Problem ein", "OK"); return; }
         var beschreibung = ProblemDescriptionEditor.Text?.Trim();
         ProblemPopupOverlay.IsVisible = false;
         try
         {
-            var response = await _apiService.ReportProblemAsync(_taskId, name, beschreibung, _selectedPhotoPaths);
+            var response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
             if (response.Success) { await DisplayAlert("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
             else await DisplayAlert("Fehler", response.Error ?? "Fehler beim Melden", "OK");
         }
@@ -343,13 +437,40 @@ public partial class TaskDetailPage : ContentPage
     }
 
     // Bilder section
-    private void LoadBilder()
+    private string GetAbsoluteImageUrl(string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return "";
+        // If already absolute URL, return as-is
+        if (url.StartsWith("http://") || url.StartsWith("https://")) return url;
+        // Convert relative URL to absolute
+        return $"{ApiService.BaseUrl}{url}";
+    }
+
+    private async void LoadBilder()
     {
         BilderStack.Children.Clear();
-        if (_task?.Bilder == null || _task.Bilder.Count == 0) return;
+        var bilderCount = _task?.Bilder?.Count ?? 0;
+
+        Console.WriteLine($"=== LoadBilder START ===");
+        Console.WriteLine($"Task ID: {_task?.Id}, Bilder Count: {bilderCount}");
+
+        // Show count in UI
+        BilderCountLabel.Text = bilderCount == 0 ? "Keine Bilder" : $"{bilderCount} Bild(er)";
+
+        if (_task?.Bilder == null || _task.Bilder.Count == 0)
+        {
+            Console.WriteLine($"LoadBilder: No images found, exiting");
+            BilderCountLabel.Text = $"DEBUG: Bilder ist {(_task?.Bilder == null ? "NULL" : "LEER")}";
+            return;
+        }
 
         foreach (var bild in _task.Bilder)
         {
+            System.Diagnostics.Debug.WriteLine($"LoadBilder: Processing Bild {bild.Id}");
+            System.Diagnostics.Debug.WriteLine($"  - ThumbnailUrl: '{bild.ThumbnailUrl}'");
+            System.Diagnostics.Debug.WriteLine($"  - FullUrl: '{bild.FullUrl}'");
+            System.Diagnostics.Debug.WriteLine($"  - Url: '{bild.Url}'");
+
             // Container mit Bild und Delete-Button
             var grid = new Grid
             {
@@ -358,20 +479,43 @@ public partial class TaskDetailPage : ContentPage
                 Margin = new Thickness(0, 0, 10, 10)
             };
 
-            // Bild
+            // Bild - load with authentication
+            var imageUrl = bild.ThumbnailUrl ?? bild.FullUrl ?? bild.Url;
+            System.Diagnostics.Debug.WriteLine($"  - Final imageUrl: '{imageUrl}'");
+
             var imageBorder = new Border
             {
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
                 Stroke = Colors.LightGray,
-                StrokeThickness = 1
+                StrokeThickness = 1,
+                BackgroundColor = Color.FromArgb("#E0E0E0") // Placeholder color
             };
+
             var image = new Image
             {
-                Source = bild.ThumbnailUrl ?? bild.FullUrl ?? bild.Url,
                 WidthRequest = 80,
                 HeightRequest = 80,
                 Aspect = Aspect.AspectFill
             };
+
+            // Load image asynchronously with auth
+            var bildIdForLog = bild.Id;
+            var urlForLog = imageUrl;
+            _ = Task.Run(async () =>
+            {
+                System.Diagnostics.Debug.WriteLine($"GetImageAsync START: Bild {bildIdForLog}, URL: {urlForLog}");
+                var imageSource = await _apiService.GetImageAsync(urlForLog);
+                if (imageSource != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync SUCCESS: Bild {bildIdForLog}");
+                    MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync FAILED: Bild {bildIdForLog} - imageSource is null");
+                }
+            });
+
             imageBorder.Content = image;
 
             // Tap zum Vergrößern
@@ -431,18 +575,25 @@ public partial class TaskDetailPage : ContentPage
         }
     }
 
-    private void ShowBildDetail(BildStatus bild)
+    private async void ShowBildDetail(BildStatus bild)
     {
         _currentBildDetail = bild;
 
         // Popup befüllen
-        var imageUrl = bild.FullUrl ?? bild.ThumbnailUrl ?? bild.Url;
-        BildDetailImage.Source = imageUrl;
         BildDetailDatum.Text = $"Erstellt: {bild.ErstelltAm}";
         BildDetailNotizEditor.Text = bild.Notiz ?? "";
+        BildDetailImage.Source = null; // Clear previous
 
         // Popup anzeigen
         BildDetailPopupOverlay.IsVisible = true;
+
+        // Load image with authentication
+        var imageUrl = bild.FullUrl ?? bild.ThumbnailUrl ?? bild.Url;
+        var imageSource = await _apiService.GetImageAsync(imageUrl);
+        if (imageSource != null)
+        {
+            BildDetailImage.Source = imageSource;
+        }
     }
 
     private void OnBildDetailPopupBackgroundTapped(object sender, EventArgs e)
@@ -563,88 +714,85 @@ public partial class TaskDetailPage : ContentPage
     {
         try
         {
-            // Kamera-Berechtigung anfordern
-            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            if (cameraStatus != PermissionStatus.Granted)
+            if (!MediaPicker.Default.IsCaptureSupported)
             {
-                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                if (cameraStatus != PermissionStatus.Granted)
-                {
-                    await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
-                    return;
-                }
+                await DisplayAlert("Fehler", "Kamera nicht verfügbar", "OK");
+                return;
             }
 
-            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK"); return; }
-            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            var photo = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
+            {
+                Title = "Foto aufnehmen"
+            });
+
             if (photo != null)
             {
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-                using (var stream = await photo.OpenReadAsync())
-                using (var newStream = File.Create(localPath))
-                {
-                    await stream.CopyToAsync(newStream);
-                    await newStream.FlushAsync();
-                }
-                _selectedBildPath = localPath;
-                BildPreviewImage.Source = ImageSource.FromFile(localPath);
+                // Stream direkt lesen und Bytes speichern
+                using var stream = await photo.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                _selectedBildBytes = memoryStream.ToArray();
+                _selectedBildPath = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+
+                BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 BildPreviewBorder.IsVisible = true;
                 SaveBildButton.IsEnabled = true;
-                System.Diagnostics.Debug.WriteLine($"Bild Camera: Gespeichert unter {localPath}");
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}"); await DisplayAlert("Fehler", $"Kamera-Fehler: {ex.Message}", "OK"); }
+        catch (PermissionException)
+        {
+            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}");
+            await DisplayAlert("Kamera-Fehler", ex.Message, "OK");
+        }
     }
 
     private async void OnBildPickPhotoClicked(object sender, EventArgs e)
     {
         try
         {
-            // Foto-Berechtigung anfordern
-            var photosStatus = await Permissions.CheckStatusAsync<Permissions.Photos>();
-            if (photosStatus != PermissionStatus.Granted)
+            // FilePicker statt MediaPicker - bessere Scoped Storage Unterstützung
+            var options = new PickOptions
             {
-                photosStatus = await Permissions.RequestAsync<Permissions.Photos>();
-                if (photosStatus != PermissionStatus.Granted)
-                {
-                    // Fallback: StorageRead versuchen (für ältere Android-Versionen)
-                    var storageStatus = await Permissions.CheckStatusAsync<Permissions.StorageRead>();
-                    if (storageStatus != PermissionStatus.Granted)
-                    {
-                        storageStatus = await Permissions.RequestAsync<Permissions.StorageRead>();
-                        if (storageStatus != PermissionStatus.Granted)
-                        {
-                            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Foto-Zugriff in den App-Einstellungen", "OK");
-                            return;
-                        }
-                    }
-                }
-            }
+                PickerTitle = "Bild auswählen",
+                FileTypes = FilePickerFileType.Images
+            };
 
-            var photo = await MediaPicker.Default.PickPhotoAsync();
-            if (photo != null)
+            var result = await FilePicker.Default.PickAsync(options);
+
+            if (result != null)
             {
-                var ext = System.IO.Path.GetExtension(photo.FileName) ?? ".jpg";
-                var localPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}{ext}");
-                using (var stream = await photo.OpenReadAsync())
-                using (var newStream = File.Create(localPath))
-                {
-                    await stream.CopyToAsync(newStream);
-                    await newStream.FlushAsync();
-                }
-                _selectedBildPath = localPath;
-                BildPreviewImage.Source = ImageSource.FromFile(localPath);
+                // Stream direkt lesen
+                using var stream = await result.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                _selectedBildBytes = memoryStream.ToArray();
+
+                var ext = System.IO.Path.GetExtension(result.FileName) ?? ".jpg";
+                _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
+
+                BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 BildPreviewBorder.IsVisible = true;
                 SaveBildButton.IsEnabled = true;
-                System.Diagnostics.Debug.WriteLine($"Bild Gallery: Gespeichert unter {localPath}");
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}"); await DisplayAlert("Fehler", $"Galerie-Fehler: {ex.Message}", "OK"); }
+        catch (PermissionException)
+        {
+            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Foto-Zugriff in den App-Einstellungen", "OK");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}");
+            await DisplayAlert("Galerie-Fehler", ex.Message, "OK");
+        }
     }
 
     private async void OnSaveBildClicked(object sender, EventArgs e)
     {
-        if (string.IsNullOrEmpty(_selectedBildPath))
+        if (_selectedBildBytes == null || _selectedBildBytes.Length == 0)
         {
             await DisplayAlert("Fehler", "Kein Bild ausgewählt", "OK");
             return;
@@ -656,13 +804,16 @@ public partial class TaskDetailPage : ContentPage
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Start Upload für {_selectedBildPath}");
+            System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Start Upload, {_selectedBildBytes!.Length} bytes");
             var notiz = BildNotizEditor.Text?.Trim() ?? "";
-            var response = await _apiService.UploadBildStatusAsync(_taskId, _selectedBildPath, notiz);
+            var fileName = _selectedBildPath ?? $"image_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+            var response = await _apiService.UploadBildStatusBytesAsync(_taskId, _selectedBildBytes!, fileName, notiz);
 
             if (response.Success)
             {
                 BildPopupOverlay.IsVisible = false;
+                _selectedBildBytes = null;
+                _selectedBildPath = null;
                 await DisplayAlert("Gespeichert", "Bild wurde hochgeladen", "OK");
                 await LoadTaskAsync();
             }
@@ -680,7 +831,7 @@ public partial class TaskDetailPage : ContentPage
         finally
         {
             SaveBildButton.Text = "Speichern";
-            SaveBildButton.IsEnabled = !string.IsNullOrEmpty(_selectedBildPath);
+            SaveBildButton.IsEnabled = _selectedBildBytes != null;
         }
     }
 }

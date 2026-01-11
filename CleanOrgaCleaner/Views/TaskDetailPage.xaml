@@ -1,150 +1,301 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="CleanOrgaCleaner.Views.TaskDetailPage" Title="Aufgabe" BackgroundColor="#f5f5f5">
-<Grid RowDefinitions="*,Auto">
-<!-- Scrollable Content -->
-<ScrollView Grid.Row="0">
-<VerticalStackLayout Spacing="15" Padding="15,15,15,100">
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="CleanOrgaCleaner.Views.TaskDetailPage"
+             Title="Aufgabe"
+             BackgroundColor="#f5f5f5"
+             Shell.NavBarIsVisible="False"
+             Shell.TabBarIsVisible="False">
 
-<!-- Header mit Apartment und Aufgabenart -->
-<Grid ColumnDefinitions="Auto,*" ColumnSpacing="15">
-<Label x:Name="ApartmentLabel" Text="" FontSize="28" FontAttributes="Bold" TextColor="#667eea" VerticalOptions="Center"/>
-<Border x:Name="TaskTypeBadge" Grid.Column="1" BackgroundColor="#667eea" StrokeShape="RoundRectangle 10" Stroke="Transparent" Padding="12,6" HorizontalOptions="Start" VerticalOptions="Center">
-<Label x:Name="TaskTypeLabel" Text="" FontSize="14" FontAttributes="Bold" TextColor="White"/>
-</Border>
-</Grid>
+    <Grid RowDefinitions="Auto,*,Auto">
 
-<!-- Wichtiger Hinweis -->
-<Border x:Name="NoticeFrame" BackgroundColor="#fff8e1" Stroke="#ff9800" StrokeShape="RoundRectangle 20" Padding="20" IsVisible="False">
-<Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.15"/></Border.Shadow>
-<VerticalStackLayout Spacing="12">
-<Label Text="⚠️ Wichtiger Hinweis" FontSize="16" FontAttributes="Bold" TextColor="#e65100"/>
-<Border BackgroundColor="White" StrokeShape="RoundRectangle 12" Stroke="Transparent" Padding="12">
-<Label x:Name="NoticeLabel" Text="" FontSize="15" TextColor="#333" LineHeight="1.5"/>
-</Border>
-</VerticalStackLayout>
-</Border>
+        <!-- Header mit Menu - mit SafeArea Padding oben -->
+        <Grid Grid.Row="0" Padding="15,45,15,15">
+            <Grid.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#667eea" Offset="0"/>
+                    <GradientStop Color="#764ba2" Offset="1"/>
+                </LinearGradientBrush>
+            </Grid.Background>
 
-<!-- Meine Anmerkung -->
-<Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
-<Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
-<VerticalStackLayout Spacing="12">
-<Label Text="📝 Meine Anmerkung" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
-<Editor x:Name="NotesEditor" Placeholder="Anmerkung eingeben..." HeightRequest="80" FontSize="15" BackgroundColor="#f1f8e9" Unfocused="OnNotesEditorUnfocused">
-<Editor.GestureRecognizers>
-<TapGestureRecognizer Command="{Binding Source={x:Reference NotesEditor}, Path=Focus}"/>
-</Editor.GestureRecognizers>
-</Editor>
-<Label x:Name="NotesStatusLabel" Text="" FontSize="12" TextColor="#999" HorizontalTextAlignment="End"/>
-</VerticalStackLayout>
-</Border>
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <!-- Logo and App Name -->
+                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                    <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
+                        <Image.Clip>
+                            <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
+                        </Image.Clip>
+                    </Image>
+                    <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
 
-<!-- Checkliste -->
-<Border x:Name="ChecklistFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20" IsVisible="False">
-<Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
-<VerticalStackLayout Spacing="15">
-<Label Text="📋 Checkliste" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
-<VerticalStackLayout x:Name="ChecklistStack" Spacing="10"/>
-<Border BackgroundColor="#f0f0f0" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="10">
-<Label x:Name="ChecklistProgressLabel" Text="0 / 0 erledigt" FontSize="14" TextColor="#666" HorizontalTextAlignment="Center"/>
-</Border>
-</VerticalStackLayout>
-</Border>
+                <!-- Menu Dropdown Button -->
+                <Button Grid.Column="1"
+                        x:Name="MenuButton"
+                        Text="Aufgabe ▼"
+                        BackgroundColor="#ffffff33"
+                        TextColor="White"
+                        FontSize="13"
+                        FontAttributes="Bold"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        HorizontalOptions="Center"
+                        Clicked="OnMenuButtonClicked"/>
 
-<!-- Probleme -->
-<VerticalStackLayout Spacing="15">
-<Button x:Name="AddProblemButton" Text="⚠️ Problem melden" BackgroundColor="#FF9800" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddProblemClicked">
-<Button.Shadow><Shadow Brush="#FF9800" Offset="0,3" Radius="10" Opacity="0.3"/></Button.Shadow>
-</Button>
-<VerticalStackLayout x:Name="ProblemsStack" Spacing="15"/>
-</VerticalStackLayout>
-<!-- Bilder --><Border x:Name="BilderFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20"><Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow><VerticalStackLayout Spacing="12"><Label Text="Bilder" FontSize="16" FontAttributes="Bold" TextColor="#333"/><FlexLayout x:Name="BilderStack" Wrap="Wrap" JustifyContent="Start" AlignItems="Start" Direction="Row"/><Button x:Name="AddBildButton" Text="+ Bild hinzufuegen" BackgroundColor="#2196F3" TextColor="White" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnAddBildClicked"><Button.Shadow><Shadow Brush="#2196F3" Offset="0,3" Radius="8" Opacity="0.3"/></Button.Shadow></Button></VerticalStackLayout></Border>
+                <!-- Apartment Badge -->
+                <Border Grid.Column="2" x:Name="TaskTypeBadge" BackgroundColor="#ffffff33" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,4">
+                    <Label x:Name="TaskTypeLabel" Text="" FontSize="12" FontAttributes="Bold" TextColor="White"/>
+                </Border>
+            </Grid>
+        </Grid>
 
-</VerticalStackLayout>
-</ScrollView>
+        <!-- Scrollable Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="15" Padding="15">
 
-<!-- Fixed Start/Beenden Button am unteren Rand -->
-<Border Grid.Row="1" BackgroundColor="White" Padding="15">
-<Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
-<Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-<Button x:Name="CancelButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
-<Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
-<Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
-</Button>
-</Grid>
-</Border>
+                <!-- Header mit Apartment -->
+                <Label x:Name="ApartmentLabel" Text="" FontSize="28" FontAttributes="Bold" TextColor="#667eea"/>
 
-<!-- Problem Popup -->
-<Grid x:Name="ProblemPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="2">
-<BoxView Color="Transparent"><BoxView.GestureRecognizers><TapGestureRecognizer Tapped="OnPopupBackgroundTapped"/></BoxView.GestureRecognizers></BoxView>
-<Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="600">
-<Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
-<Grid RowDefinitions="Auto,*">
-<Grid Padding="20,15,15,0">
-<Label Text="Problem melden" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
-<Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelProblemClicked"/>
-</Grid>
-<ScrollView Grid.Row="1" Padding="20,10,20,20">
-<VerticalStackLayout Spacing="15">
-<VerticalStackLayout Spacing="5">
-<Label Text="Problem Name *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-<Entry x:Name="ProblemNameEntry" Placeholder="z.B. Lampe defekt" FontSize="16" BackgroundColor="#f5f5f5"/>
-</VerticalStackLayout>
-<VerticalStackLayout Spacing="5">
-<Label Text="Beschreibung" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-<Editor x:Name="ProblemDescriptionEditor" Placeholder="Optionale Beschreibung..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" TextChanged="OnDescriptionTextChanged"/>
-<Label x:Name="CharCountLabel" Text="0 / 300" FontSize="11" TextColor="#999" HorizontalTextAlignment="End"/>
-</VerticalStackLayout>
-<VerticalStackLayout Spacing="8">
-<Label Text="Fotos" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-<Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-<Button x:Name="TakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnTakePhotoClicked"/>
-<Button x:Name="PickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnPickPhotoClicked"/>
-</Grid>
-<HorizontalStackLayout x:Name="PhotoPreviewStack" Spacing="8" IsVisible="False"/>
-<Label x:Name="PhotoCountLabel" Text="Keine Fotos ausgewaehlt" FontSize="12" TextColor="#888"/>
-</VerticalStackLayout>
-<Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
-<Button Text="Speichern" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveProblemClicked"/>
-<Button Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelProblemClicked"/>
-</Grid>
-</VerticalStackLayout>
-</ScrollView>
-</Grid>
-</Border>
-</Grid>
-<!-- Bild hinzufuegen Popup --><Grid x:Name="BildPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="2"><BoxView Color="Transparent"><BoxView.GestureRecognizers><TapGestureRecognizer Tapped="OnBildPopupBackgroundTapped"/></BoxView.GestureRecognizers></BoxView><Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="500"><Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow><Grid RowDefinitions="Auto,*"><Grid Padding="20,15,15,0"><Label Text="Bild hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/><Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelBildClicked"/></Grid><ScrollView Grid.Row="1" Padding="20,10,20,20"><VerticalStackLayout Spacing="15"><VerticalStackLayout Spacing="8"><Label Text="Bild auswaehlen" FontSize="14" FontAttributes="Bold" TextColor="#555"/><Grid ColumnDefinitions="*,*" ColumnSpacing="10"><Button x:Name="BildTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildTakePhotoClicked"/><Button x:Name="BildPickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildPickPhotoClicked"/></Grid><Border x:Name="BildPreviewBorder" StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" Padding="5" IsVisible="False" HorizontalOptions="Center"><Image x:Name="BildPreviewImage" WidthRequest="150" HeightRequest="150" Aspect="AspectFill"/></Border></VerticalStackLayout><VerticalStackLayout Spacing="5"><Label Text="Notiz" FontSize="14" FontAttributes="Bold" TextColor="#555"/><Editor x:Name="BildNotizEditor" Placeholder="Optionale Notiz zum Bild..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5"/></VerticalStackLayout><Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0"><Button x:Name="SaveBildButton" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveBildClicked" IsEnabled="False"/><Button Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelBildClicked"/></Grid></VerticalStackLayout></ScrollView></Grid></Border></Grid>
-<!-- Bild Detail Popup -->
-<Grid x:Name="BildDetailPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1001" Grid.RowSpan="2">
-<BoxView Color="Transparent"><BoxView.GestureRecognizers><TapGestureRecognizer Tapped="OnBildDetailPopupBackgroundTapped"/></BoxView.GestureRecognizers></BoxView>
-<Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="500" MaximumHeightRequest="700">
-<Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
-<Grid RowDefinitions="Auto,*,Auto">
-<!-- Header -->
-<Grid Padding="20,15,15,15" BackgroundColor="#FF9800">
-<Label Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
-<Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
-</Grid>
-<!-- Content -->
-<ScrollView Grid.Row="1" Padding="20">
-<VerticalStackLayout Spacing="15">
-<Border StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" HorizontalOptions="Center">
-<Image x:Name="BildDetailImage" WidthRequest="280" HeightRequest="280" Aspect="AspectFill"/>
-</Border>
-<Label x:Name="BildDetailDatum" Text="" FontSize="12" TextColor="#999"/>
-<VerticalStackLayout Spacing="5">
-<Label Text="Notiz:" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-<Editor x:Name="BildDetailNotizEditor" Placeholder="Notiz zum Bild..." HeightRequest="100" FontSize="15" BackgroundColor="#f5f5f5"/>
-</VerticalStackLayout>
-</VerticalStackLayout>
-</ScrollView>
-<!-- Footer Buttons -->
-<Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*" ColumnSpacing="10" BackgroundColor="#f8f9fa">
-<Button Text="Loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteBildDetailClicked"/>
-<Button Grid.Column="1" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseBildDetailClicked"/>
-<Button Grid.Column="2" x:Name="SaveBildDetailButton" Text="Speichern" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveBildDetailClicked"/>
-</Grid>
-</Grid>
-</Border>
-</Grid>
-</Grid>
+                <!-- Wichtiger Hinweis -->
+                <Border x:Name="NoticeFrame" BackgroundColor="#fff8e1" Stroke="#ff9800" StrokeShape="RoundRectangle 20" Padding="20" IsVisible="False">
+                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.15"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <Label x:Name="NoticeTitleLabel" Text="Wichtiger Hinweis" FontSize="16" FontAttributes="Bold" TextColor="#e65100"/>
+                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 12" Stroke="Transparent" Padding="12">
+                            <Label x:Name="NoticeLabel" Text="" FontSize="15" TextColor="#333" LineHeight="1.5"/>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Meine Anmerkung -->
+                <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
+                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <Label x:Name="MyNotesLabel" Text="Meine Anmerkung" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
+                        <Editor x:Name="NotesEditor" Placeholder="Anmerkung eingeben..." HeightRequest="80" FontSize="15" BackgroundColor="#f1f8e9" Unfocused="OnNotesEditorUnfocused"/>
+                        <Label x:Name="NotesStatusLabel" Text="" FontSize="12" TextColor="#999" HorizontalTextAlignment="End"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Checkliste -->
+                <Border x:Name="ChecklistFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20" IsVisible="False">
+                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="ChecklistTitleLabel" Text="Checkliste" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
+                        <VerticalStackLayout x:Name="ChecklistStack" Spacing="10"/>
+                        <Border BackgroundColor="#f0f0f0" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="10">
+                            <Label x:Name="ChecklistProgressLabel" Text="0 / 0 erledigt" FontSize="14" TextColor="#666" HorizontalTextAlignment="Center"/>
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Probleme -->
+                <VerticalStackLayout Spacing="15">
+                    <Button x:Name="AddProblemButton" Text="Problem melden" BackgroundColor="#FF9800" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddProblemClicked">
+                        <Button.Shadow><Shadow Brush="#FF9800" Offset="0,3" Radius="10" Opacity="0.3"/></Button.Shadow>
+                    </Button>
+                    <VerticalStackLayout x:Name="ProblemsStack" Spacing="15"/>
+                </VerticalStackLayout>
+
+                <!-- Bilder -->
+                <Border x:Name="BilderFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
+                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <Label x:Name="ImagesTitleLabel" Text="Bilder" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
+                        <Label x:Name="BilderCountLabel" Text="Laden..." FontSize="14" TextColor="#666"/>
+                        <FlexLayout x:Name="BilderStack" Wrap="Wrap" JustifyContent="Start" AlignItems="Start" Direction="Row" MinimumHeightRequest="50"/>
+                        <Button x:Name="AddBildButton" Text="Bild hinzufuegen" BackgroundColor="#2196F3" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddBildClicked">
+                            <Button.Shadow><Shadow Brush="#2196F3" Offset="0,3" Radius="10" Opacity="0.3"/></Button.Shadow>
+                        </Button>
+                    </VerticalStackLayout>
+                </Border>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Fixed Start/Beenden Button am unteren Rand -->
+        <Border Grid.Row="2" BackgroundColor="White" Padding="15">
+            <Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button x:Name="CancelButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
+                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
+                    <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Dropdown Menu Overlay -->
+        <Grid x:Name="MenuOverlayGrid"
+              Grid.RowSpan="3"
+              IsVisible="False"
+              ZIndex="999">
+
+            <!-- Background tap to close -->
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnOverlayTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <!-- Menu dropdown -->
+            <Border BackgroundColor="White"
+                    StrokeShape="RoundRectangle 12"
+                    Stroke="Transparent"
+                    Padding="0"
+                    Margin="60,95,60,0"
+                    VerticalOptions="Start">
+                <Border.Shadow>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                </Border.Shadow>
+                <VerticalStackLayout Spacing="0">
+                    <Button x:Name="MenuTodayButton" Text="Heute"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuTodayClicked"/>
+                    <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                    <Button x:Name="MenuChatButton" Text="Chat"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuChatClicked"/>
+                    <BoxView HeightRequest="1" Color="#f0f0f0"/>
+                    <Button x:Name="MenuSettingsButton" Text="Einstellungen"
+                            BackgroundColor="Transparent"
+                            TextColor="#333"
+                            FontSize="16"
+                            Padding="20,15"
+                            HorizontalOptions="Fill"
+                            Clicked="OnMenuSettingsClicked"/>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <!-- Problem Popup -->
+        <Grid x:Name="ProblemPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="3">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="600">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Padding="20,15,15,0">
+                        <Label x:Name="ProblemPopupTitle" Text="Problem melden" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelProblemClicked"/>
+                    </Grid>
+                    <ScrollView Grid.Row="1" Padding="20,10,20,20">
+                        <VerticalStackLayout Spacing="15">
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="ProblemNameLabel" Text="Problem Name *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Entry x:Name="ProblemNameEntry" Placeholder="z.B. Lampe defekt" FontSize="16" BackgroundColor="#f5f5f5"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="DescriptionLabel" Text="Beschreibung" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Editor x:Name="ProblemDescriptionEditor" Placeholder="Optionale Beschreibung..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" TextChanged="OnDescriptionTextChanged"/>
+                                <Label x:Name="CharCountLabel" Text="0 / 300" FontSize="11" TextColor="#999" HorizontalTextAlignment="End"/>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="8">
+                                <Label x:Name="PhotosLabel" Text="Fotos" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Button x:Name="TakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnTakePhotoClicked"/>
+                                    <Button x:Name="PickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnPickPhotoClicked"/>
+                                </Grid>
+                                <HorizontalStackLayout x:Name="PhotoPreviewStack" Spacing="8" IsVisible="False"/>
+                                <Label x:Name="PhotoCountLabel" Text="Keine Fotos ausgewaehlt" FontSize="12" TextColor="#888"/>
+                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
+                                <Button x:Name="SaveProblemButton" Text="Speichern" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveProblemClicked"/>
+                                <Button x:Name="CancelProblemButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelProblemClicked"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Bild hinzufuegen Popup -->
+        <Grid x:Name="BildPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="3">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBildPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="500">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Padding="20,15,15,0">
+                        <Label x:Name="BildPopupTitle" Text="Bild hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelBildClicked"/>
+                    </Grid>
+                    <ScrollView Grid.Row="1" Padding="20,10,20,20">
+                        <VerticalStackLayout Spacing="15">
+                            <VerticalStackLayout Spacing="8">
+                                <Label x:Name="SelectImageLabel" Text="Bild auswaehlen" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Button x:Name="BildTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildTakePhotoClicked"/>
+                                    <Button x:Name="BildPickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnBildPickPhotoClicked"/>
+                                </Grid>
+                                <Border x:Name="BildPreviewBorder" StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" Padding="5" IsVisible="False" HorizontalOptions="Center">
+                                    <Image x:Name="BildPreviewImage" WidthRequest="150" HeightRequest="150" Aspect="AspectFill"/>
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="NoteLabel" Text="Notiz" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Editor x:Name="BildNotizEditor" Placeholder="Optionale Notiz zum Bild..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5"/>
+                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
+                                <Button x:Name="SaveBildButton" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveBildClicked" IsEnabled="False"/>
+                                <Button x:Name="CancelBildButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelBildClicked"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Bild Detail Popup -->
+        <Grid x:Name="BildDetailPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1001" Grid.RowSpan="3">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBildDetailPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="500" MaximumHeightRequest="700">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#2196F3">
+                        <Label x:Name="BildDetailTitle" Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
+                    </Grid>
+                    <!-- Content -->
+                    <ScrollView Grid.Row="1" Padding="20">
+                        <VerticalStackLayout Spacing="15">
+                            <Border StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" HorizontalOptions="Center">
+                                <Image x:Name="BildDetailImage" WidthRequest="280" HeightRequest="280" Aspect="AspectFill"/>
+                            </Border>
+                            <Label x:Name="BildDetailDatum" Text="" FontSize="12" TextColor="#999"/>
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="BildDetailNoteLabel" Text="Notiz:" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Editor x:Name="BildDetailNotizEditor" Placeholder="Notiz zum Bild..." HeightRequest="100" FontSize="15" BackgroundColor="#f5f5f5"/>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                    <!-- Footer Buttons -->
+                    <Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*" ColumnSpacing="10" BackgroundColor="#f8f9fa">
+                        <Button x:Name="DeleteBildButton" Text="Loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteBildDetailClicked"/>
+                        <Button x:Name="CloseBildButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseBildDetailClicked"/>
+                        <Button x:Name="SaveBildDetailButton" Grid.Column="2" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveBildDetailClicked"/>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+    </Grid>
 </ContentPage>

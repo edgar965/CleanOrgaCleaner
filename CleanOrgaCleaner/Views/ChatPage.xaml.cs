@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Services;
 using System.Collections.ObjectModel;
@@ -19,11 +20,26 @@ public partial class ChatPage : ContentPage
         _apiService = ApiService.Instance;
         _messages = new ObservableCollection<ChatMessage>();
         MessagesCollection.ItemsSource = _messages;
+
+        // Return-Taste zum Senden (TextChanged Handler für Android)
+        MessageEditor.TextChanged += OnMessageTextChanged;
+    }
+
+    private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        // Check if Return/Enter was pressed (newline added)
+        if (e.NewTextValue != null && e.NewTextValue.Contains('\n'))
+        {
+            // Remove the newline and send
+            MessageEditor.Text = e.NewTextValue.Replace("\n", "").Replace("\r", "");
+            OnSendClicked(sender, EventArgs.Empty);
+        }
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        ApplyTranslations();
 
         // Check for pending message from notification
         if (App.PendingChatMessage != null)
@@ -57,6 +73,51 @@ public partial class ChatPage : ContentPage
     {
         base.OnDisappearing();
         WebSocketService.Instance.OnChatMessageReceived -= OnNewMessageReceived;
+    }
+
+    private void ApplyTranslations()
+    {
+        var t = Translations.Get;
+        Title = t("chat");
+        HeaderLabel.Text = t("chat");
+        MessageEditor.Placeholder = t("message_placeholder");
+        PreviewButton.Text = t("preview");
+        SendButton.Text = t("send");
+        MenuButton.Text = $"{t("chat")} ▼";
+
+        // Menu translations
+        MenuTodayButton.Text = $"🏠 {t("today")}";
+        MenuChatButton.Text = $"💬 {t("chat")}";
+        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+    }
+
+    // Menu handling
+    private void OnMenuButtonClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private void OnOverlayTapped(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+    }
+
+    private async void OnMenuTodayClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//TodayPage");
+    }
+
+    private void OnMenuChatClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        // Already on chat
+    }
+
+    private async void OnMenuSettingsClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//SettingsPage");
     }
 
     private void OnNewMessageReceived(ChatMessage message)

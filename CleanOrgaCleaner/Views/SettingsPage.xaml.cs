@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Views;
@@ -29,8 +30,70 @@ public partial class SettingsPage : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
+        ApplyTranslations();
         LoadUserInfo();
         LoadCurrentLanguage();
+    }
+
+    private void ApplyTranslations()
+    {
+        var t = Translations.Get;
+        Title = t("settings");
+
+        // Header
+        MenuButton.Text = $"{t("settings")} ▼";
+        SettingsTitleLabel.Text = t("settings");
+
+        // User Info
+        LoggedInAsLabel.Text = t("logged_in_as");
+
+        // Language
+        LanguageTitleLabel.Text = t("language");
+        LanguagePicker.Title = t("select_language");
+        LanguageHintLabel.Text = t("language_hint");
+
+        // App Info
+        AppInfoLabel.Text = t("app_info");
+        VersionLabel.Text = t("version");
+        ServerLabel.Text = t("server");
+
+        // Buttons
+        LogoutButton.Text = t("logout");
+        ExitButton.Text = t("exit_app");
+
+        // Menu items
+        MenuTodayButton.Text = $"🏠 {t("today")}";
+        MenuChatButton.Text = $"💬 {t("chat")}";
+        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+    }
+
+    // Menu handling
+    private void OnMenuButtonClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private void OnOverlayTapped(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+    }
+
+    private async void OnMenuTodayClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//TodayPage");
+    }
+
+    private async void OnMenuChatClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//ChatPage");
+    }
+
+    private void OnMenuSettingsClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        // Already on settings
     }
 
     private void LoadUserInfo()

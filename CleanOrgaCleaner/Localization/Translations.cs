@@ -36,7 +36,10 @@ public static class Translations
             ["app_info"] = "App Info",
             ["version"] = "Version",
             ["server"] = "Server",
+            ["language"] = "Sprache",
+            ["language_hint"] = "Die Sprache wird für Chat-Übersetzungen verwendet",
             ["language_saved"] = "Sprache wurde geändert",
+            ["exit_app"] = "App beenden",
 
             // Heute / Arbeitszeit
             ["start_work"] = "Start Arbeit",
@@ -74,7 +77,9 @@ public static class Translations
             ["task"] = "Aufgabe",
             ["important_notice"] = "Wichtiger Hinweis",
             ["notes"] = "Anmerkungen",
+            ["my_notes"] = "Meine Anmerkung",
             ["enter_note"] = "Notizen zur Aufgabe...",
+            ["note_placeholder"] = "Anmerkung eingeben...",
             ["checklist"] = "Checkliste",
             ["x_of_y_completed"] = "erledigt",
             ["problems"] = "Probleme",
@@ -92,6 +97,22 @@ public static class Translations
             ["delete_problem_confirm"] = "Möchtest du dieses Problem wirklich löschen?",
             ["yes_delete"] = "Ja, löschen",
             ["problem_reported"] = "Problem wurde gemeldet",
+
+            // Bilder
+            ["images"] = "Bilder",
+            ["image_gallery"] = "Bilder Galerie",
+            ["add_image"] = "Bild hinzufügen",
+            ["camera"] = "Kamera",
+            ["gallery"] = "Galerie",
+            ["image_details"] = "Bild Details",
+            ["note_for_image"] = "Notiz zum Bild...",
+            ["no_photos_selected"] = "Keine Fotos ausgewählt",
+            ["select_image"] = "Bild auswählen",
+            ["note"] = "Notiz",
+
+            // Buttons
+            ["start"] = "Start",
+            ["stop"] = "Beenden",
 
             // Allgemein
             ["loading"] = "Laden...",
@@ -133,7 +154,10 @@ public static class Translations
             ["app_info"] = "App Info",
             ["version"] = "Version",
             ["server"] = "Server",
+            ["language"] = "Language",
+            ["language_hint"] = "The language is used for chat translations",
             ["language_saved"] = "Language changed",
+            ["exit_app"] = "Exit app",
 
             ["start_work"] = "Start Work",
             ["stop_work"] = "Stop Work",
@@ -167,7 +191,9 @@ public static class Translations
             ["task"] = "Task",
             ["important_notice"] = "Important notice",
             ["notes"] = "Notes",
+            ["my_notes"] = "My notes",
             ["enter_note"] = "Notes for task...",
+            ["note_placeholder"] = "Enter note...",
             ["checklist"] = "Checklist",
             ["x_of_y_completed"] = "completed",
             ["problems"] = "Problems",
@@ -185,6 +211,22 @@ public static class Translations
             ["delete_problem_confirm"] = "Do you really want to delete this problem?",
             ["yes_delete"] = "Yes, delete",
             ["problem_reported"] = "Problem reported",
+
+            // Images
+            ["images"] = "Images",
+            ["image_gallery"] = "Image Gallery",
+            ["add_image"] = "Add image",
+            ["camera"] = "Camera",
+            ["gallery"] = "Gallery",
+            ["image_details"] = "Image details",
+            ["note_for_image"] = "Note for image...",
+            ["no_photos_selected"] = "No photos selected",
+            ["select_image"] = "Select image",
+            ["note"] = "Note",
+
+            // Buttons
+            ["start"] = "Start",
+            ["stop"] = "Finish",
 
             ["loading"] = "Loading...",
             ["connection_error"] = "Connection error",
