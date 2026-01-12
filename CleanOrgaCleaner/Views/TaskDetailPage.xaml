@@ -96,18 +96,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Checkliste -->
-                <Border x:Name="ChecklistFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20" IsVisible="False">
-                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
-                    <VerticalStackLayout Spacing="15">
-                        <Label x:Name="ChecklistTitleLabel" Text="Checkliste" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
-                        <VerticalStackLayout x:Name="ChecklistStack" Spacing="10"/>
-                        <Border BackgroundColor="#f0f0f0" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="10">
-                            <Label x:Name="ChecklistProgressLabel" Text="0 / 0 erledigt" FontSize="14" TextColor="#666" HorizontalTextAlignment="Center"/>
-                        </Border>
-                    </VerticalStackLayout>
-                </Border>
-
                 <!-- Probleme -->
                 <VerticalStackLayout Spacing="15">
                     <Button x:Name="AddProblemButton" Text="Problem melden" BackgroundColor="#FF9800" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddProblemClicked">
@@ -129,18 +117,32 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Log / Protokoll -->
+                <Border x:Name="LogFrame" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
+                    <Border.Shadow><Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.08"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <Label x:Name="LogTitleLabel" Text="Protokoll" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
+                        <VerticalStackLayout x:Name="LogStack" Spacing="10">
+                            <Label x:Name="LogEmptyLabel" Text="Keine Protokolleintraege vorhanden" FontSize="14" TextColor="#999" FontAttributes="Italic" HorizontalTextAlignment="Center"/>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
             </VerticalStackLayout>
         </ScrollView>
 
         <!-- Fixed Start/Beenden Button am unteren Rand -->
         <Border Grid.Row="3" BackgroundColor="White" Padding="15">
             <Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Button x:Name="CancelButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
-                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
-                    <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
-                </Button>
-            </Grid>
+            <VerticalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                    <Button x:Name="CancelButton" Text="Zurueck" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
+                    <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
+                        <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
+                    </Button>
+                </Grid>
+                <Button x:Name="DeleteTaskButton" Text="Aufgabe loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontSize="14" FontAttributes="Bold" CornerRadius="12" HeightRequest="45" Clicked="OnDeleteTaskClicked"/>
+            </VerticalStackLayout>
         </Border>
 
         <!-- Dropdown Menu Overlay -->

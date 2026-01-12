@@ -127,6 +127,9 @@ public static class Translations
             ["really_logout"] = "Möchtest du dich wirklich abmelden?",
             ["task_completed"] = "Aufgabe abschließen",
             ["task_completed_question"] = "Möchtest du diese Aufgabe wirklich abschließen?",
+            ["log"] = "Protokoll",
+            ["delete_task"] = "Aufgabe löschen",
+            ["delete_task_confirm"] = "Möchtest du diese Aufgabe wirklich löschen?",
 
             // Neue Aufgabe / My Tasks
             ["new_task"] = "Neue Aufgabe",
@@ -284,6 +287,9 @@ public static class Translations
             ["really_logout"] = "Do you really want to logout?",
             ["task_completed"] = "Complete task",
             ["task_completed_question"] = "Do you really want to complete this task?",
+            ["log"] = "Log",
+            ["delete_task"] = "Delete task",
+            ["delete_task_confirm"] = "Do you really want to delete this task?",
 
             // Neue Aufgabe / My Tasks
             ["new_task"] = "New Task",

@@ -46,3 +46,36 @@ public class TaskDetailResponse
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }
+
+/// <summary>
+/// Log entry for task history
+/// </summary>
+public class LogEntry
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("datum_zeit")]
+    public string DatumZeit { get; set; } = "";
+
+    [JsonPropertyName("text")]
+    public string Text { get; set; } = "";
+
+    [JsonPropertyName("user")]
+    public string User { get; set; } = "";
+}
+
+/// <summary>
+/// Response from task logs API
+/// </summary>
+public class LogsResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("logs")]
+    public List<LogEntry>? Logs { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+}

@@ -82,11 +82,12 @@ public partial class TaskDetailPage : ContentPage
         NoticeTitleLabel.Text = t("important_notice");
         MyNotesLabel.Text = t("my_notes");
         NotesEditor.Placeholder = t("note_placeholder");
-        ChecklistTitleLabel.Text = t("checklist");
         ImagesTitleLabel.Text = t("images");
+        LogTitleLabel.Text = t("log");
 
         // Buttons
-        CancelButton.Text = t("cancel");
+        CancelButton.Text = t("back");
+        DeleteTaskButton.Text = t("delete_task");
         AddProblemButton.Text = $"⚠️ {t("report_problem")}";
         AddBildButton.Text = $"+ {t("add_image").ToUpper()}";
 
@@ -170,10 +171,10 @@ public partial class TaskDetailPage : ContentPage
             else NoticeFrame.IsVisible = false;
 
             UpdateStartStopButton();
-            BuildChecklist();
             NotesEditor.Text = _task.AnmerkungMitarbeiter ?? "";
             BuildProblems();
             LoadBilder();
+            LoadLogs();
         }
         catch (Exception ex)
         {
@@ -250,45 +251,107 @@ public partial class TaskDetailPage : ContentPage
         }
     }
 
-    private void BuildChecklist()
+    private async void LoadLogs()
     {
-        if (_task?.Checkliste == null || _task.Checkliste.Count == 0)
-        { ChecklistFrame.IsVisible = false; return; }
+        LogStack.Children.Clear();
 
-        ChecklistFrame.IsVisible = true;
-        ChecklistStack.Children.Clear();
-        int checkedCount = 0, totalCount = _task.Checkliste.Count;
-
-        for (int i = 0; i < _task.Checkliste.Count; i++)
-        {
-            var item = _task.Checkliste[i];
-            var isChecked = _task.ChecklistStatus?.GetValueOrDefault(i.ToString(), false) ?? false;
-            if (isChecked) checkedCount++;
-            var itemIndex = i;
-            var checkBox = new CheckBox { IsChecked = isChecked, Color = Color.FromArgb("#4CAF50") };
-            checkBox.CheckedChanged += async (s, e) => await OnChecklistItemToggled(itemIndex);
-            var label = new Label { Text = item, FontSize = 15, TextColor = Color.FromArgb("#333333"), VerticalOptions = LayoutOptions.Center };
-            if (isChecked) { label.TextDecorations = TextDecorations.Strikethrough; label.TextColor = Color.FromArgb("#999999"); }
-            var row = new HorizontalStackLayout { Spacing = 10 };
-            row.Children.Add(checkBox); row.Children.Add(label);
-            ChecklistStack.Children.Add(row);
-        }
-        ChecklistProgressLabel.Text = $"{checkedCount} / {totalCount} erledigt";
-    }
-
-    private async Task OnChecklistItemToggled(int itemIndex)
-    {
         try
         {
-            var response = await _apiService.ToggleChecklistItemAsync(_taskId, itemIndex);
-            if (response.Success)
+            var logs = await _apiService.GetTaskLogsAsync(_taskId);
+            if (logs == null || logs.Count == 0)
             {
-                if (_task?.ChecklistStatus != null)
-                    _task.ChecklistStatus[itemIndex.ToString()] = response.Checked;
-                BuildChecklist();
+                LogEmptyLabel.IsVisible = true;
+                LogStack.Children.Add(LogEmptyLabel);
+                return;
+            }
+
+            LogEmptyLabel.IsVisible = false;
+            foreach (var log in logs)
+            {
+                var logBorder = new Border
+                {
+                    BackgroundColor = Color.FromArgb("#f8f9fa"),
+                    StrokeShape = new RoundRectangle { CornerRadius = 10 },
+                    Stroke = Colors.Transparent,
+                    Padding = 12
+                };
+
+                // Left border accent
+                logBorder.Margin = new Thickness(4, 0, 0, 0);
+
+                var logStack = new VerticalStackLayout { Spacing = 4 };
+
+                var timeLabel = new Label
+                {
+                    Text = log.DatumZeit,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#999")
+                };
+                logStack.Children.Add(timeLabel);
+
+                var userLabel = new Label
+                {
+                    Text = log.User,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#667eea"),
+                    FontAttributes = FontAttributes.Bold
+                };
+                logStack.Children.Add(userLabel);
+
+                var textLabel = new Label
+                {
+                    Text = log.Text,
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#333")
+                };
+                logStack.Children.Add(textLabel);
+
+                logBorder.Content = logStack;
+                LogStack.Children.Add(logBorder);
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Toggle checklist error: {ex.Message}"); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LoadLogs error: {ex.Message}");
+            LogEmptyLabel.Text = "Fehler beim Laden der Logs";
+            LogEmptyLabel.IsVisible = true;
+            LogStack.Children.Add(LogEmptyLabel);
+        }
+    }
+
+    private async void OnDeleteTaskClicked(object sender, EventArgs e)
+    {
+        var confirm = await DisplayAlert(
+            Translations.Get("delete_task"),
+            Translations.Get("delete_task_confirm"),
+            Translations.Get("yes_delete"),
+            Translations.Get("no"));
+
+        if (!confirm) return;
+
+        DeleteTaskButton.IsEnabled = false;
+        try
+        {
+            var response = await _apiService.DeleteTaskAsync(_taskId);
+            if (response.Success)
+            {
+                await DisplayAlert("Geloescht", "Aufgabe wurde geloescht", "OK");
+                await Shell.Current.GoToAsync("..");
+            }
+            else
+            {
+                await DisplayAlert("Fehler", response.Error ?? "Loeschen fehlgeschlagen", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteTask error: {ex.Message}");
+            await DisplayAlert("Fehler", "Aufgabe konnte nicht geloescht werden", "OK");
+        }
+        finally
+        {
+            DeleteTaskButton.IsEnabled = true;
+        }
     }
 
     private void BuildProblems()

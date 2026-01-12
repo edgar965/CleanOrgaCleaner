@@ -510,6 +510,8 @@ public class ApiService
 
     #endregion
 
+    #region BildStatus
+
     public async Task<ApiResponse> UpdateTaskNotesAsync(int taskId, string notes)
     {
         return await SaveTaskNoteAsync(taskId, notes);
@@ -663,6 +665,67 @@ public class ApiService
             return new ApiResponse { Success = false, Error = ex.Message };
         }
     }
+
+    #endregion
+
+    #region Task Logs
+
+    public async Task<List<LogEntry>> GetTaskLogsAsync(int taskId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskLogs: Loading logs for task {taskId}");
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/logs/");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                System.Diagnostics.Debug.WriteLine($"GetTaskLogs: {json}");
+                var result = JsonSerializer.Deserialize<LogsResponse>(json, _jsonOptions);
+                return result?.Logs ?? new List<LogEntry>();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"GetTaskLogs: HTTP {(int)response.StatusCode}");
+                return new List<LogEntry>();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskLogs: EXCEPTION - {ex.Message}");
+            return new List<LogEntry>();
+        }
+    }
+
+    #endregion
+
+    #region Task Delete
+
+    public async Task<ApiResponse> DeleteTaskAsync(int taskId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteTask: Deleting task {taskId}");
+            var response = await _httpClient.PostAsync($"/api/cleaning-task/{taskId}/delete/", new StringContent("{}"));
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"DeleteTask: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteTask: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    #endregion
 
     #region Chat
 
