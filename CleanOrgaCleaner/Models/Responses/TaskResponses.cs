@@ -79,3 +79,39 @@ public class LogsResponse
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }
+
+/// <summary>
+/// Image info from task images API
+/// </summary>
+public class TaskImageDto
+{
+    [JsonPropertyName("id")]
+    public int Id { get; set; }
+
+    [JsonPropertyName("url")]
+    public string Url { get; set; } = "";
+
+    [JsonPropertyName("thumbnail_url")]
+    public string? ThumbnailUrl { get; set; }
+
+    [JsonPropertyName("note")]
+    public string? Note { get; set; }
+
+    [JsonPropertyName("created_at")]
+    public string? CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Response from task images API
+/// </summary>
+public class TaskImagesResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("images")]
+    public List<TaskImageDto>? Images { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+}

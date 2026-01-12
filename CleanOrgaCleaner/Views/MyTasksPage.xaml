@@ -189,9 +189,9 @@
                     <!-- Tabs -->
                     <HorizontalStackLayout Grid.Row="1" Spacing="0" Padding="0,0,0,10">
                         <Button x:Name="TabDetails" Text="Details" BackgroundColor="Transparent" TextColor="#2196F3" FontSize="13" FontAttributes="Bold" Padding="16,10" Clicked="OnTabDetailsClicked"/>
+                        <Button x:Name="TabImages" Text="Bilder" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="16,10" Clicked="OnTabImagesClicked"/>
                         <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="16,10" Clicked="OnTabAssignClicked"/>
                         <Button x:Name="TabStatus" Text="Status" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabStatusClicked"/>
-                        <Button x:Name="TabChecklist" Text="Checkliste" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabChecklistClicked"/>
                     </HorizontalStackLayout>
 
                     <!-- Tab Contents -->
@@ -233,11 +233,7 @@
                                                         <Label Text="{Binding Initial}" TextColor="White" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
                                                     </Border>
                                                     <Label Grid.Column="1" Text="{Binding Name}" FontAttributes="Bold" VerticalOptions="Center" Margin="12,0,0,0"/>
-                                                    <HorizontalStackLayout Grid.Column="2" Spacing="5">
-                                                        <Button Text="Putzen" BackgroundColor="{Binding CleaningBgColor}" TextColor="{Binding CleaningTextColor}" BorderColor="#ffc107" BorderWidth="2" FontSize="10" Padding="6,4" CornerRadius="6" Clicked="OnCleaningToggled" CommandParameter="{Binding Id}"/>
-                                                        <Button Text="Check" BackgroundColor="{Binding CheckBgColor}" TextColor="{Binding CheckTextColor}" BorderColor="#ff9800" BorderWidth="2" FontSize="10" Padding="6,4" CornerRadius="6" Clicked="OnCheckToggled" CommandParameter="{Binding Id}"/>
-                                                        <Button Text="Repar." BackgroundColor="{Binding RepareBgColor}" TextColor="{Binding RepareTextColor}" BorderColor="#f44336" BorderWidth="2" FontSize="10" Padding="6,4" CornerRadius="6" Clicked="OnRepareToggled" CommandParameter="{Binding Id}"/>
-                                                    </HorizontalStackLayout>
+                                                    <Button Grid.Column="2" Text="Zuweisen" BackgroundColor="{Binding AssignBgColor}" TextColor="{Binding AssignTextColor}" BorderColor="#2196F3" BorderWidth="2" FontSize="12" Padding="12,6" CornerRadius="8" Clicked="OnAssignToggled" CommandParameter="{Binding Id}"/>
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
@@ -254,26 +250,108 @@
                                 <RadioButton x:Name="StatusChecked" Content="Gecheckt" GroupName="Status"/>
                             </VerticalStackLayout>
 
-                            <!-- Checkliste Tab -->
-                            <VerticalStackLayout x:Name="ChecklistTabContent" IsVisible="False" Spacing="10">
-                                <Label x:Name="LabelChecklist" Text="Checkliste" FontSize="14" FontAttributes="Bold"/>
-                                <Label x:Name="ChecklistEmptyLabel" Text="Waehle eine Aufgabenart mit Checkliste" TextColor="#888" HorizontalOptions="Center" IsVisible="True"/>
-                                <VerticalStackLayout x:Name="ChecklistItemsContainer" Spacing="8"/>
+                            <!-- Images Tab -->
+                            <VerticalStackLayout x:Name="ImagesTabContent" IsVisible="False" Spacing="10">
+                                <Label x:Name="LabelImages" Text="Bilder" FontSize="14" FontAttributes="Bold"/>
+                                <Label x:Name="ImagesCountLabel" Text="Keine Bilder" FontSize="12" TextColor="#666"/>
+                                <FlexLayout x:Name="ImagesStack" Wrap="Wrap" JustifyContent="Start" AlignItems="Start" Direction="Row" MinimumHeightRequest="50"/>
+                                <Button x:Name="AddImageButton" Text="Bild hinzufuegen" BackgroundColor="#2196F3" TextColor="White" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnAddImageClicked"/>
                             </VerticalStackLayout>
                         </Grid>
                     </ScrollView>
 
                     <!-- Footer -->
-                    <Grid Grid.Row="3" ColumnDefinitions="*,*" Padding="15" ColumnSpacing="10">
-                        <Button x:Name="BtnCancel" Grid.Column="0" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnCancelClicked"/>
-                        <Button x:Name="BtnSave" Grid.Column="1" Text="Speichern" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnSaveClicked">
-                            <Button.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                    <GradientStop Color="#2196F3" Offset="0"/>
-                                    <GradientStop Color="#1976D2" Offset="1"/>
-                                </LinearGradientBrush>
-                            </Button.Background>
-                        </Button>
+                    <VerticalStackLayout Grid.Row="3" Padding="15" Spacing="10">
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button x:Name="BtnCancel" Grid.Column="0" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnCancelClicked"/>
+                            <Button x:Name="BtnSave" Grid.Column="1" Text="Speichern" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnSaveClicked">
+                                <Button.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#2196F3" Offset="0"/>
+                                        <GradientStop Color="#1976D2" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Button.Background>
+                            </Button>
+                        </Grid>
+                        <Button x:Name="BtnDelete" Text="Aufgabe loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteTaskClicked" IsVisible="False"/>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Image Add Popup -->
+        <Grid x:Name="ImagePopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="3000" Grid.RowSpan="2">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnImagePopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="500">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Padding="20,15,15,0">
+                        <Label x:Name="ImagePopupTitle" Text="Bild hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelImageClicked"/>
+                    </Grid>
+                    <ScrollView Grid.Row="1" Padding="20,10,20,20">
+                        <VerticalStackLayout Spacing="15">
+                            <VerticalStackLayout Spacing="8">
+                                <Label x:Name="SelectImageLabel" Text="Bild auswaehlen" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                    <Button x:Name="ImageTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImageTakePhotoClicked"/>
+                                    <Button x:Name="ImagePickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImagePickPhotoClicked"/>
+                                </Grid>
+                                <Border x:Name="ImagePreviewBorder" StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" Padding="5" IsVisible="False" HorizontalOptions="Center">
+                                    <Image x:Name="ImagePreviewImage" WidthRequest="150" HeightRequest="150" Aspect="AspectFill"/>
+                                </Border>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="ImageNoteLabel" Text="Notiz" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Editor x:Name="ImageNotizEditor" Placeholder="Optionale Notiz zum Bild..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5"/>
+                            </VerticalStackLayout>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
+                                <Button x:Name="SaveImageButton" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveImageClicked" IsEnabled="False"/>
+                                <Button x:Name="CancelImageButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelImageClicked"/>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Image Detail Popup -->
+        <Grid x:Name="ImageDetailPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="3001" Grid.RowSpan="2">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnImageDetailPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="500" MaximumHeightRequest="700">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#2196F3">
+                        <Label x:Name="ImageDetailTitle" Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="#2196F3" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseImageDetailClicked"/>
+                    </Grid>
+                    <!-- Content -->
+                    <ScrollView Grid.Row="1" Padding="20">
+                        <VerticalStackLayout Spacing="15">
+                            <Border StrokeShape="RoundRectangle 12" Stroke="#e0e0e0" HorizontalOptions="Center">
+                                <Image x:Name="ImageDetailImage" WidthRequest="280" HeightRequest="280" Aspect="AspectFill"/>
+                            </Border>
+                            <Label x:Name="ImageDetailDatum" Text="" FontSize="12" TextColor="#999"/>
+                            <VerticalStackLayout Spacing="5">
+                                <Label x:Name="ImageDetailNoteLabel" Text="Notiz:" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                <Editor x:Name="ImageDetailNotizEditor" Placeholder="Notiz zum Bild..." HeightRequest="100" FontSize="15" BackgroundColor="#f5f5f5"/>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </ScrollView>
+                    <!-- Footer Buttons -->
+                    <Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*" ColumnSpacing="10" BackgroundColor="#f8f9fa">
+                        <Button x:Name="DeleteImageButton" Text="Loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteImageDetailClicked"/>
+                        <Button x:Name="CloseImageButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseImageDetailClicked"/>
+                        <Button x:Name="SaveImageDetailButton" Grid.Column="2" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveImageDetailClicked"/>
                     </Grid>
                 </Grid>
             </Border>

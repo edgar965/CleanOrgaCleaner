@@ -18,6 +18,11 @@ public partial class MyTasksPage : ContentPage
     private bool _isNewTask = true;
     private TaskAssignments _assignments = new() { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
 
+    // Image handling
+    private List<TaskImageInfo> _taskImages = new();
+    private FileResult? _selectedImageFile;
+    private TaskImageInfo? _selectedDetailImage;
+
     public MyTasksPage()
     {
         InitializeComponent();
@@ -43,9 +48,9 @@ public partial class MyTasksPage : ContentPage
         MenuMyTasksBtn.Text = t("new_task");
         MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
+        TabImages.Text = t("images_tab");
         TabAssign.Text = t("assign_tab");
         TabStatus.Text = t("status_tab");
-        TabChecklist.Text = t("checklist_tab");
         LabelTaskName.Text = t("task_name_required");
         LabelApartment.Text = t("apartment");
         LabelDate.Text = t("date_required");
@@ -58,10 +63,11 @@ public partial class MyTasksPage : ContentPage
         StatusAssigned.Content = t("status_assigned");
         StatusCleaned.Content = t("status_cleaned");
         StatusChecked.Content = t("status_checked");
-        LabelChecklist.Text = t("checklist");
-        ChecklistEmptyLabel.Text = t("select_checklist_hint");
+        LabelImages.Text = t("images_tab");
+        AddImageButton.Text = t("add_image");
         BtnCancel.Text = t("cancel");
         BtnSave.Text = t("save");
+        BtnDelete.Text = t("delete_task");
     }
 
     private async Task LoadDataAsync()
@@ -144,6 +150,7 @@ public partial class MyTasksPage : ContentPage
         _isNewTask = true;
         _currentTask = null;
         _assignments = new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
+        _taskImages.Clear();
 
         PopupTitle.Text = Translations.Get("new_task");
         TaskNameEntry.Text = "";
@@ -152,8 +159,10 @@ public partial class MyTasksPage : ContentPage
         AufgabenartPicker.SelectedIndex = -1;
         TaskHinweisEditor.Text = "";
         StatusImported.IsChecked = true;
+        BtnDelete.IsVisible = false;
 
         UpdateCleanersList();
+        UpdateImagesDisplay();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
     }
@@ -206,6 +215,12 @@ public partial class MyTasksPage : ContentPage
             default: StatusImported.IsChecked = true; break;
         }
 
+        // Show delete button for existing tasks
+        BtnDelete.IsVisible = true;
+
+        // Load images
+        LoadTaskImages(task.Id);
+
         UpdateCleanersList();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
@@ -215,9 +230,7 @@ public partial class MyTasksPage : ContentPage
     {
         foreach (var c in _cleaners)
         {
-            c.IsCleaningAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
-            c.IsCheckAssigned = _assignments.Check == c.Id;
-            c.IsRepareAssigned = _assignments.Repare?.Contains(c.Id) ?? false;
+            c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
         CleanersList.ItemsSource = null;
         CleanersList.ItemsSource = _cleaners;
@@ -226,35 +239,38 @@ public partial class MyTasksPage : ContentPage
     private void ShowTab(string tab)
     {
         DetailsTabContent.IsVisible = tab == "details";
+        ImagesTabContent.IsVisible = tab == "images";
         AssignTabContent.IsVisible = tab == "assign";
         StatusTabContent.IsVisible = tab == "status";
-        ChecklistTabContent.IsVisible = tab == "checklist";
 
         TabDetails.TextColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabDetails.FontAttributes = tab == "details" ? FontAttributes.Bold : FontAttributes.None;
+        TabImages.TextColor = tab == "images" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabImages.FontAttributes = tab == "images" ? FontAttributes.Bold : FontAttributes.None;
         TabAssign.TextColor = tab == "assign" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabAssign.FontAttributes = tab == "assign" ? FontAttributes.Bold : FontAttributes.None;
         TabStatus.TextColor = tab == "status" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabStatus.FontAttributes = tab == "status" ? FontAttributes.Bold : FontAttributes.None;
-        TabChecklist.TextColor = tab == "checklist" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
-        TabChecklist.FontAttributes = tab == "checklist" ? FontAttributes.Bold : FontAttributes.None;
     }
 
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
+    private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
     private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
-    private void OnTabChecklistClicked(object sender, EventArgs e) => ShowTab("checklist");
-private void OnAufgabenartChanged(object sender, EventArgs e)    {        UpdateChecklistDisplay();    }    private void UpdateChecklistDisplay()    {        ChecklistItemsContainer.Children.Clear();                var selectedArt = AufgabenartPicker.SelectedItem as AufgabenartInfo;        if (selectedArt == null || selectedArt.Checkliste == null || selectedArt.Checkliste.Count == 0)        {            ChecklistEmptyLabel.IsVisible = true;            return;        }                ChecklistEmptyLabel.IsVisible = false;                foreach (var item in selectedArt.Checkliste)        {            var checkItem = new Border            {                Padding = new Thickness(12),                BackgroundColor = Color.FromArgb("#f8f9fa"),                StrokeShape = new RoundRectangle { CornerRadius = 10 }            };                        var grid = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition { Width = GridLength.Auto }, new ColumnDefinition { Width = GridLength.Star } } };                        var checkbox = new Border            {                WidthRequest = 24,                HeightRequest = 24,                StrokeShape = new RoundRectangle { CornerRadius = 12 },                Stroke = Color.FromArgb("#ccc"),                StrokeThickness = 2            };                        var label = new Label { Text = item, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(12, 0, 0, 0) };                        grid.Add(checkbox, 0, 0);            grid.Add(label, 1, 0);            checkItem.Content = grid;                        ChecklistItemsContainer.Children.Add(checkItem);        }    }
+    private void OnAufgabenartChanged(object sender, EventArgs e)
+    {
+        // No longer need checklist display
+    }
 
-    private void OnCleaningToggled(object sender, EventArgs e)
+    private void OnAssignToggled(object sender, EventArgs e)
     {
         if (sender is Button btn && int.TryParse(btn.CommandParameter?.ToString(), out int cleanerId))
         {
             var cleaner = _cleaners.FirstOrDefault(c => c.Id == cleanerId);
             if (cleaner != null)
             {
-                cleaner.IsCleaningAssigned = !cleaner.IsCleaningAssigned;
-                if (cleaner.IsCleaningAssigned)
+                cleaner.IsAssigned = !cleaner.IsAssigned;
+                if (cleaner.IsAssigned)
                 {
                     if (!_assignments.Cleaning!.Contains(cleanerId))
                         _assignments.Cleaning.Add(cleanerId);
@@ -262,42 +278,6 @@ private void OnAufgabenartChanged(object sender, EventArgs e)    {        Update
                 else
                 {
                     _assignments.Cleaning!.Remove(cleanerId);
-                }
-                UpdateCleanersList();
-            }
-        }
-    }
-
-    private void OnCheckToggled(object sender, EventArgs e)
-    {
-        if (sender is Button btn && int.TryParse(btn.CommandParameter?.ToString(), out int cleanerId))
-        {
-            // Only one checker allowed
-            foreach (var c in _cleaners)
-            {
-                c.IsCheckAssigned = c.Id == cleanerId && !c.IsCheckAssigned;
-            }
-            _assignments.Check = _cleaners.FirstOrDefault(c => c.IsCheckAssigned)?.Id;
-            UpdateCleanersList();
-        }
-    }
-
-    private void OnRepareToggled(object sender, EventArgs e)
-    {
-        if (sender is Button btn && int.TryParse(btn.CommandParameter?.ToString(), out int cleanerId))
-        {
-            var cleaner = _cleaners.FirstOrDefault(c => c.Id == cleanerId);
-            if (cleaner != null)
-            {
-                cleaner.IsRepareAssigned = !cleaner.IsRepareAssigned;
-                if (cleaner.IsRepareAssigned)
-                {
-                    if (!_assignments.Repare!.Contains(cleanerId))
-                        _assignments.Repare.Add(cleanerId);
-                }
-                else
-                {
-                    _assignments.Repare!.Remove(cleanerId);
                 }
                 UpdateCleanersList();
             }
@@ -401,6 +381,246 @@ private void OnAufgabenartChanged(object sender, EventArgs e)    {        Update
         // Don't close on overlay tap for popup
     }
 
+    #region Delete Task
+
+    private async void OnDeleteTaskClicked(object sender, EventArgs e)
+    {
+        if (_currentTask == null) return;
+
+        var confirm = await DisplayAlert(
+            Translations.Get("delete_task"),
+            Translations.Get("confirm_delete_task"),
+            Translations.Get("yes"),
+            Translations.Get("no"));
+
+        if (!confirm) return;
+
+        var result = await _apiService.DeleteMyTaskAsync(_currentTask.Id);
+        if (result.Success)
+        {
+            TaskPopupOverlay.IsVisible = false;
+            await LoadDataAsync();
+        }
+        else
+        {
+            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_delete_error"), Translations.Get("ok"));
+        }
+    }
+
+    #endregion
+
+    #region Image Handling
+
+    private async void LoadTaskImages(int taskId)
+    {
+        _taskImages.Clear();
+        try
+        {
+            var images = await _apiService.GetTaskImagesAsync(taskId);
+            if (images != null)
+            {
+                _taskImages = images;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LoadTaskImages error: {ex.Message}");
+        }
+        UpdateImagesDisplay();
+    }
+
+    private void UpdateImagesDisplay()
+    {
+        ImagesStack.Children.Clear();
+
+        if (_taskImages.Count == 0)
+        {
+            ImagesCountLabel.Text = Translations.Get("no_images");
+        }
+        else
+        {
+            ImagesCountLabel.Text = $"{_taskImages.Count} {Translations.Get("images")}";
+
+            foreach (var img in _taskImages)
+            {
+                var border = new Border
+                {
+                    WidthRequest = 80,
+                    HeightRequest = 80,
+                    Margin = new Thickness(0, 0, 8, 8),
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
+                    Stroke = Color.FromArgb("#e0e0e0")
+                };
+
+                var image = new Image
+                {
+                    Source = img.ThumbnailUrl ?? img.Url,
+                    Aspect = Aspect.AspectFill
+                };
+
+                border.Content = image;
+
+                var tapGesture = new TapGestureRecognizer();
+                tapGesture.Tapped += (s, e) => OpenImageDetail(img);
+                border.GestureRecognizers.Add(tapGesture);
+
+                ImagesStack.Children.Add(border);
+            }
+        }
+    }
+
+    private void OnAddImageClicked(object sender, EventArgs e)
+    {
+        if (_isNewTask)
+        {
+            DisplayAlert(Translations.Get("info"), Translations.Get("save_task_first"), Translations.Get("ok"));
+            return;
+        }
+
+        _selectedImageFile = null;
+        ImagePreviewBorder.IsVisible = false;
+        ImageNotizEditor.Text = "";
+        SaveImageButton.IsEnabled = false;
+        ImagePopupOverlay.IsVisible = true;
+    }
+
+    private async void OnImageTakePhotoClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var photo = await MediaPicker.CapturePhotoAsync();
+            if (photo != null)
+            {
+                _selectedImageFile = photo;
+                ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
+                ImagePreviewBorder.IsVisible = true;
+                SaveImageButton.IsEnabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), Translations.Get("camera_error"), Translations.Get("ok"));
+        }
+    }
+
+    private async void OnImagePickPhotoClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            var photo = await MediaPicker.PickPhotoAsync();
+            if (photo != null)
+            {
+                _selectedImageFile = photo;
+                ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
+                ImagePreviewBorder.IsVisible = true;
+                SaveImageButton.IsEnabled = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), Translations.Get("gallery_error"), Translations.Get("ok"));
+        }
+    }
+
+    private async void OnSaveImageClicked(object sender, EventArgs e)
+    {
+        if (_selectedImageFile == null || _currentTask == null) return;
+
+        try
+        {
+            using var stream = await _selectedImageFile.OpenReadAsync();
+            var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, stream, _selectedImageFile.FileName, ImageNotizEditor.Text);
+
+            if (result.Success)
+            {
+                ImagePopupOverlay.IsVisible = false;
+                LoadTaskImages(_currentTask.Id);
+            }
+            else
+            {
+                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("upload_error"), Translations.Get("ok"));
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Upload error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), Translations.Get("upload_error"), Translations.Get("ok"));
+        }
+    }
+
+    private void OnCancelImageClicked(object sender, EventArgs e)
+    {
+        ImagePopupOverlay.IsVisible = false;
+    }
+
+    private void OnImagePopupBackgroundTapped(object sender, EventArgs e)
+    {
+        // Don't close on background tap
+    }
+
+    private void OpenImageDetail(TaskImageInfo img)
+    {
+        _selectedDetailImage = img;
+        ImageDetailImage.Source = img.Url;
+        ImageDetailDatum.Text = img.CreatedAt;
+        ImageDetailNotizEditor.Text = img.Note ?? "";
+        ImageDetailPopupOverlay.IsVisible = true;
+    }
+
+    private async void OnSaveImageDetailClicked(object sender, EventArgs e)
+    {
+        if (_selectedDetailImage == null) return;
+
+        var result = await _apiService.UpdateTaskImageAsync(_selectedDetailImage.Id, ImageDetailNotizEditor.Text);
+        if (result.Success)
+        {
+            _selectedDetailImage.Note = ImageDetailNotizEditor.Text;
+            ImageDetailPopupOverlay.IsVisible = false;
+        }
+        else
+        {
+            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
+        }
+    }
+
+    private async void OnDeleteImageDetailClicked(object sender, EventArgs e)
+    {
+        if (_selectedDetailImage == null || _currentTask == null) return;
+
+        var confirm = await DisplayAlert(
+            Translations.Get("delete_image"),
+            Translations.Get("confirm_delete_image"),
+            Translations.Get("yes"),
+            Translations.Get("no"));
+
+        if (!confirm) return;
+
+        var result = await _apiService.DeleteTaskImageAsync(_selectedDetailImage.Id);
+        if (result.Success)
+        {
+            ImageDetailPopupOverlay.IsVisible = false;
+            LoadTaskImages(_currentTask.Id);
+        }
+        else
+        {
+            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+        }
+    }
+
+    private void OnCloseImageDetailClicked(object sender, EventArgs e)
+    {
+        ImageDetailPopupOverlay.IsVisible = false;
+    }
+
+    private void OnImageDetailPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        // Don't close on background tap
+    }
+
+    #endregion
+
     #region Menu Handlers
 
     private void OnMenuButtonClicked(object sender, EventArgs e)
@@ -471,35 +691,15 @@ public class CleanerAssignmentInfo : INotifyPropertyChanged
     public string Name { get; set; } = "";
     public string Initial => Name.Length > 0 ? Name.Substring(0, 1).ToUpper() : "?";
 
-    private bool _isCleaningAssigned;
-    public bool IsCleaningAssigned
+    private bool _isAssigned;
+    public bool IsAssigned
     {
-        get => _isCleaningAssigned;
-        set { _isCleaningAssigned = value; OnPropertyChanged(); OnPropertyChanged(nameof(CleaningBgColor)); OnPropertyChanged(nameof(CleaningTextColor)); }
+        get => _isAssigned;
+        set { _isAssigned = value; OnPropertyChanged(); OnPropertyChanged(nameof(AssignBgColor)); OnPropertyChanged(nameof(AssignTextColor)); }
     }
 
-    private bool _isCheckAssigned;
-    public bool IsCheckAssigned
-    {
-        get => _isCheckAssigned;
-        set { _isCheckAssigned = value; OnPropertyChanged(); OnPropertyChanged(nameof(CheckBgColor)); OnPropertyChanged(nameof(CheckTextColor)); }
-    }
-
-    private bool _isRepareAssigned;
-    public bool IsRepareAssigned
-    {
-        get => _isRepareAssigned;
-        set { _isRepareAssigned = value; OnPropertyChanged(); OnPropertyChanged(nameof(RepareBgColor)); OnPropertyChanged(nameof(RepareTextColor)); }
-    }
-
-    public Color CleaningBgColor => IsCleaningAssigned ? Color.FromArgb("#ffc107") : Colors.White;
-    public Color CleaningTextColor => IsCleaningAssigned ? Colors.White : Color.FromArgb("#f57f17");
-
-    public Color CheckBgColor => IsCheckAssigned ? Color.FromArgb("#ff9800") : Colors.White;
-    public Color CheckTextColor => IsCheckAssigned ? Colors.White : Color.FromArgb("#e65100");
-
-    public Color RepareBgColor => IsRepareAssigned ? Color.FromArgb("#f44336") : Colors.White;
-    public Color RepareTextColor => IsRepareAssigned ? Colors.White : Color.FromArgb("#c62828");
+    public Color AssignBgColor => IsAssigned ? Color.FromArgb("#2196F3") : Colors.White;
+    public Color AssignTextColor => IsAssigned ? Colors.White : Color.FromArgb("#2196F3");
 
     public CleanerAssignmentInfo(CleanerInfo cleaner)
     {
@@ -512,4 +712,16 @@ public class CleanerAssignmentInfo : INotifyPropertyChanged
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
+}
+
+/// <summary>
+/// Task image information for display
+/// </summary>
+public class TaskImageInfo
+{
+    public int Id { get; set; }
+    public string Url { get; set; } = "";
+    public string? ThumbnailUrl { get; set; }
+    public string? Note { get; set; }
+    public string? CreatedAt { get; set; }
 }

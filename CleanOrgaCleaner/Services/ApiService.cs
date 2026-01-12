@@ -964,6 +964,159 @@ public class ApiService
         }
     }
 
+    public async Task<ApiResponse> DeleteMyTaskAsync(int taskId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: Deleting task {taskId}");
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/delete/", new StringContent("{}"));
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<List<Views.TaskImageInfo>> GetTaskImagesAsync(int taskId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskImages: Loading images for task {taskId}");
+            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/images/");
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"GetTaskImages: {response.StatusCode} - {responseText}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<TaskImagesResponse>(responseText, _jsonOptions);
+                return result?.Images?.Select(i => new Views.TaskImageInfo
+                {
+                    Id = i.Id,
+                    Url = i.Url.StartsWith("http") ? i.Url : $"{BaseUrl}{i.Url}",
+                    ThumbnailUrl = i.ThumbnailUrl?.StartsWith("http") == true ? i.ThumbnailUrl : (i.ThumbnailUrl != null ? $"{BaseUrl}{i.ThumbnailUrl}" : null),
+                    Note = i.Note,
+                    CreatedAt = i.CreatedAt
+                }).ToList() ?? new List<Views.TaskImageInfo>();
+            }
+            return new List<Views.TaskImageInfo>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskImages: EXCEPTION - {ex.Message}");
+            return new List<Views.TaskImageInfo>();
+        }
+    }
+
+    public async Task<ApiResponse> UploadTaskImageAsync(int taskId, Stream imageStream, string fileName, string? note)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: Start - TaskId={taskId}, FileName={fileName}");
+
+            using var memoryStream = new MemoryStream();
+            await imageStream.CopyToAsync(memoryStream);
+            var bytes = memoryStream.ToArray();
+
+            var formData = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(bytes);
+
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            var contentType = extension switch
+            {
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/jpeg"
+            };
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+
+            formData.Add(fileContent, "image", fileName);
+            if (!string.IsNullOrEmpty(note))
+                formData.Add(new StringContent(note), "notiz");
+
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /mobile/api/task/{taskId}/images/upload/");
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/images/upload/", formData);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> UpdateTaskImageAsync(int imageId, string? note)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: Update image {imageId}");
+            var data = new { notiz = note ?? "" };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"/mobile/api/image/{imageId}/update/", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> DeleteTaskImageAsync(int imageId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: Delete image {imageId}");
+            var response = await _httpClient.PostAsync($"/mobile/api/image/{imageId}/delete/", new StringContent("{}"));
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
 }

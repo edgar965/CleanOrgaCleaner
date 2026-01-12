@@ -163,6 +163,7 @@ public static class Translations
             ["checklist_tab"] = "Checkliste",
             ["details_tab"] = "Details",
             ["assign_tab"] = "Zuweisen",
+            ["images_tab"] = "Bilder",
             ["status_imported"] = "Nicht zugewiesen",
             ["status_assigned"] = "Zugewiesen",
             ["status_cleaned"] = "Geputzt",
@@ -173,7 +174,19 @@ public static class Translations
             ["task_created"] = "Aufgabe erstellt",
             ["task_updated"] = "Aufgabe aktualisiert",
             ["task_create_error"] = "Fehler beim Erstellen der Aufgabe",
-            ["task_update_error"] = "Fehler beim Aktualisieren der Aufgabe"
+            ["task_update_error"] = "Fehler beim Aktualisieren der Aufgabe",
+            ["task_delete_error"] = "Fehler beim Löschen der Aufgabe",
+            ["confirm_delete_task"] = "Möchtest du diese Aufgabe wirklich löschen?",
+            ["no_images"] = "Keine Bilder",
+            ["info"] = "Info",
+            ["save_task_first"] = "Bitte speichere die Aufgabe zuerst",
+            ["camera_error"] = "Kamera-Fehler",
+            ["gallery_error"] = "Galerie-Fehler",
+            ["upload_error"] = "Fehler beim Hochladen",
+            ["update_error"] = "Fehler beim Aktualisieren",
+            ["delete_error"] = "Fehler beim Löschen",
+            ["delete_image"] = "Bild löschen",
+            ["confirm_delete_image"] = "Möchtest du dieses Bild wirklich löschen?"
         },
 
         ["en"] = new Dictionary<string, string>
@@ -323,6 +336,7 @@ public static class Translations
             ["checklist_tab"] = "Checklist",
             ["details_tab"] = "Details",
             ["assign_tab"] = "Assign",
+            ["images_tab"] = "Images",
             ["status_imported"] = "Not assigned",
             ["status_assigned"] = "Assigned",
             ["status_cleaned"] = "Cleaned",
@@ -333,7 +347,19 @@ public static class Translations
             ["task_created"] = "Task created",
             ["task_updated"] = "Task updated",
             ["task_create_error"] = "Error creating task",
-            ["task_update_error"] = "Error updating task"
+            ["task_update_error"] = "Error updating task",
+            ["task_delete_error"] = "Error deleting task",
+            ["confirm_delete_task"] = "Do you really want to delete this task?",
+            ["no_images"] = "No images",
+            ["info"] = "Info",
+            ["save_task_first"] = "Please save the task first",
+            ["camera_error"] = "Camera error",
+            ["gallery_error"] = "Gallery error",
+            ["upload_error"] = "Upload error",
+            ["update_error"] = "Update error",
+            ["delete_error"] = "Delete error",
+            ["delete_image"] = "Delete image",
+            ["confirm_delete_image"] = "Do you really want to delete this image?"
         },
 
         ["es"] = new Dictionary<string, string>
