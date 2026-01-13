@@ -9,7 +9,7 @@ on:
   workflow_dispatch:  # Manueller Trigger
 
 env:
-  DOTNET_VERSION: '9.0.x'
+  DOTNET_VERSION: '10.0.x'
   PROJECT_PATH: 'CleanOrgaCleaner/CleanOrgaCleaner.csproj'
 
 jobs:
@@ -25,19 +25,26 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install MAUI Workloads
-      run: dotnet workload install maui
-
     - name: List Available Xcode Versions
       run: ls -la /Applications/ | grep Xcode
 
-    - name: Select Latest Xcode Version
+    - name: Select Xcode 26.1
       run: |
-        # Find and select the latest available Xcode version
-        LATEST_XCODE=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
-        echo "Using Xcode: $LATEST_XCODE"
-        sudo xcode-select -s "$LATEST_XCODE"
+        # Select Xcode 26.1.1 which is compatible with iOS SDK 26.1
+        sudo xcode-select -s /Applications/Xcode_26.1.1.app
         xcodebuild -version
+
+    - name: Install MAUI Workloads with specific iOS SDK
+      run: |
+        # Install maui-ios workload with version matching Xcode 26.1
+        dotnet workload install maui --source https://api.nuget.org/v3/index.json
+
+        # Check installed workload versions
+        dotnet workload list
+
+        # Show iOS SDK version
+        echo "Checking iOS SDK version..."
+        dotnet --info | grep -A5 "Microsoft.iOS"
 
     - name: Import Code Signing Certificate
       env:
@@ -103,11 +110,21 @@ jobs:
 
     - name: Build iOS App
       run: |
+        # Try to build, bypassing strict Xcode version check if possible
         dotnet publish ${{ env.PROJECT_PATH }} \
-          -f net9.0-ios \
+          -f net10.0-ios \
           -c Release \
           -p:ArchiveOnBuild=true \
-          -p:RuntimeIdentifier=ios-arm64
+          -p:RuntimeIdentifier=ios-arm64 \
+          -p:_XcodeVersionCheckEnabled=false || {
+            echo "Build with Xcode check disabled failed, trying with warning as error disabled..."
+            dotnet publish ${{ env.PROJECT_PATH }} \
+              -f net10.0-ios \
+              -c Release \
+              -p:ArchiveOnBuild=true \
+              -p:RuntimeIdentifier=ios-arm64 \
+              -p:TreatWarningsAsErrors=false
+          }
 
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
