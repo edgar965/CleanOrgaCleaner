@@ -770,11 +770,11 @@ public class ApiService
         }
     }
 
-    public async Task<TranslationPreviewResponse> PreviewTranslationAsync(string text)
+    public async Task<TranslationPreviewResponse> PreviewTranslationAsync(string text, string? receiverId = null)
     {
         try
         {
-            var data = new { text = text };
+            var data = new { text = text, receiver_id = receiverId };
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 

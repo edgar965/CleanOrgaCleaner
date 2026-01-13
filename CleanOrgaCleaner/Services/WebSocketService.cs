@@ -179,15 +179,24 @@ public class WebSocketService : IDisposable
         catch (OperationCanceledException)
         {
             System.Diagnostics.Debug.WriteLine("Chat listening cancelled");
+            return; // Don't try to reconnect on cancellation
+        }
+        catch (WebSocketException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Chat WebSocket exception: {ex.Message}");
+            // Check if app is going to background - if so, don't reconnect
+            if (App.IsInBackground) return;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Chat listen error: {ex.Message}");
+            // Check if app is going to background - if so, don't reconnect
+            if (App.IsInBackground) return;
         }
 
         _isOnline = false;
         OnConnectionStatusChanged?.Invoke(false);
-        if (_shouldReconnect)
+        if (_shouldReconnect && !App.IsInBackground)
             await TryReconnectChatAsync();
     }
 
@@ -222,13 +231,22 @@ public class WebSocketService : IDisposable
         catch (OperationCanceledException)
         {
             System.Diagnostics.Debug.WriteLine("Task listening cancelled");
+            return; // Don't try to reconnect on cancellation
+        }
+        catch (WebSocketException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Task WebSocket exception: {ex.Message}");
+            // Check if app is going to background - if so, don't reconnect
+            if (App.IsInBackground) return;
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Task listen error: {ex.Message}");
+            // Check if app is going to background - if so, don't reconnect
+            if (App.IsInBackground) return;
         }
 
-        if (_shouldReconnect)
+        if (_shouldReconnect && !App.IsInBackground)
             await TryReconnectTasksAsync();
     }
 
@@ -287,27 +305,33 @@ public class WebSocketService : IDisposable
 
     private async Task TryReconnectChatAsync()
     {
-        if (!_shouldReconnect) return;
+        // Don't reconnect if in background or shouldReconnect is false
+        if (!_shouldReconnect || App.IsInBackground) return;
 
         _chatReconnectAttempts++;
         var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _chatReconnectAttempts - 1), MaxReconnectDelay);
         System.Diagnostics.Debug.WriteLine($"Chat reconnecting in {delay}ms (attempt {_chatReconnectAttempts})");
 
         await Task.Delay((int)delay);
-        if (_shouldReconnect)
+
+        // Check again after delay
+        if (_shouldReconnect && !App.IsInBackground)
             await ConnectChatAsync();
     }
 
     private async Task TryReconnectTasksAsync()
     {
-        if (!_shouldReconnect) return;
+        // Don't reconnect if in background or shouldReconnect is false
+        if (!_shouldReconnect || App.IsInBackground) return;
 
         _taskReconnectAttempts++;
         var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _taskReconnectAttempts - 1), MaxReconnectDelay);
         System.Diagnostics.Debug.WriteLine($"Tasks reconnecting in {delay}ms (attempt {_taskReconnectAttempts})");
 
         await Task.Delay((int)delay);
-        if (_shouldReconnect)
+
+        // Check again after delay
+        if (_shouldReconnect && !App.IsInBackground)
             await ConnectTasksAsync();
     }
 

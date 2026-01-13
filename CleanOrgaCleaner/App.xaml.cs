@@ -12,6 +12,10 @@ public partial class App : Application
     // Store pending message for ChatPage to display
     public static ChatMessage? PendingChatMessage { get; set; }
 
+    // Track if app is in background
+    private static bool _isInBackground = false;
+    public static bool IsInBackground => _isInBackground;
+
     public App()
     {
         InitializeComponent();
@@ -23,8 +27,65 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        // Use AppShell for navigation
-        return new Window(new AppShell());
+        var window = new Window(new AppShell());
+
+        // Handle app lifecycle events
+        window.Stopped += OnAppStopped;
+        window.Resumed += OnAppResumed;
+        window.Destroying += OnAppDestroying;
+
+        return window;
+    }
+
+    /// <summary>
+    /// Called when app goes to background (screen off, home button, etc.)
+    /// </summary>
+    private async void OnAppStopped(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("[App] Going to background - disconnecting WebSockets");
+        _isInBackground = true;
+
+        try
+        {
+            // Gracefully disconnect WebSockets to prevent crashes
+            await WebSocketService.Instance.DisconnectAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[App] Error disconnecting WebSockets: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Called when app comes back to foreground
+    /// </summary>
+    private async void OnAppResumed(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("[App] Resuming from background - reconnecting WebSockets");
+        _isInBackground = false;
+
+        try
+        {
+            // Only reconnect if user is logged in
+            var isLoggedIn = Preferences.Get("is_logged_in", false);
+            if (isLoggedIn)
+            {
+                await WebSocketService.Instance.ReconnectAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[App] Error reconnecting WebSockets: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Called when app is being terminated
+    /// </summary>
+    private void OnAppDestroying(object? sender, EventArgs e)
+    {
+        System.Diagnostics.Debug.WriteLine("[App] App destroying - cleaning up");
+        WebSocketService.Instance.Dispose();
     }
 
     /// <summary>

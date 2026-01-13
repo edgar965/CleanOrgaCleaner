@@ -242,7 +242,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
         try
         {
-            var response = await _apiService.PreviewTranslationAsync(text);
+            var response = await _apiService.PreviewTranslationAsync(text, _partnerId);
 
             if (response.Success)
             {
