@@ -29,6 +29,7 @@ public partial class TodayPage : ContentPage
 
         // Subscribe to connection status
         _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        _webSocketService.OnTaskUpdate += OnTaskUpdate;
         UpdateOfflineBanner(!_webSocketService.IsOnline);
 
         // Apply translations
@@ -48,6 +49,7 @@ public partial class TodayPage : ContentPage
     {
         base.OnDisappearing();
         _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+        _webSocketService.OnTaskUpdate -= OnTaskUpdate;
     }
 
     private void OnConnectionStatusChanged(bool isConnected)
@@ -56,6 +58,20 @@ public partial class TodayPage : ContentPage
         {
             UpdateOfflineBanner(!isConnected);
         });
+    }
+
+    private void OnTaskUpdate(string updateType)
+    {
+        System.Diagnostics.Debug.WriteLine($"[TodayPage] Task update received: {updateType}");
+
+        // Reload tasks when a new task is created or any task update occurs
+        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted")
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await LoadDataAsync();
+            });
+        }
     }
 
     private void UpdateOfflineBanner(bool showOffline)

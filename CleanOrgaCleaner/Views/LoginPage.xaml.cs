@@ -6,12 +6,14 @@ namespace CleanOrgaCleaner.Views;
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly BiometricService _biometricService;
     private bool _autoLoginAttempted = false;
 
     public LoginPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _biometricService = BiometricService.Instance;
 
         // Load saved credentials
         LoadSavedCredentials();
@@ -83,6 +85,28 @@ public partial class LoginPage : ContentPage
 
         if (!int.TryParse(savedPropertyId, out int propertyId))
             return;
+
+        // Check if biometric login is enabled and available
+        bool useBiometric = _biometricService.IsBiometricLoginEnabled();
+        bool biometricAvailable = await _biometricService.IsBiometricAvailableAsync();
+
+        if (useBiometric && biometricAvailable)
+        {
+            // Prompt for biometric authentication
+            var biometricType = await _biometricService.GetBiometricTypeAsync();
+            LoginButton.IsEnabled = false;
+            LoginButton.Text = $"{biometricType}...";
+
+            var authenticated = await _biometricService.AuthenticateAsync($"Anmelden als {savedUsername}");
+
+            if (!authenticated)
+            {
+                // User cancelled or failed biometric - stay on login page
+                LoginButton.IsEnabled = true;
+                LoginButton.Text = "Anmelden";
+                return;
+            }
+        }
 
         // Show auto-login state
         LoginButton.IsEnabled = false;

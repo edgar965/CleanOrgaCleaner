@@ -10,6 +10,7 @@ public partial class SettingsPage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
+    private readonly BiometricService _biometricService;
     private readonly Dictionary<int, string> _languageMap = new()
     {
         { 0, "de" },  // Deutsch
@@ -27,9 +28,10 @@ public partial class SettingsPage : ContentPage
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
+        _biometricService = BiometricService.Instance;
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
 
@@ -40,6 +42,7 @@ public partial class SettingsPage : ContentPage
         ApplyTranslations();
         LoadUserInfo();
         LoadCurrentLanguage();
+        await LoadBiometricSettingsAsync();
     }
 
     protected override void OnDisappearing()
@@ -211,6 +214,7 @@ public partial class SettingsPage : ContentPage
         Preferences.Remove("language");
         Preferences.Remove("is_logged_in");
         Preferences.Remove("remember_me");
+        Preferences.Remove("biometric_login_enabled");
 
         // Clear secure storage
         SecureStorage.Remove("password");
@@ -237,5 +241,70 @@ public partial class SettingsPage : ContentPage
 
         // Exit the application
         Application.Current?.Quit();
+    }
+
+    private async Task LoadBiometricSettingsAsync()
+    {
+        try
+        {
+            // Check if biometrics are available on this device
+            var isAvailable = await _biometricService.IsBiometricAvailableAsync();
+
+            if (isAvailable)
+            {
+                // Show biometric section
+                BiometricSection.IsVisible = true;
+
+                // Get the biometric type name
+                var biometricType = await _biometricService.GetBiometricTypeAsync();
+                BiometricLabel.Text = biometricType;
+
+                // Load current setting without triggering event
+                BiometricSwitch.Toggled -= OnBiometricToggled;
+                BiometricSwitch.IsToggled = _biometricService.IsBiometricLoginEnabled();
+                BiometricSwitch.Toggled += OnBiometricToggled;
+
+                System.Diagnostics.Debug.WriteLine($"[Settings] Biometric available: {biometricType}, enabled: {BiometricSwitch.IsToggled}");
+            }
+            else
+            {
+                // Hide biometric section on devices without biometric capability
+                BiometricSection.IsVisible = false;
+                System.Diagnostics.Debug.WriteLine("[Settings] Biometric not available on this device");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Settings] Error loading biometric settings: {ex.Message}");
+            BiometricSection.IsVisible = false;
+        }
+    }
+
+    private async void OnBiometricToggled(object? sender, ToggledEventArgs e)
+    {
+        if (e.Value)
+        {
+            // User wants to enable biometric - verify they can authenticate
+            var authenticated = await _biometricService.AuthenticateAsync("Biometrie aktivieren");
+
+            if (authenticated)
+            {
+                _biometricService.SetBiometricLoginEnabled(true);
+                System.Diagnostics.Debug.WriteLine("[Settings] Biometric login enabled");
+            }
+            else
+            {
+                // Authentication failed - revert switch
+                BiometricSwitch.Toggled -= OnBiometricToggled;
+                BiometricSwitch.IsToggled = false;
+                BiometricSwitch.Toggled += OnBiometricToggled;
+            }
+        }
+        else
+        {
+            // Disable biometric
+            _biometricService.SetBiometricLoginEnabled(false);
+            System.Diagnostics.Debug.WriteLine("[Settings] Biometric login disabled");
+        }
     }
 }

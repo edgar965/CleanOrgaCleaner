@@ -12,6 +12,10 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>CleanOrga möchte Fotos in Ihrer Fotobibliothek speichern.</string>
 
+	<!-- Face ID Permission -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>CleanOrga verwendet Face ID für die schnelle und sichere Anmeldung.</string>
+
 	<!-- Background Modes for Audio (Text-to-Speech) -->
 	<key>UIBackgroundModes</key>
 	<array>
