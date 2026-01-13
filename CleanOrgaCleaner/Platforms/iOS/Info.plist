@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Camera Permission -->
+	<key>NSCameraUsageDescription</key>
+	<string>CleanOrga benötigt Zugriff auf die Kamera, um Fotos von Reinigungsaufgaben aufzunehmen.</string>
+
+	<!-- Photo Library Permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CleanOrga benötigt Zugriff auf Ihre Fotos, um Bilder für Aufgaben auszuwählen.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CleanOrga möchte Fotos in Ihrer Fotobibliothek speichern.</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIDeviceFamily</key>
