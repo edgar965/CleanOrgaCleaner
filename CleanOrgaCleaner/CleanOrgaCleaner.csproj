@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>11</ApplicationVersion>
+		<ApplicationVersion>12</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -63,6 +63,13 @@
 
 		<!-- Raw Assets -->
 		<MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<!-- iOS App Icon Asset Catalog -->
+	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
+		<ImageAsset Include="Platforms\iOS\Assets.xcassets\Contents.json" />
+		<ImageAsset Include="Platforms\iOS\Assets.xcassets\AppIcon.appiconset\Contents.json" />
+		<ImageAsset Include="Platforms\iOS\Assets.xcassets\AppIcon.appiconset\*.png" />
 	</ItemGroup>
 
 	<ItemGroup>
