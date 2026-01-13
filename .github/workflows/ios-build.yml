@@ -34,17 +34,13 @@ jobs:
         sudo xcode-select -s /Applications/Xcode_26.1.1.app
         xcodebuild -version
 
-    - name: Install MAUI Workloads with specific iOS SDK
+    - name: Install MAUI Workloads
       run: |
-        # Install maui-ios workload with version matching Xcode 26.1
+        # Install maui workload
         dotnet workload install maui --source https://api.nuget.org/v3/index.json
 
         # Check installed workload versions
         dotnet workload list
-
-        # Show iOS SDK version
-        echo "Checking iOS SDK version..."
-        dotnet --info | grep -A5 "Microsoft.iOS"
 
     - name: Import Code Signing Certificate
       env:
