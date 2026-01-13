@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>13</ApplicationVersion>
+		<ApplicationVersion>14</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -47,7 +47,7 @@
 
 	<ItemGroup>
 		<!-- App Icon - CleanOrga Logo PNG (1024x1024 für iOS App Store) -->
-		<MauiIcon Include="Resources/AppIcon/appicon.png" Color="#C5E1F5" BaseSize="1024,1024" />
+		<MauiIcon Include="Resources/AppIcon/appicon.png" />
 
 		<!-- Splash Screen - CleanOrga Logo -->
 		<MauiSplashScreen Include="Resources/AppIcon/cleanorgalogo.png" Color="#C5E1F5" BaseSize="256,256" />
@@ -63,13 +63,6 @@
 
 		<!-- Raw Assets -->
 		<MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
-
-	<!-- iOS App Icon - using native Assets.xcassets -->
-	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
-		<ImageAsset Include="Platforms\iOS\Assets.xcassets\Contents.json" Link="Assets.xcassets\Contents.json" />
-		<ImageAsset Include="Platforms\iOS\Assets.xcassets\appicon.appiconset\Contents.json" Link="Assets.xcassets\appicon.appiconset\Contents.json" />
-		<ImageAsset Include="Platforms\iOS\Assets.xcassets\appicon.appiconset\appicon-1024.png" Link="Assets.xcassets\appicon.appiconset\appicon-1024.png" />
 	</ItemGroup>
 
 	<ItemGroup>
