@@ -52,17 +52,35 @@ jobs:
         # Decode certificate
         echo -n "$P12_BASE64" | base64 --decode -o $CERTIFICATE_PATH
 
+        # Verify P12 file was decoded correctly
+        echo "P12 file size: $(stat -f%z $CERTIFICATE_PATH) bytes"
+
+        # Verify P12 with openssl (password check)
+        if openssl pkcs12 -in $CERTIFICATE_PATH -passin pass:"$P12_PASSWORD" -noout 2>/dev/null; then
+          echo "P12 password verified successfully"
+        else
+          echo "ERROR: P12 password verification failed"
+          exit 1
+        fi
+
         # Create temporary keychain
         security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
         security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
         security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
 
-        # Import certificate to keychain
-        security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-        security list-keychain -d user -s $KEYCHAIN_PATH
+        # Import certificate to keychain with codesign access
+        security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH \
+          -T /usr/bin/codesign -T /usr/bin/security
 
-        # Allow codesign to access keychain
-        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+        # Add keychain to search list (include default keychain)
+        security list-keychain -d user -s $KEYCHAIN_PATH login.keychain-db
+
+        # Allow codesign to access keychain (may fail on some macOS versions, continue anyway)
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH || echo "Note: set-key-partition-list failed, continuing..."
+
+        # Verify certificate was imported
+        echo "Certificates in keychain:"
+        security find-certificate -a -c "CleanOrga" $KEYCHAIN_PATH || security find-certificate -a $KEYCHAIN_PATH | head -20
 
         # Save keychain password for cleanup
         echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
