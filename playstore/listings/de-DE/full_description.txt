@@ -1,0 +1,40 @@
+CleanOrga - Die intelligente Putzplan-App fuer WGs und Co-Living
+
+Schluss mit Streit ums Putzen! CleanOrga organisiert die Reinigungsaufgaben in Wohngemeinschaften, Co-Living-Gebaeuden und Mehrfamilienhaeusern automatisch und fair.
+
+HAUPTFUNKTIONEN:
+
+Automatischer Putzplan
+- Woechentliche Zuweisung von Reinigungsaufgaben
+- Faire Rotation zwischen allen Bewohnern
+- Uebersichtlicher Kalender mit allen Terminen
+
+Aufgabenverwaltung
+- Detaillierte Aufgabenlisten pro Bereich
+- Aufgaben einfach abhaken
+- Fortschritt in Echtzeit verfolgen
+
+Fotodokumentation
+- Vorher/Nachher-Fotos hochladen
+- Erledigte Arbeit dokumentieren
+- Transparenz fuer alle Bewohner
+
+Kommunikation
+- Integrierter Chat zwischen Bewohnern
+- Probleme direkt melden
+- Schnelle Abstimmung bei Fragen
+
+Sicherheit
+- Biometrische Anmeldung (Face ID / Touch ID)
+- Sichere Datenuebertragung
+- Datenschutz nach DSGVO
+
+IDEAL FUER:
+- Wohngemeinschaften (WGs)
+- Co-Living-Gebaeude
+- Studentenwohnheime
+- Mehrfamilienhaeuser
+- Reinigungsteams
+- Hausverwaltungen
+
+CleanOrga macht Schluss mit vergessenen Putzaufgaben und unfairer Aufgabenverteilung. Laden Sie die App herunter und erleben Sie stressfreies Zusammenwohnen!

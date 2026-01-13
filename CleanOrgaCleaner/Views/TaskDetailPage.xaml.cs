@@ -132,19 +132,19 @@ public partial class TaskDetailPage : ContentPage
     private async void OnMenuTodayClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     private async void OnMenuChatClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//ChatPage");
+        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
     private async void OnMenuSettingsClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//SettingsPage");
+        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
     }
 
     private async Task LoadTaskAsync()

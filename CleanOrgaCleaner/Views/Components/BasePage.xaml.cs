@@ -182,7 +182,7 @@ public partial class BasePage : ContentPage
     protected virtual async void OnMenuTodayClicked(object? sender, EventArgs e)
     {
         if (MenuOverlayGrid != null) MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     protected virtual async void OnMenuChatClicked(object? sender, EventArgs e)
@@ -194,12 +194,12 @@ public partial class BasePage : ContentPage
     protected virtual async void OnMenuMyTasksClicked(object? sender, EventArgs e)
     {
         if (MenuOverlayGrid != null) MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
     }
 
     protected virtual async void OnMenuSettingsClicked(object? sender, EventArgs e)
     {
         if (MenuOverlayGrid != null) MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//SettingsPage");
+        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
     }
 }

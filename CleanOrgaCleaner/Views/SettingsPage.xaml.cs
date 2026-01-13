@@ -112,7 +112,7 @@ public partial class SettingsPage : ContentPage
     private async void OnMenuTodayClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     private async void OnMenuChatClicked(object sender, EventArgs e)
