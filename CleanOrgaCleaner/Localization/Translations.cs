@@ -186,7 +186,21 @@ public static class Translations
             ["update_error"] = "Fehler beim Aktualisieren",
             ["delete_error"] = "Fehler beim Löschen",
             ["delete_image"] = "Bild löschen",
-            ["confirm_delete_image"] = "Möchtest du dieses Bild wirklich löschen?"
+            ["confirm_delete_image"] = "Möchtest du dieses Bild wirklich löschen?",
+
+            // Login Screen
+            ["login_subtitle"] = "Reinigungsmanagement",
+            ["login_enterprise_app"] = "Firmen-App:",
+            ["login_credentials_info"] = "Ihre Zugangsdaten erhalten Sie von Ihrem Administrator.",
+            ["login_new_customers"] = "Neukunden:",
+            ["login_registration_info"] = "Registrierung per E-Mail an: mail@schwanenburg.de",
+            ["login_test_usage"] = "Test-Nutzung:",
+            ["login_test_credentials"] = "Property: 1  |  User: tom  |  Passwort: tom",
+            ["login_title"] = "Anmelden",
+            ["login_property_id"] = "Property ID",
+            ["login_username"] = "Benutzername",
+            ["login_password"] = "Passwort",
+            ["login_remember_me"] = "Angemeldet bleiben"
         },
 
         ["en"] = new Dictionary<string, string>
@@ -359,7 +373,21 @@ public static class Translations
             ["update_error"] = "Update error",
             ["delete_error"] = "Delete error",
             ["delete_image"] = "Delete image",
-            ["confirm_delete_image"] = "Do you really want to delete this image?"
+            ["confirm_delete_image"] = "Do you really want to delete this image?",
+
+            // Login Screen
+            ["login_subtitle"] = "Cleaning Management",
+            ["login_enterprise_app"] = "Enterprise App:",
+            ["login_credentials_info"] = "Please get your login credentials from your administrator.",
+            ["login_new_customers"] = "New Customers:",
+            ["login_registration_info"] = "Request registration via email: mail@schwanenburg.de",
+            ["login_test_usage"] = "Test Usage:",
+            ["login_test_credentials"] = "Property: 1  |  User: tom  |  Password: tom",
+            ["login_title"] = "Login",
+            ["login_property_id"] = "Property ID",
+            ["login_username"] = "Username",
+            ["login_password"] = "Password",
+            ["login_remember_me"] = "Stay logged in"
         },
 
         ["es"] = new Dictionary<string, string>
@@ -686,9 +714,9 @@ public static class Translations
     };
 
     /// <summary>
-    /// Current language code (default: de)
+    /// Current language code (default: en)
     /// </summary>
-    public static string CurrentLanguage { get; set; } = "de";
+    public static string CurrentLanguage { get; set; } = "en";
 
     /// <summary>
     /// Get translated string for a key
@@ -702,7 +730,14 @@ public static class Translations
                 return value;
         }
 
-        // Fallback to German
+        // Fallback to English (default language)
+        if (_translations.TryGetValue("en", out var enDict))
+        {
+            if (enDict.TryGetValue(key, out var value))
+                return value;
+        }
+
+        // Second fallback to German (most complete)
         if (_translations.TryGetValue("de", out var deDict))
         {
             if (deDict.TryGetValue(key, out var value))
@@ -719,11 +754,36 @@ public static class Translations
     public static string T(string key) => Get(key);
 
     /// <summary>
-    /// Load language from preferences
+    /// Load language from preferences or detect from device
     /// </summary>
     public static void LoadFromPreferences()
     {
-        CurrentLanguage = Preferences.Get("language", "de");
+        var savedLanguage = Preferences.Get("language", "");
+        if (!string.IsNullOrEmpty(savedLanguage) && IsSupported(savedLanguage))
+        {
+            CurrentLanguage = savedLanguage;
+            return;
+        }
+
+        // Detect device language - try multiple methods
+        string deviceLang = "en";
+        try
+        {
+            // Try CurrentUICulture first (more reliable for UI language)
+            deviceLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLower();
+            if (!IsSupported(deviceLang))
+            {
+                // Fallback to CurrentCulture
+                deviceLang = System.Globalization.CultureInfo.CurrentCulture.TwoLetterISOLanguageName.ToLower();
+            }
+        }
+        catch
+        {
+            deviceLang = "en";
+        }
+
+        CurrentLanguage = IsSupported(deviceLang) ? deviceLang : "en";
+        System.Diagnostics.Debug.WriteLine($"[Translations] Device language detected: {deviceLang}, using: {CurrentLanguage}");
     }
 
     /// <summary>

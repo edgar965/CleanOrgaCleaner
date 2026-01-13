@@ -15,8 +15,33 @@ public partial class LoginPage : ContentPage
         _apiService = ApiService.Instance;
         _biometricService = BiometricService.Instance;
 
+        // Load language and apply translations
+        Translations.LoadFromPreferences();
+        ApplyTranslations();
+
         // Load saved credentials
         LoadSavedCredentials();
+    }
+
+    private void ApplyTranslations()
+    {
+        // Subtitle
+        SubtitleLabel.Text = Translations.Get("login_subtitle");
+
+        // Form labels
+        PropertyIdLabel.Text = Translations.Get("login_property_id");
+        UsernameLabel.Text = Translations.Get("login_username");
+        PasswordLabel.Text = Translations.Get("login_password");
+        RememberMeLabel.Text = Translations.Get("login_remember_me");
+        LoginButton.Text = Translations.Get("login_title");
+
+        // Info text
+        EnterpriseAppLabel.Text = Translations.Get("login_enterprise_app");
+        CredentialsInfoLabel.Text = Translations.Get("login_credentials_info");
+        NewCustomersLabel.Text = Translations.Get("login_new_customers");
+        RegistrationInfoLabel.Text = Translations.Get("login_registration_info");
+        TestUsageLabel.Text = Translations.Get("login_test_usage");
+        TestCredentialsLabel.Text = Translations.Get("login_test_credentials");
     }
 
     protected override async void OnAppearing()
@@ -103,14 +128,14 @@ public partial class LoginPage : ContentPage
             {
                 // User cancelled or failed biometric - stay on login page
                 LoginButton.IsEnabled = true;
-                LoginButton.Text = "Anmelden";
+                LoginButton.Text = Translations.Get("login_title");
                 return;
             }
         }
 
         // Show auto-login state
         LoginButton.IsEnabled = false;
-        LoginButton.Text = "Automatisch anmelden...";
+        LoginButton.Text = Translations.Get("loading");
 
         try
         {
@@ -137,7 +162,7 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
                 PasswordEntry.Text = "";
-                ShowError("Automatische Anmeldung fehlgeschlagen");
+                ShowError(Translations.Get("connection_error"));
             }
         }
         catch (Exception ex)
@@ -147,7 +172,7 @@ public partial class LoginPage : ContentPage
         finally
         {
             LoginButton.IsEnabled = true;
-            LoginButton.Text = "Anmelden";
+            LoginButton.Text = Translations.Get("login_title");
         }
     }
 
@@ -163,19 +188,19 @@ public partial class LoginPage : ContentPage
             string.IsNullOrWhiteSpace(UsernameEntry.Text) ||
             string.IsNullOrWhiteSpace(PasswordEntry.Text))
         {
-            ShowError("Bitte alle Felder ausfuellen");
+            ShowError(Translations.Get("error"));
             return;
         }
 
         if (!int.TryParse(PropertyIdEntry.Text, out int propertyId))
         {
-            ShowError("Property ID muss eine Zahl sein");
+            ShowError(Translations.Get("error"));
             return;
         }
 
         // Show loading state
         LoginButton.IsEnabled = false;
-        LoginButton.Text = "Anmelden...";
+        LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
 
         try
@@ -226,17 +251,17 @@ public partial class LoginPage : ContentPage
             }
             else
             {
-                ShowError(result.ErrorMessage ?? "Login fehlgeschlagen");
+                ShowError(result.ErrorMessage ?? Translations.Get("error"));
             }
         }
         catch (Exception ex)
         {
-            ShowError($"Fehler: {ex.Message}");
+            ShowError($"{Translations.Get("error")}: {ex.Message}");
         }
         finally
         {
             LoginButton.IsEnabled = true;
-            LoginButton.Text = "Anmelden";
+            LoginButton.Text = Translations.Get("login_title");
         }
     }
 

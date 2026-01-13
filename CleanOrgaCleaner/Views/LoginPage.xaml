@@ -5,24 +5,25 @@
              BackgroundColor="#2196F3">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30" Spacing="20" VerticalOptions="Center">
+        <VerticalStackLayout Padding="30,50,30,30" Spacing="20">
 
-            <!-- Logo/Title -->
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="10">
-                <Image Source="logo.jpg" WidthRequest="50" HeightRequest="50"><Image.Clip><EllipseGeometry Center="25,25" RadiusX="25" RadiusY="25"/></Image.Clip></Image>
-                <Label Text="CleanOrga"
-                       FontSize="36"
-                       FontAttributes="Bold"
-                       TextColor="White"
-                       VerticalOptions="Center"/>
-            </HorizontalStackLayout>
+            <!-- Title -->
+            <Label Text="CleanOrga"
+                   FontSize="36"
+                   FontAttributes="Bold"
+                   TextColor="White"
+                   HorizontalOptions="Center"/>
 
-            <Label Text="Reinigungsmanagement"
+            <!-- Logo -->
+            <Image Source="logo_transparent.png" WidthRequest="80" HeightRequest="80" HorizontalOptions="Center"/>
+
+            <!-- Subtitle -->
+            <Label x:Name="SubtitleLabel" Text="Cleaning Management"
                    FontSize="16"
                    TextColor="White"
                    Opacity="0.8"
                    HorizontalOptions="Center"
-                   Margin="0,0,0,30"/>
+                   Margin="0,0,0,20"/>
 
             <!-- Login Form -->
             <Border BackgroundColor="White"
@@ -34,7 +35,7 @@
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="15">
 
-                    <Label Text="Property ID"
+                    <Label x:Name="PropertyIdLabel" Text="Property ID"
                            FontSize="14"
                            TextColor="#666"/>
                     <Entry x:Name="PropertyIdEntry"
@@ -42,25 +43,25 @@
                            Keyboard="Numeric"
                            FontSize="18"/>
 
-                    <Label Text="Benutzername"
+                    <Label x:Name="UsernameLabel" Text="Username"
                            FontSize="14"
                            TextColor="#666"/>
                     <Entry x:Name="UsernameEntry"
-                           Placeholder="Dein Benutzername"
+                           Placeholder=""
                            FontSize="18"/>
 
-                    <Label Text="Passwort"
+                    <Label x:Name="PasswordLabel" Text="Password"
                            FontSize="14"
                            TextColor="#666"/>
                     <Entry x:Name="PasswordEntry"
-                           Placeholder="Dein Passwort"
+                           Placeholder=""
                            IsPassword="True"
                            FontSize="18"/>
 
                     <!-- Auto-Login Checkbox -->
                     <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
                         <CheckBox x:Name="RememberMeCheckbox" Color="#2196F3" />
-                        <Label Text="Angemeldet bleiben"
+                        <Label x:Name="RememberMeLabel" Text="Stay logged in"
                                TextColor="#666"
                                FontSize="14"
                                VerticalOptions="Center">
@@ -71,7 +72,7 @@
                     </HorizontalStackLayout>
 
                     <Button x:Name="LoginButton"
-                            Text="Anmelden"
+                            Text="Login"
                             BackgroundColor="#2196F3"
                             TextColor="White"
                             FontSize="18"
@@ -90,13 +91,54 @@
                 </VerticalStackLayout>
             </Border>
 
+            <!-- Info Text direkt auf blauem Hintergrund -->
+            <VerticalStackLayout Spacing="15" Margin="0,20,0,0">
+
+                <!-- Enterprise App -->
+                <VerticalStackLayout Spacing="2">
+                    <Label x:Name="EnterpriseAppLabel" Text="Enterprise App:"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label x:Name="CredentialsInfoLabel" Text="Please get your login credentials from your administrator."
+                           FontSize="13"
+                           TextColor="White"
+                           Opacity="0.85"/>
+                </VerticalStackLayout>
+
+                <!-- New Customers -->
+                <VerticalStackLayout Spacing="2">
+                    <Label x:Name="NewCustomersLabel" Text="New Customers:"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label x:Name="RegistrationInfoLabel" Text="Request registration via email: mail@schwanenburg.de"
+                           FontSize="13"
+                           TextColor="White"
+                           Opacity="0.85"/>
+                </VerticalStackLayout>
+
+                <!-- Test Usage -->
+                <VerticalStackLayout Spacing="2">
+                    <Label x:Name="TestUsageLabel" Text="Test Usage:"
+                           FontSize="14"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label x:Name="TestCredentialsLabel" Text="Property: 1  |  User: tom  |  Password: tom"
+                           FontSize="13"
+                           TextColor="White"
+                           Opacity="0.85"/>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+
             <!-- Version -->
-            <Label Text="v0.41"
+            <Label Text="v1.0"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"
                    HorizontalOptions="Center"
-                   Margin="0,20,0,0"/>
+                   Margin="0,20,0,40"/>
 
         </VerticalStackLayout>
     </ScrollView>
