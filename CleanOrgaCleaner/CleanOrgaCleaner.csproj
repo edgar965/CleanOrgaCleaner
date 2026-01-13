@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
-		<ApplicationVersion>15</ApplicationVersion>
+		<ApplicationVersion>16</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -52,8 +52,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- App Icon - CleanOrga Logo PNG (1024x1024 für iOS App Store) -->
-		<MauiIcon Include="Resources/AppIcon/appicon.png" />
+		<!-- App Icon - SVG with ForegroundFile for proper iOS icon generation -->
+		<MauiIcon Include="Resources/AppIcon/appicon.svg" ForegroundFile="Resources/AppIcon/appiconfg.svg" />
 
 		<!-- Splash Screen - CleanOrga Logo -->
 		<MauiSplashScreen Include="Resources/AppIcon/cleanorgalogo.png" Color="#C5E1F5" BaseSize="256,256" />
