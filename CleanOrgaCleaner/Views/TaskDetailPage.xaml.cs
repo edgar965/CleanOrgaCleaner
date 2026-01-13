@@ -12,6 +12,7 @@ public partial class TaskDetailPage : ContentPage
     private readonly WebSocketService _webSocketService;
     private int _taskId;
     private CleaningTask? _task;
+    private List<CleaningTask> _allTasks = new(); // All tasks for the user
     private List<(string FileName, byte[] Bytes)> _selectedPhotos = new(); // Store photo bytes for Problem
     private string? _selectedBildPath;
     private byte[]? _selectedBildBytes; // Store bytes in memory for BildStatus upload
@@ -44,6 +45,7 @@ public partial class TaskDetailPage : ContentPage
         UpdateOfflineBanner(!_webSocketService.IsOnline);
 
         ApplyTranslations();
+        await LoadAllTasksAsync();
         await LoadTaskAsync();
     }
 
@@ -87,7 +89,6 @@ public partial class TaskDetailPage : ContentPage
 
         // Buttons
         CancelButton.Text = t("back");
-        DeleteTaskButton.Text = t("delete_task");
         AddProblemButton.Text = $"⚠️ {t("report_problem")}";
         AddBildButton.Text = $"+ {t("add_image").ToUpper()}";
 
@@ -116,6 +117,79 @@ public partial class TaskDetailPage : ContentPage
         DeleteBildButton.Text = t("delete");
         CloseBildButton.Text = t("cancel");
         SaveBildDetailButton.Text = t("save");
+
+        // Tasks section label
+        TasksSectionLabel.Text = t("tasks_today").ToUpper();
+    }
+
+    private async Task LoadAllTasksAsync()
+    {
+        try
+        {
+            var todayData = await _apiService.GetTodayDataAsync();
+            _allTasks = todayData.Tasks;
+            PopulateTasksMenu();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading tasks: {ex.Message}");
+        }
+    }
+
+    private void PopulateTasksMenu()
+    {
+        TasksMenuStack.Children.Clear();
+
+        if (_allTasks.Count == 0)
+        {
+            TasksSectionLabel.IsVisible = false;
+            return;
+        }
+
+        TasksSectionLabel.IsVisible = true;
+
+        foreach (var task in _allTasks)
+        {
+            // Highlight current task
+            var isCurrentTask = task.Id == _taskId;
+            var backgroundColor = isCurrentTask ? "#1565C0" : "Transparent";
+            var fontAttrs = isCurrentTask ? FontAttributes.Bold : FontAttributes.None;
+
+            var taskButton = new Button
+            {
+                Text = $"{task.ApartmentName} - {task.Aufgabenart}",
+                BackgroundColor = Color.FromArgb(isCurrentTask ? "#1565C0" : "#00000000"),
+                TextColor = Colors.White,
+                FontSize = 15,
+                FontAttributes = fontAttrs,
+                Padding = new Thickness(20, 12),
+                HorizontalOptions = LayoutOptions.Fill,
+                CommandParameter = task.Id
+            };
+            taskButton.Clicked += OnTaskMenuItemClicked;
+            TasksMenuStack.Children.Add(taskButton);
+
+            // Add separator
+            TasksMenuStack.Children.Add(new BoxView
+            {
+                HeightRequest = 1,
+                Color = Color.FromArgb("#ffffff33")
+            });
+        }
+    }
+
+    private async void OnTaskMenuItemClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button button && button.CommandParameter is int taskId)
+        {
+            MenuOverlayGrid.IsVisible = false;
+
+            if (taskId != _taskId)
+            {
+                // Navigate to the selected task
+                await Shell.Current.GoToAsync($"TaskDetailPage?taskId={taskId}");
+            }
+        }
     }
 
     // Menu handling
@@ -316,41 +390,6 @@ public partial class TaskDetailPage : ContentPage
             LogEmptyLabel.Text = "Fehler beim Laden der Logs";
             LogEmptyLabel.IsVisible = true;
             LogStack.Children.Add(LogEmptyLabel);
-        }
-    }
-
-    private async void OnDeleteTaskClicked(object sender, EventArgs e)
-    {
-        var confirm = await DisplayAlert(
-            Translations.Get("delete_task"),
-            Translations.Get("delete_task_confirm"),
-            Translations.Get("yes_delete"),
-            Translations.Get("no"));
-
-        if (!confirm) return;
-
-        DeleteTaskButton.IsEnabled = false;
-        try
-        {
-            var response = await _apiService.DeleteTaskAsync(_taskId);
-            if (response.Success)
-            {
-                await DisplayAlert("Geloescht", "Aufgabe wurde geloescht", "OK");
-                await Shell.Current.GoToAsync("..");
-            }
-            else
-            {
-                await DisplayAlert("Fehler", response.Error ?? "Loeschen fehlgeschlagen", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteTask error: {ex.Message}");
-            await DisplayAlert("Fehler", "Aufgabe konnte nicht geloescht werden", "OK");
-        }
-        finally
-        {
-            DeleteTaskButton.IsEnabled = true;
         }
     }
 

@@ -132,17 +132,14 @@
         </ScrollView>
 
         <!-- Fixed Start/Beenden Button am unteren Rand -->
-        <Border Grid.Row="3" BackgroundColor="White" Padding="15">
+        <Border Grid.Row="3" BackgroundColor="White" Padding="15,15,15,25">
             <Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
-            <VerticalStackLayout Spacing="10">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                    <Button x:Name="CancelButton" Text="Zurueck" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
-                    <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
-                        <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
-                    </Button>
-                </Grid>
-                <Button x:Name="DeleteTaskButton" Text="Aufgabe loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontSize="14" FontAttributes="Bold" CornerRadius="12" HeightRequest="45" Clicked="OnDeleteTaskClicked"/>
-            </VerticalStackLayout>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button x:Name="CancelButton" Text="Zurueck" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
+                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
+                    <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
+                </Button>
+            </Grid>
         </Border>
 
         <!-- Dropdown Menu Overlay -->
@@ -174,6 +171,17 @@
                     <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="0">
+                    <!-- Dynamic Tasks Section -->
+                    <Label x:Name="TasksSectionLabel" Text="AUFGABEN"
+                           FontSize="11" TextColor="#ffffffaa"
+                           Padding="20,10,20,5" FontAttributes="Bold"/>
+                    <VerticalStackLayout x:Name="TasksMenuStack" Spacing="0"/>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
+
+                    <!-- Navigation Section -->
+                    <Label Text="NAVIGATION"
+                           FontSize="11" TextColor="#ffffffaa"
+                           Padding="20,10,20,5" FontAttributes="Bold"/>
                     <Button x:Name="MenuTodayButton" Text="🏠 Heute"
                             BackgroundColor="Transparent"
                             TextColor="White"
