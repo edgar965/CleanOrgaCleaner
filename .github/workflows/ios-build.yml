@@ -34,10 +34,23 @@ jobs:
         sudo xcode-select -s /Applications/Xcode_26.1.1.app
         xcodebuild -version
 
-    - name: Install MAUI Workloads
+    - name: Install MAUI Workloads with iOS SDK 26.1
       run: |
-        # Install maui workload
-        dotnet workload install maui --source https://api.nuget.org/v3/index.json
+        # Create rollback file for iOS SDK 26.1 (compatible with Xcode 26.1.1)
+        cat > rollback.json << 'ROLLBACK'
+        {
+          "microsoft.net.sdk.ios": "26.1.10183/10.0.100",
+          "microsoft.net.sdk.maui": "10.0.0/10.0.100",
+          "microsoft.net.sdk.android": "36.0.100/10.0.100",
+          "microsoft.net.sdk.maccatalyst": "26.1.10183/10.0.100"
+        }
+        ROLLBACK
+
+        # Try to install with rollback file to get older iOS SDK
+        dotnet workload install maui --from-rollback-file rollback.json || {
+          echo "Rollback install failed, trying normal install..."
+          dotnet workload install maui --source https://api.nuget.org/v3/index.json
+        }
 
         # Check installed workload versions
         dotnet workload list
