@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CleanOrga Feature Graphic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #333;
+        }
+        .feature-graphic {
+            width: 1024px;
+            height: 500px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .content {
+            text-align: center;
+            color: white;
+            z-index: 2;
+        }
+        .logo {
+            font-size: 80px;
+            margin-bottom: 10px;
+        }
+        .app-name {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 72px;
+            font-weight: 700;
+            letter-spacing: -2px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .tagline {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 28px;
+            font-weight: 400;
+            opacity: 0.95;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .decorative-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+        }
+        .circle1 {
+            width: 400px;
+            height: 400px;
+            top: -150px;
+            left: -100px;
+        }
+        .circle2 {
+            width: 300px;
+            height: 300px;
+            bottom: -100px;
+            right: -50px;
+        }
+        .circle3 {
+            width: 200px;
+            height: 200px;
+            top: 50%;
+            right: 100px;
+            transform: translateY(-50%);
+        }
+        .features {
+            display: flex;
+            gap: 40px;
+            margin-top: 30px;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+        }
+        .feature-icon {
+            font-size: 24px;
+        }
+        .instructions {
+            margin-top: 40px;
+            padding: 20px;
+            background: #fff;
+            color: #333;
+            font-size: 14px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <div class="feature-graphic">
+            <div class="decorative-circle circle1"></div>
+            <div class="decorative-circle circle2"></div>
+            <div class="decorative-circle circle3"></div>
+            <div class="content">
+                <div class="logo">🧹</div>
+                <div class="app-name">CleanOrga</div>
+                <div class="tagline">Reinigungsmanagement für Teams</div>
+                <div class="features">
+                    <div class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Aufgaben</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">⏱</span>
+                        <span>Zeiterfassung</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">💬</span>
+                        <span>Team-Chat</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="instructions">
+            <strong>Anleitung:</strong><br>
+            1. Diese Datei im Browser öffnen (Chrome empfohlen)<br>
+            2. Rechtsklick auf das Bild oben → "Screenshot aufnehmen" oder<br>
+            3. Windows: Win+Shift+S und den Bereich auswählen<br>
+            4. Als PNG speichern (1024x500 Pixel)<br>
+            5. In Play Console unter "Feature Graphic" hochladen
+        </div>
+    </div>
+</body>
+</html>

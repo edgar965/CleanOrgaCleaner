@@ -43,6 +43,11 @@ Desktop.ini
 *.class
 local.properties
 
+# Signing keys (NEVER commit!)
+signing/
+*.keystore
+*.jks
+
 # iOS
 *.ipa
 *.dSYM.zip

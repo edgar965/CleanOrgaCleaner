@@ -1,0 +1,62 @@
+================================================================================
+GOOGLE PLAY STORE - ENGLISH VERSION
+================================================================================
+
+APP NAME:
+CleanOrga
+
+--------------------------------------------------------------------------------
+SHORT DESCRIPTION (max 80 characters):
+--------------------------------------------------------------------------------
+Cleaning management for teams - Tasks, time tracking & communication
+
+--------------------------------------------------------------------------------
+FULL DESCRIPTION (max 4000 characters):
+--------------------------------------------------------------------------------
+CleanOrga is the professional app for cleaning teams and facility management. Manage cleaning tasks, track working hours, and communicate in real-time with your team.
+
+FEATURES:
+
+Task Management
+- Daily overview of all assigned cleaning tasks
+- Detailed task information with checklists
+- Status tracking: Not started, In progress, Completed
+- Create and manage your own tasks
+
+Documentation
+- Take photos before and after cleaning
+- Report problems with description and image
+- Add notes to each task
+- Complete logging of all activities
+
+Time Tracking
+- Start and end work with a single tap
+- Automatic calculation of working hours
+- Overview of all work days
+
+Communication
+- Integrated team chat
+- Real-time notifications
+- Direct communication with management
+
+Multilingual
+- Available in: German, English, Spanish, Romanian, Polish, Russian, Ukrainian, Vietnamese
+
+IDEAL FOR:
+- Cleaning companies
+- Facility management
+- Hotels and vacation rentals
+- Co-living spaces
+- Property management
+
+The app works with the CleanOrga server system. Contact us for access.
+
+--------------------------------------------------------------------------------
+CATEGORY:
+--------------------------------------------------------------------------------
+Business or Productivity
+
+--------------------------------------------------------------------------------
+TAGS/KEYWORDS:
+--------------------------------------------------------------------------------
+Cleaning, Facility Management, Task Management, Time Tracking, Team App, Housekeeping, Property Management, Workforce Management
