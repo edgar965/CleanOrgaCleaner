@@ -60,7 +60,7 @@
 
                     <!-- Auto-Login Checkbox -->
                     <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
-                        <CheckBox x:Name="RememberMeCheckbox" Color="#2196F3" />
+                        <CheckBox x:Name="RememberMeCheckbox" Color="#2196F3" IsChecked="True" />
                         <Label x:Name="RememberMeLabel" Text="Stay logged in"
                                TextColor="#666"
                                FontSize="14"

@@ -243,6 +243,9 @@ public partial class LoginPage : ContentPage
 
                 System.Diagnostics.Debug.WriteLine($"[Login] Language set to: {language}");
 
+                // Check if we should prompt for Face ID / biometric login
+                await PromptForBiometricLoginAsync();
+
                 // Initialize WebSocket for chat notifications
                 _ = App.InitializeWebSocketAsync();
 
@@ -269,5 +272,42 @@ public partial class LoginPage : ContentPage
     {
         ErrorLabel.Text = message;
         ErrorLabel.IsVisible = true;
+    }
+
+    private async Task PromptForBiometricLoginAsync()
+    {
+        // Only prompt if:
+        // 1. Remember Me is checked (we have saved credentials)
+        // 2. Biometric is not already enabled
+        // 3. Biometric is available on this device
+        if (!RememberMeCheckbox.IsChecked)
+            return;
+
+        if (_biometricService.IsBiometricLoginEnabled())
+            return;
+
+        bool biometricAvailable = await _biometricService.IsBiometricAvailableAsync();
+        if (!biometricAvailable)
+            return;
+
+        var biometricType = await _biometricService.GetBiometricTypeAsync();
+
+        var enableBiometric = await DisplayAlert(
+            biometricType,
+            $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
+            "Ja",
+            "Nein");
+
+        if (enableBiometric)
+        {
+            // Verify biometric works before enabling
+            var authenticated = await _biometricService.AuthenticateAsync($"{biometricType} einrichten");
+
+            if (authenticated)
+            {
+                _biometricService.SetBiometricLoginEnabled(true);
+                System.Diagnostics.Debug.WriteLine($"[Login] {biometricType} enabled after login");
+            }
+        }
     }
 }

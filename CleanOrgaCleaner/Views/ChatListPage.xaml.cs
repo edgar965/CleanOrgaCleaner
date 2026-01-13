@@ -106,7 +106,41 @@ public partial class ChatListPage : ContentPage
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        _apiService.Logout();
+        MenuOverlayGrid.IsVisible = false;
+
+        var confirm = await DisplayAlert(
+            Translations.Get("logout"),
+            Translations.Get("really_logout"),
+            Translations.Get("yes"),
+            Translations.Get("no"));
+
+        if (!confirm)
+            return;
+
+        try
+        {
+            await _apiService.LogoutAsync();
+        }
+        catch
+        {
+            // Ignore errors - we're logging out anyway
+        }
+
+        // Clear stored credentials
+        Preferences.Remove("property_id");
+        Preferences.Remove("username");
+        Preferences.Remove("language");
+        Preferences.Remove("is_logged_in");
+        Preferences.Remove("remember_me");
+        Preferences.Remove("biometric_login_enabled");
+
+        // Clear secure storage
+        SecureStorage.Remove("password");
+
+        // Disconnect WebSocket
+        WebSocketService.Instance.Dispose();
+
+        // Navigate to login page
         await Shell.Current.GoToAsync("//LoginPage");
     }
 

@@ -667,16 +667,35 @@ public partial class MyTasksPage : ContentPage
             Translations.Get("yes"),
             Translations.Get("no"));
 
-        if (confirm)
+        if (!confirm)
+            return;
+
+        try
         {
-            Preferences.Remove("is_logged_in");
-            Preferences.Remove("property_id");
-            Preferences.Remove("username");
-            Preferences.Remove("remember_me");
-            SecureStorage.Remove("password");
-            _apiService.Logout();
-            await Shell.Current.GoToAsync("//LoginPage");
+            // Call logout API
+            await _apiService.LogoutAsync();
         }
+        catch
+        {
+            // Ignore errors - we're logging out anyway
+        }
+
+        // Clear stored credentials
+        Preferences.Remove("property_id");
+        Preferences.Remove("username");
+        Preferences.Remove("language");
+        Preferences.Remove("is_logged_in");
+        Preferences.Remove("remember_me");
+        Preferences.Remove("biometric_login_enabled");
+
+        // Clear secure storage
+        SecureStorage.Remove("password");
+
+        // Disconnect WebSocket
+        WebSocketService.Instance.Dispose();
+
+        // Navigate to login page
+        await Shell.Current.GoToAsync("//LoginPage");
     }
 
     #endregion

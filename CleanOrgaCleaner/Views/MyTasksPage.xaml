@@ -176,8 +176,8 @@
                     Stroke="Transparent"
                     BackgroundColor="White"
                     Padding="0"
-                    VerticalOptions="Start" Margin="0,110,0,0"
-                    MaximumHeightRequest="650">
+                    VerticalOptions="Start" Margin="0,160,0,0"
+                    MaximumHeightRequest="580">
 
                 <Grid RowDefinitions="Auto,Auto,*,Auto">
                     <!-- Popup Header -->
