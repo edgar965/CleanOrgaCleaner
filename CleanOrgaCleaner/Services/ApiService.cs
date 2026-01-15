@@ -729,15 +729,16 @@ public class ApiService
 
     #region Chat
 
-    public async Task<List<ChatMessage>> GetChatMessagesAsync()
+    public async Task<List<ChatMessage>> GetChatMessagesAsync(string partnerId = "admin")
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/chat/messages/");
+            var url = $"/mobile/api/chat/messages/?partner_id={partnerId}";
+            var response = await _httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 var json = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"ChatMessages: {json}");
+                System.Diagnostics.Debug.WriteLine($"ChatMessages ({partnerId}): {json}");
                 var result = JsonSerializer.Deserialize<ChatMessagesResponse>(json);
                 return result?.Messages ?? new List<ChatMessage>();
             }

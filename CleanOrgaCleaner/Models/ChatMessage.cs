@@ -28,10 +28,15 @@ public class ChatMessage
     [JsonPropertyName("datum_zeit")]
     public string? DatumZeit { get; set; }
 
-    [JsonPropertyName("from_cleaner")]
-    public bool FromCleaner { get; set; }
+    [JsonPropertyName("from_current_user")]
+    public bool FromCurrentUser { get; set; }
 
     #region UI Properties
+
+    /// <summary>
+    /// Is this message from someone else (not the current user)?
+    /// </summary>
+    public bool IsFromOther => !FromCurrentUser;
 
     /// <summary>
     /// Does this message have a translation?
@@ -51,16 +56,16 @@ public class ChatMessage
     /// <summary>
     /// Background color based on sender
     /// </summary>
-    public Color BackgroundColor => FromCleaner
-        ? Color.FromArgb("#e3f2fd")  // Light blue for cleaner
-        : Color.FromArgb("#f8f9fa"); // Light gray for admin
+    public Color BackgroundColor => FromCurrentUser
+        ? Color.FromArgb("#dcf8c6")  // Green for own messages
+        : Color.FromArgb("#ffffff"); // White for others
 
     /// <summary>
     /// Border color based on sender
     /// </summary>
-    public Color BorderColor => FromCleaner
-        ? Color.FromArgb("#9c27b0")  // Purple for cleaner
-        : Color.FromArgb("#2196F3"); // Blue for admin
+    public Color BorderColor => FromCurrentUser
+        ? Color.FromArgb("#25D366")  // Green for own messages
+        : Color.FromArgb("#cccccc"); // Gray for others
 
     /// <summary>
     /// Formatted date/time for display

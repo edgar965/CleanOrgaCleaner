@@ -64,7 +64,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             // Check if message is already in the list
             if (!_messages.Any(m => m.Id == pending.Id))
             {
-                _messages.Insert(0, pending);
+                _messages.Add(pending);
             }
         }
 
@@ -99,10 +99,8 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         var t = Translations.Get;
         Title = t("chat");
 
-        MessageEditor.Placeholder = t("message_placeholder");
-        // PreviewButton behält das Globus-Icon 🌐
-        // SendButton behält das Pfeil-Icon ➤
-        MenuButton.Text = $"{t("chat")} ▼";
+        MessageEntry.Placeholder = t("message_placeholder");
+        MenuButton.Text = t("chat");
 
         // Menu translations
         MenuTodayButton.Text = $"🏠 {t("today")}";
@@ -158,8 +156,9 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             // Check if message already exists (avoid duplicates)
             if (!_messages.Any(m => m.Id == message.Id))
             {
-                // Add to collection (messages displayed newest first)
-                _messages.Insert(0, message);
+                // Add to end and scroll to bottom
+                _messages.Add(message);
+                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
         });
     }
@@ -168,13 +167,20 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         try
         {
-            var messages = await _apiService.GetChatMessagesAsync();
+            var messages = await _apiService.GetChatMessagesAsync(_partnerId);
             _messages.Clear();
 
-            // Add messages (newest first)
-            foreach (var msg in messages.OrderByDescending(m => m.Id))
+            // Add messages (oldest first, so newest appears at bottom near input)
+            foreach (var msg in messages.OrderBy(m => m.Id))
             {
                 _messages.Add(msg);
+            }
+
+            // Scroll to bottom to show latest messages
+            if (_messages.Count > 0)
+            {
+                await Task.Delay(100); // Let UI render
+                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
         }
         catch (Exception ex)
@@ -185,7 +191,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
     private async void OnSendClicked(object sender, EventArgs e)
     {
-        var text = MessageEditor.Text?.Trim();
+        var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
@@ -200,9 +206,24 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
             if (response.Success && response.Message != null)
             {
-                // Add to local collection
-                _messages.Insert(0, response.Message);
-                MessageEditor.Text = "";
+                // Check if message already added via WebSocket
+                var existing = _messages.FirstOrDefault(m => m.Id == response.Message.Id);
+                if (existing != null)
+                {
+                    // Update FromCurrentUser (WebSocket might have set it wrong)
+                    existing.FromCurrentUser = true;
+                    // Force UI refresh
+                    var idx = _messages.IndexOf(existing);
+                    _messages.RemoveAt(idx);
+                    _messages.Insert(idx, existing);
+                }
+                else
+                {
+                    response.Message.FromCurrentUser = true;
+                    _messages.Add(response.Message);
+                }
+                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                MessageEntry.Text = "";
             }
             else
             {
@@ -223,12 +244,16 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
     private async void OnPreviewClicked(object sender, EventArgs e)
     {
-        var text = MessageEditor.Text?.Trim();
+        var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
+
+        // Tastatur schließen bevor Popup erscheint
+        MessageEntry.Unfocus();
+        await Task.Delay(300); // Warten bis Tastatur geschlossen
 
         PreviewButton.IsEnabled = false;
 
