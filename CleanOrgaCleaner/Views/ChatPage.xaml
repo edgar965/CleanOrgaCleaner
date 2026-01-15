@@ -10,11 +10,11 @@
     <!-- Main container Grid for overlays -->
     <Grid>
 
-        <!-- Main Content -->
-        <VerticalStackLayout>
+        <!-- Main Content Grid with fixed rows -->
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-            <!-- Header -->
-            <Grid Padding="15,45,15,15" BackgroundColor="#2196F3">
+            <!-- Header - Row 0 -->
+            <Grid Grid.Row="0" Padding="15,45,15,15" BackgroundColor="#2196F3">
                 <Grid ColumnDefinitions="Auto,*,Auto">
                     <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
                         <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
@@ -36,17 +36,16 @@
                 </Grid>
             </Grid>
 
-            <!-- Offline Banner -->
-            <Frame x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
+            <!-- Offline Banner - Row 1 -->
+            <Frame Grid.Row="1" x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
                     <Label Text="Offline" TextColor="White" FontSize="13"/>
                     <ActivityIndicator x:Name="OfflineSpinner" IsRunning="True" Color="White" WidthRequest="16" HeightRequest="16"/>
                 </HorizontalStackLayout>
             </Frame>
 
-            <!-- Messages -->
-            <CollectionView x:Name="MessagesCollection"
-                            VerticalOptions="FillAndExpand"
+            <!-- Messages - Row 2 (fills remaining space) -->
+            <CollectionView Grid.Row="2" x:Name="MessagesCollection"
                             Margin="10,5,10,5"
                             ItemsUpdatingScrollMode="KeepLastItemInView">
                 <CollectionView.ItemTemplate>
@@ -84,8 +83,8 @@
                 </CollectionView.EmptyView>
             </CollectionView>
 
-            <!-- INPUT AREA -->
-            <Grid BackgroundColor="White" Padding="10" HeightRequest="60"
+            <!-- INPUT AREA - Row 3 (always visible at bottom) -->
+            <Grid Grid.Row="3" BackgroundColor="White" Padding="10" HeightRequest="60"
                   ColumnDefinitions="40,*,40,40" ColumnSpacing="8">
                 <Button Grid.Column="0" x:Name="BackButton" Text="←" FontSize="16"
                         BackgroundColor="#666" TextColor="White" CornerRadius="20"
@@ -103,7 +102,7 @@
                         WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
             </Grid>
 
-        </VerticalStackLayout>
+        </Grid>
 
         <!-- TRANSLATION POPUP OVERLAY -->
         <Grid x:Name="TranslationPreview" IsVisible="False" BackgroundColor="#80000000" ZIndex="100">
