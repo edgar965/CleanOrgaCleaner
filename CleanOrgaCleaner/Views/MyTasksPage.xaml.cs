@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using CleanOrgaCleaner.Helpers;
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Models.Responses;
@@ -530,8 +531,18 @@ public partial class MyTasksPage : ContentPage
 
         try
         {
-            using var stream = await _selectedImageFile.OpenReadAsync();
-            var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, stream, _selectedImageFile.FileName, ImageNotizEditor.Text);
+            // Read original bytes
+            using var originalStream = await _selectedImageFile.OpenReadAsync();
+            using var memoryStream = new MemoryStream();
+            await originalStream.CopyToAsync(memoryStream);
+            var originalBytes = memoryStream.ToArray();
+
+            // Compress to max 2000px
+            var compressedBytes = await ImageHelper.CompressImageAsync(originalBytes);
+
+            // Upload compressed image
+            using var uploadStream = new MemoryStream(compressedBytes);
+            var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, uploadStream, _selectedImageFile.FileName, ImageNotizEditor.Text);
 
             if (result.Success)
             {

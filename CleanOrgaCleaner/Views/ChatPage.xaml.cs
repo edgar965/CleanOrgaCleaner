@@ -33,20 +33,6 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         _webSocketService = WebSocketService.Instance;
         _messages = new ObservableCollection<ChatMessage>();
         MessagesCollection.ItemsSource = _messages;
-
-        // Return-Taste zum Senden (TextChanged Handler für Android)
-        MessageEditor.TextChanged += OnMessageTextChanged;
-    }
-
-    private void OnMessageTextChanged(object? sender, TextChangedEventArgs e)
-    {
-        // Check if Return/Enter was pressed (newline added)
-        if (e.NewTextValue != null && e.NewTextValue.Contains('\n'))
-        {
-            // Remove the newline and send
-            MessageEditor.Text = e.NewTextValue.Replace("\n", "").Replace("\r", "");
-            OnSendClicked(sender, EventArgs.Empty);
-        }
     }
 
     protected override async void OnAppearing()
@@ -112,16 +98,22 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         var t = Translations.Get;
         Title = t("chat");
-        
+
         MessageEditor.Placeholder = t("message_placeholder");
-        PreviewButton.Text = t("preview");
-        SendButton.Text = t("send");
+        // PreviewButton behält das Globus-Icon 🌐
+        // SendButton behält das Pfeil-Icon ➤
         MenuButton.Text = $"{t("chat")} ▼";
 
         // Menu translations
         MenuTodayButton.Text = $"🏠 {t("today")}";
         MenuChatButton.Text = $"💬 {t("chat")}";
         MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+
+        // Translation Preview translations
+        TranslationPreviewTitle.Text = t("translation_preview");
+        YourTextLabel.Text = t("your_text") + ":";
+        TranslationForAdminLabel.Text = t("translation_for_admin") + ":";
+        BackTranslationLabel.Text = t("back_translation") + ":";
     }
 
     // Menu handling

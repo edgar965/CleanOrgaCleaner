@@ -143,116 +143,160 @@
             </CollectionView.EmptyView>
         </CollectionView>
 
-        <!-- Input Area -->
-        <Border Grid.Row="3"
-                BackgroundColor="White"
-                Padding="10,10,10,50"
-                Stroke="Transparent">
-            <Border.Shadow>
+        <!-- Input Area (WhatsApp Style) -->
+        <Grid Grid.Row="3" BackgroundColor="White">
+            <Grid.Shadow>
                 <Shadow Brush="Gray" Offset="0,-2" Radius="5" Opacity="0.2"/>
-            </Border.Shadow>
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*" RowSpacing="10">
+            </Grid.Shadow>
+            <Grid.Padding>
+                <OnPlatform x:TypeArguments="Thickness">
+                    <On Platform="iOS" Value="10,8,10,35"/>
+                    <On Platform="Android" Value="10,8,10,50"/>
+                </OnPlatform>
+            </Grid.Padding>
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
 
-                <!-- Text Input -->
-                <Editor x:Name="MessageEditor"
-                        Grid.Row="0"
-                        Placeholder="Nachricht schreiben..."
-                        HeightRequest="70"
-                        BackgroundColor="#f5f5f5"/>
+                <!-- Back Button -->
+                <Button Grid.Column="0"
+                        x:Name="BackButton"
+                        Text="←"
+                        FontSize="18"
+                        BackgroundColor="#666"
+                        TextColor="White"
+                        CornerRadius="20"
+                        WidthRequest="40"
+                        HeightRequest="40"
+                        VerticalOptions="End"
+                        Margin="0,0,0,6"
+                        Clicked="OnCancelClicked"/>
 
-                <!-- Buttons -->
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                <!-- Text Input with Send Button -->
+                <Border Grid.Column="1"
+                        BackgroundColor="#f0f0f0"
+                        StrokeShape="RoundRectangle 22"
+                        Stroke="Transparent"
+                        Padding="4">
+                    <Grid ColumnDefinitions="*,Auto,Auto">
+                        <!-- Multi-line Text Editor -->
+                        <Editor Grid.Column="0"
+                                x:Name="MessageEditor"
+                                Placeholder="Nachricht..."
+                                FontSize="16"
+                                BackgroundColor="Transparent"
+                                AutoSize="TextChanges"
+                                MaximumHeightRequest="120"
+                                Margin="12,4,8,4"/>
 
-                    <Button Grid.Column="0"
-                            x:Name="BackButton"
-                            Text="←"
-                            FontSize="20"
-                            BackgroundColor="#666"
-                            TextColor="White"
-                            CornerRadius="10"
-                            WidthRequest="60"
-                            Clicked="OnCancelClicked"/>
+                        <!-- Send Button -->
+                        <Button Grid.Column="1"
+                                x:Name="SendButton"
+                                Text="➤"
+                                FontSize="18"
+                                TextColor="White"
+                                BackgroundColor="#25D366"
+                                CornerRadius="20"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                VerticalOptions="End"
+                                Margin="0,0,4,2"
+                                Padding="0"
+                                Clicked="OnSendClicked"/>
 
-                    <Button Grid.Column="2"
-                            x:Name="PreviewButton"
-                            Text="T" FontSize="18" FontAttributes="Bold"
-                            BackgroundColor="#ff9800"
-                            TextColor="White"
-                            CornerRadius="10"
-                            WidthRequest="100"
-                            Clicked="OnPreviewClicked"/>
-
-                    <Button Grid.Column="3"
-                            x:Name="SendButton"
-                            Text="➜" FontSize="20"
-                            CornerRadius="10"
-                            WidthRequest="100"
-                            Clicked="OnSendClicked">
-                        <Button.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#2196F3" Offset="0"/>
-                                <GradientStop Color="#1976D2" Offset="1"/>
-                            </LinearGradientBrush>
-                        </Button.Background>
-                    </Button>
-                </Grid>
+                        <!-- Translate/Preview Button -->
+                        <Button Grid.Column="2"
+                                x:Name="PreviewButton"
+                                Text="🌐"
+                                FontSize="18"
+                                BackgroundColor="#2196F3"
+                                TextColor="White"
+                                CornerRadius="20"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                VerticalOptions="End"
+                                Margin="0,0,0,2"
+                                Padding="0"
+                                Clicked="OnPreviewClicked"/>
+                    </Grid>
+                </Border>
             </Grid>
-        </Border>
+        </Grid>
 
-        <!-- Translation Preview Overlay -->
-        <Border x:Name="TranslationPreview"
-                Grid.RowSpan="4"
-                BackgroundColor="#fff3e0"
-                Padding="15"
-                IsVisible="False"
-                VerticalOptions="Center"
-                HorizontalOptions="Center"
-                Margin="20"
-                StrokeShape="RoundRectangle 15"
-                Stroke="Transparent">
-            <VerticalStackLayout Spacing="15" WidthRequest="300">
-                <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="Uebersetzungsvorschau"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="#e65100"/>
-                    <Button Grid.Column="1"
-                            Text="X"
-                            BackgroundColor="Transparent"
-                            TextColor="#e65100"
-                            Clicked="OnClosePreviewClicked"/>
-                </Grid>
+        <!-- Translation Preview Overlay (Bottom Sheet) -->
+        <Grid x:Name="TranslationPreview"
+              Grid.RowSpan="4"
+              IsVisible="False"
+              BackgroundColor="#80000000"
+              ZIndex="999">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnClosePreviewClicked"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="#fff3e0"
+                    StrokeShape="RoundRectangle 20,20,0,0"
+                    Stroke="Transparent"
+                    VerticalOptions="End"
+                    Margin="0">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,-5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <ScrollView>
+                <VerticalStackLayout Spacing="12" Padding="20,15,20,25">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label x:Name="TranslationPreviewTitle"
+                               Text="Uebersetzungsvorschau"
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#e65100"/>
+                        <Button Grid.Column="1"
+                                Text="✕"
+                                FontSize="18"
+                                BackgroundColor="Transparent"
+                                TextColor="#e65100"
+                                WidthRequest="40"
+                                HeightRequest="40"
+                                Clicked="OnClosePreviewClicked"/>
+                    </Grid>
 
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Dein Text:"
-                           FontSize="12"
-                           TextColor="#888"/>
-                    <Label x:Name="PreviewOriginalLabel"
-                           FontSize="14"
-                           TextColor="#333"/>
+                    <VerticalStackLayout Spacing="5">
+                        <Label x:Name="YourTextLabel"
+                               Text="Dein Text:"
+                               FontSize="13"
+                               TextColor="#888"/>
+                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 10" Stroke="Transparent" Padding="12">
+                            <Label x:Name="PreviewOriginalLabel"
+                                   FontSize="15"
+                                   TextColor="#333"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label x:Name="TranslationForAdminLabel"
+                               Text="Uebersetzung (fuer Admin):"
+                               FontSize="13"
+                               TextColor="#888"/>
+                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 10" Stroke="Transparent" Padding="12">
+                            <Label x:Name="PreviewTranslatedLabel"
+                                   FontSize="15"
+                                   TextColor="#333"
+                                   FontAttributes="Bold"/>
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="5">
+                        <Label x:Name="BackTranslationLabel"
+                               Text="Rueckuebersetzung:"
+                               FontSize="13"
+                               TextColor="#888"/>
+                        <Border BackgroundColor="White" StrokeShape="RoundRectangle 10" Stroke="Transparent" Padding="12">
+                            <Label x:Name="PreviewBackLabel"
+                                   FontSize="15"
+                                   TextColor="#333"
+                                   FontAttributes="Italic"/>
+                        </Border>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
-
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Uebersetzung (fuer Admin):"
-                           FontSize="12"
-                           TextColor="#888"/>
-                    <Label x:Name="PreviewTranslatedLabel"
-                           FontSize="14"
-                           TextColor="#333"
-                           FontAttributes="Bold"/>
-                </VerticalStackLayout>
-
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Rueckuebersetzung:"
-                           FontSize="12"
-                           TextColor="#888"/>
-                    <Label x:Name="PreviewBackLabel"
-                           FontSize="14"
-                           TextColor="#333"
-                           FontAttributes="Italic"/>
-                </VerticalStackLayout>
-            </VerticalStackLayout>
-        </Border>
+                </ScrollView>
+            </Border>
+        </Grid>
 
         <!-- Dropdown Menu Overlay -->
         <Grid x:Name="MenuOverlayGrid"

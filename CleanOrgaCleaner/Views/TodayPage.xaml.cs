@@ -64,8 +64,9 @@ public partial class TodayPage : ContentPage
     {
         System.Diagnostics.Debug.WriteLine($"[TodayPage] Task update received: {updateType}");
 
-        // Reload tasks when a new task is created or any task update occurs
-        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted")
+        // Reload tasks when task changes or assignment changes
+        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
+            || updateType == "assignment_update")
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
@@ -279,26 +280,26 @@ public partial class TodayPage : ContentPage
         {
             if (_isWorking)
             {
-                // Show confirmation dialog with visible cancel button
-                var result = await DisplayActionSheet(
+                // Show confirmation dialog
+                var confirm = await DisplayAlert(
                     Translations.Get("cleaning_finished"),
-                    null,  // No hidden cancel
-                    null,  // No destructive button
+                    Translations.Get("end_work_question"),
                     Translations.Get("yes"),
-                    Translations.Get("no"),
-                    Translations.Get("cancel"));  // Cancel as visible option
+                    Translations.Get("no"));
 
-                if (result == Translations.Get("yes"))
+                if (confirm)
                 {
                     var response = await _apiService.EndWorkAsync();
                     if (response.Success)
                     {
                         _isWorking = false;
-                        UpdateWorkButton();
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            UpdateWorkButton();
+                            WorkStatusLabel.Text = "";
+                        });
 
                         var hours = response.TotalHours?.ToString("F2").Replace(".", ",") ?? "?";
-                        WorkStatusLabel.Text = "";
-
                         await DisplayAlert(Translations.Get("work_ended"),
                             $"{Translations.Get("total_hours")}: {hours}h", Translations.Get("ok"));
                     }
@@ -316,8 +317,11 @@ public partial class TodayPage : ContentPage
                 if (response.Success)
                 {
                     _isWorking = true;
-                    UpdateWorkButton();
-                    WorkStatusLabel.Text = $"{Translations.Get("working_since")} {response.StartTime}";
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        UpdateWorkButton();
+                        WorkStatusLabel.Text = $"{Translations.Get("working_since")} {response.StartTime}";
+                    });
                 }
                 else
                 {
@@ -327,9 +331,14 @@ public partial class TodayPage : ContentPage
                 }
             }
         }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TodayPage] Work button error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), ex.Message, Translations.Get("ok"));
+        }
         finally
         {
-            WorkButton.IsEnabled = true;
+            MainThread.BeginInvokeOnMainThread(() => WorkButton.IsEnabled = true);
         }
     }
 

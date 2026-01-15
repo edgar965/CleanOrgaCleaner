@@ -132,11 +132,17 @@
         </ScrollView>
 
         <!-- Fixed Start/Beenden Button am unteren Rand -->
-        <Border Grid.Row="3" BackgroundColor="White" Padding="15,15,15,25">
+        <Border Grid.Row="3" BackgroundColor="White">
+            <Border.Padding>
+                <OnPlatform x:TypeArguments="Thickness">
+                    <On Platform="iOS" Value="15,12,15,35"/>
+                    <On Platform="Android" Value="15,12,15,50"/>
+                </OnPlatform>
+            </Border.Padding>
             <Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Button x:Name="CancelButton" Text="Zurueck" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" WidthRequest="130" Clicked="OnCancelClicked"/>
-                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="60" Clicked="OnStartStopClicked">
+                <Button x:Name="CancelButton" Text="Zurueck" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="15" HeightRequest="55" WidthRequest="120" Clicked="OnCancelClicked"/>
+                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="55" Clicked="OnStartStopClicked">
                     <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
                 </Button>
             </Grid>

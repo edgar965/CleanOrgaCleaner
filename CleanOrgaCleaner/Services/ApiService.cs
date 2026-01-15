@@ -993,9 +993,9 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"GetTaskImages: Loading images for task {taskId}");
-            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/images/");
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/images/");
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"GetTaskImages: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"GetTaskImages: /api/task/{taskId}/images/ - {response.StatusCode} - {responseText}");
 
             if (response.IsSuccessStatusCode)
             {
@@ -1045,8 +1045,8 @@ public class ApiService
             if (!string.IsNullOrEmpty(note))
                 formData.Add(new StringContent(note), "notiz");
 
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /mobile/api/task/{taskId}/images/upload/");
-            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/images/upload/", formData);
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /api/task/{taskId}/bilder/upload/");
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
             var responseText = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"UploadTaskImage: {response.StatusCode} - {responseText}");
 
@@ -1074,9 +1074,9 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/mobile/api/image/{imageId}/update/", content);
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/update/", content);
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: /api/bildstatus/{imageId}/update/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -1098,9 +1098,9 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: Delete image {imageId}");
-            var response = await _httpClient.PostAsync($"/mobile/api/image/{imageId}/delete/", new StringContent("{}"));
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/delete/", new StringContent("{}"));
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: /api/bildstatus/{imageId}/delete/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
             {

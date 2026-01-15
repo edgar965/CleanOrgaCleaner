@@ -53,6 +53,7 @@ public static class Translations
             ["ok"] = "OK",
 
             // Arbeitszeit
+            ["end_work_question"] = "Möchtest du die Arbeitszeit beenden?",
             ["work_ended"] = "Arbeitszeit beendet!",
             ["total_hours"] = "Gesamtstunden",
             ["error"] = "Fehler",
@@ -243,6 +244,7 @@ public static class Translations
             ["cancel"] = "Cancel",
             ["ok"] = "OK",
 
+            ["end_work_question"] = "Do you want to end working time?",
             ["work_ended"] = "Work time ended!",
             ["total_hours"] = "Total hours",
             ["error"] = "Error",

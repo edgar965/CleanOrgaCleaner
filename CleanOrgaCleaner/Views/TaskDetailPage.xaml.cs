@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Helpers;
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Services;
@@ -276,7 +277,7 @@ public partial class TaskDetailPage : ContentPage
             case "completed":
                 StartStopButton.Text = t("completed");
                 StartStopButton.BackgroundColor = Color.FromArgb("#4CAF50");
-                StartStopButton.IsEnabled = false;
+                StartStopButton.IsEnabled = true;  // Erlaubt Reset zurück zu "not_started"
                 break;
         }
     }
@@ -294,13 +295,16 @@ public partial class TaskDetailPage : ContentPage
                     newState = "started";
                     break;
                 case "started":
-                    var confirm = await DisplayAlert(
+                    var confirmComplete = await DisplayAlert(
                         Translations.Get("task_completed"),
                         Translations.Get("task_completed_question"),
                         Translations.Get("yes"),
                         Translations.Get("no"));
-                    if (!confirm) { StartStopButton.IsEnabled = true; return; }
+                    if (!confirmComplete) { StartStopButton.IsEnabled = true; return; }
                     newState = "completed";
+                    break;
+                case "completed":
+                    newState = "not_started";
                     break;
                 default: return;
             }
@@ -860,7 +864,10 @@ public partial class TaskDetailPage : ContentPage
                 using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
-                _selectedBildBytes = memoryStream.ToArray();
+                var originalBytes = memoryStream.ToArray();
+
+                // Komprimiere Bild auf max 2000px
+                _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
                 _selectedBildPath = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
                 BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
@@ -883,25 +890,23 @@ public partial class TaskDetailPage : ContentPage
     {
         try
         {
-            // FilePicker statt MediaPicker - bessere Scoped Storage Unterstützung
-            var options = new PickOptions
+            // MediaPicker für iOS Fotos-App Zugriff
+            var photo = await MediaPicker.Default.PickPhotoAsync(new MediaPickerOptions
             {
-                PickerTitle = "Bild auswählen",
-                FileTypes = FilePickerFileType.Images
-            };
+                Title = "Bild auswählen"
+            });
 
-            var result = await FilePicker.Default.PickAsync(options);
-
-            if (result != null)
+            if (photo != null)
             {
                 // Stream direkt lesen
-                using var stream = await result.OpenReadAsync();
+                using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
-                _selectedBildBytes = memoryStream.ToArray();
+                var originalBytes = memoryStream.ToArray();
 
-                var ext = System.IO.Path.GetExtension(result.FileName) ?? ".jpg";
-                _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
+                // Komprimiere Bild auf max 2000px
+                _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
+                _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
                 BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 BildPreviewBorder.IsVisible = true;
