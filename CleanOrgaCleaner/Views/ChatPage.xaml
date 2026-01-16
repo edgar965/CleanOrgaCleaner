@@ -10,8 +10,14 @@
     <!-- Main container Grid for overlays -->
     <Grid>
 
-        <!-- Main Content Grid with fixed rows -->
-        <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- ==================== iOS LAYOUT (Grid) ==================== -->
+        <Grid x:Name="iOSLayout" RowDefinitions="Auto,Auto,*,Auto">
+            <Grid.IsVisible>
+                <OnPlatform x:TypeArguments="x:Boolean">
+                    <On Platform="iOS" Value="True"/>
+                    <On Platform="Android" Value="False"/>
+                </OnPlatform>
+            </Grid.IsVisible>
 
             <!-- Header - Row 0 -->
             <Grid Grid.Row="0" Padding="15,45,15,15" BackgroundColor="#2196F3">
@@ -25,27 +31,27 @@
                         <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
                     </HorizontalStackLayout>
 
-                    <Button Grid.Column="1" x:Name="MenuButton" Text="Chat"
+                    <Button Grid.Column="1" x:Name="MenuButtonIOS" Text="Chat"
                             BackgroundColor="#1565C0" TextColor="White" FontSize="13"
                             CornerRadius="8" Padding="10,6" HorizontalOptions="Center"
                             Clicked="OnMenuButtonClicked"/>
 
-                    <Button Grid.Column="2" x:Name="LogoutButton" Text="Logout"
+                    <Button Grid.Column="2" x:Name="LogoutButtonIOS" Text="Logout"
                             BackgroundColor="#1565C0" TextColor="White" FontSize="13"
                             CornerRadius="8" Padding="10,6" Clicked="OnLogoutClicked"/>
                 </Grid>
             </Grid>
 
             <!-- Offline Banner - Row 1 -->
-            <Frame Grid.Row="1" x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
+            <Frame Grid.Row="1" x:Name="OfflineBannerIOS" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
                     <Label Text="Offline" TextColor="White" FontSize="13"/>
-                    <ActivityIndicator x:Name="OfflineSpinner" IsRunning="True" Color="White" WidthRequest="16" HeightRequest="16"/>
+                    <ActivityIndicator x:Name="OfflineSpinnerIOS" IsRunning="True" Color="White" WidthRequest="16" HeightRequest="16"/>
                 </HorizontalStackLayout>
             </Frame>
 
             <!-- Messages - Row 2 (fills remaining space) -->
-            <CollectionView Grid.Row="2" x:Name="MessagesCollection"
+            <CollectionView Grid.Row="2" x:Name="MessagesCollectionIOS"
                             Margin="10,5,10,5"
                             ItemsUpdatingScrollMode="KeepLastItemInView">
                 <CollectionView.ItemTemplate>
@@ -86,6 +92,107 @@
             <!-- INPUT AREA - Row 3 (always visible at bottom) -->
             <Grid Grid.Row="3" BackgroundColor="White" Padding="10" HeightRequest="60"
                   ColumnDefinitions="40,*,40,40" ColumnSpacing="8">
+                <Button Grid.Column="0" x:Name="BackButtonIOS" Text="←" FontSize="16"
+                        BackgroundColor="#666" TextColor="White" CornerRadius="20"
+                        WidthRequest="40" HeightRequest="40" Clicked="OnCancelClicked"/>
+
+                <Entry Grid.Column="1" x:Name="MessageEntryIOS" Placeholder="Nachricht..." FontSize="14"
+                       BackgroundColor="#f0f0f0" VerticalOptions="Center" HeightRequest="40"/>
+
+                <Button Grid.Column="2" x:Name="SendButtonIOS" Text="➤" FontSize="16"
+                        BackgroundColor="#25D366" TextColor="White" CornerRadius="20"
+                        WidthRequest="40" HeightRequest="40" Clicked="OnSendClicked"/>
+
+                <Button Grid.Column="3" x:Name="PreviewButtonIOS" Text="T" FontSize="14"
+                        BackgroundColor="#2196F3" TextColor="White" CornerRadius="20"
+                        WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
+            </Grid>
+
+        </Grid>
+
+        <!-- ==================== ANDROID LAYOUT (VerticalStackLayout) ==================== -->
+        <VerticalStackLayout x:Name="AndroidLayout" Spacing="0">
+            <VerticalStackLayout.IsVisible>
+                <OnPlatform x:TypeArguments="x:Boolean">
+                    <On Platform="iOS" Value="False"/>
+                    <On Platform="Android" Value="True"/>
+                </OnPlatform>
+            </VerticalStackLayout.IsVisible>
+
+            <!-- Header -->
+            <Grid Padding="15,45,15,15" BackgroundColor="#2196F3">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                        <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
+                            <Image.Clip>
+                                <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
+                            </Image.Clip>
+                        </Image>
+                        <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+
+                    <Button Grid.Column="1" x:Name="MenuButton" Text="Chat"
+                            BackgroundColor="#1565C0" TextColor="White" FontSize="13"
+                            CornerRadius="8" Padding="10,6" HorizontalOptions="Center"
+                            Clicked="OnMenuButtonClicked"/>
+
+                    <Button Grid.Column="2" x:Name="LogoutButton" Text="Logout"
+                            BackgroundColor="#1565C0" TextColor="White" FontSize="13"
+                            CornerRadius="8" Padding="10,6" Clicked="OnLogoutClicked"/>
+                </Grid>
+            </Grid>
+
+            <!-- Offline Banner -->
+            <Frame x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                    <Label Text="Offline" TextColor="White" FontSize="13"/>
+                    <ActivityIndicator x:Name="OfflineSpinner" IsRunning="True" Color="White" WidthRequest="16" HeightRequest="16"/>
+                </HorizontalStackLayout>
+            </Frame>
+
+            <!-- Messages (FillAndExpand) -->
+            <CollectionView x:Name="MessagesCollection"
+                            Margin="10,5,10,5"
+                            VerticalOptions="FillAndExpand"
+                            ItemsUpdatingScrollMode="KeepLastItemInView">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="3,2">
+                            <!-- Eigene Nachrichten rechts (grün) -->
+                            <Frame Padding="10" CornerRadius="12" MaximumWidthRequest="280"
+                                   BackgroundColor="#dcf8c6" BorderColor="#25D366"
+                                   HorizontalOptions="End"
+                                   IsVisible="{Binding FromCurrentUser}">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
+                                    <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
+                                </VerticalStackLayout>
+                            </Frame>
+                            <!-- Nachrichten von anderen links (weiß) -->
+                            <Frame Padding="10" CornerRadius="12" MaximumWidthRequest="280"
+                                   BackgroundColor="White" BorderColor="#ccc"
+                                   HorizontalOptions="Start"
+                                   IsVisible="{Binding IsFromOther}">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
+                                    <Label Text="{Binding OriginalText, StringFormat='(Original: {0})'}"
+                                           FontSize="9" TextColor="#888" FontAttributes="Italic"
+                                           IsVisible="{Binding HasTranslation}"/>
+                                    <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
+                                </VerticalStackLayout>
+                            </Frame>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <Label Text="Noch keine Nachrichten" FontSize="16" TextColor="#999"
+                           HorizontalOptions="Center" VerticalOptions="Center" Margin="0,50,0,0"/>
+                </CollectionView.EmptyView>
+            </CollectionView>
+
+            <!-- INPUT AREA (always visible at bottom) -->
+            <Grid BackgroundColor="White" Padding="10" HeightRequest="60"
+                  ColumnDefinitions="40,*,40,40" ColumnSpacing="8">
                 <Button Grid.Column="0" x:Name="BackButton" Text="←" FontSize="16"
                         BackgroundColor="#666" TextColor="White" CornerRadius="20"
                         WidthRequest="40" HeightRequest="40" Clicked="OnCancelClicked"/>
@@ -102,16 +209,59 @@
                         WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
             </Grid>
 
-        </Grid>
+        </VerticalStackLayout>
 
-        <!-- TRANSLATION POPUP OVERLAY -->
+        <!-- TRANSLATION POPUP OVERLAY (shared) -->
         <Grid x:Name="TranslationPreview" IsVisible="False" BackgroundColor="#80000000" ZIndex="100">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnClosePreviewClicked"/>
             </Grid.GestureRecognizers>
 
-            <Frame BackgroundColor="#fff3e0" BorderColor="#e65100" CornerRadius="15"
+            <!-- iOS: Grid-based popup -->
+            <Frame x:Name="TranslationPopupIOS" BackgroundColor="#fff3e0" BorderColor="#e65100" CornerRadius="15"
                    Padding="15" Margin="20" VerticalOptions="Center" HorizontalOptions="Fill">
+                <Frame.IsVisible>
+                    <OnPlatform x:TypeArguments="x:Boolean">
+                        <On Platform="iOS" Value="True"/>
+                        <On Platform="Android" Value="False"/>
+                    </OnPlatform>
+                </Frame.IsVisible>
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <Label x:Name="TranslationPreviewTitleIOS" Text="Uebersetzung" FontSize="16"
+                               FontAttributes="Bold" TextColor="#e65100"/>
+                        <Button Grid.Column="1" Text="X" FontSize="14"
+                                BackgroundColor="#e65100" TextColor="White"
+                                CornerRadius="12" WidthRequest="28" HeightRequest="28"
+                                Padding="0" Clicked="OnClosePreviewClicked"/>
+                    </Grid>
+
+                    <Label Grid.Row="1" x:Name="YourTextLabelIOS" Text="Dein Text:" FontSize="12" TextColor="#666"/>
+                    <Frame Grid.Row="2" BackgroundColor="White" Padding="8" CornerRadius="6">
+                        <Label x:Name="PreviewOriginalLabelIOS" FontSize="13" TextColor="#333"/>
+                    </Frame>
+
+                    <Label Grid.Row="3" x:Name="TranslationForAdminLabelIOS" Text="Uebersetzung:" FontSize="12" TextColor="#666"/>
+                    <Frame Grid.Row="4" BackgroundColor="White" Padding="8" CornerRadius="6">
+                        <Label x:Name="PreviewTranslatedLabelIOS" FontSize="13" TextColor="#333" FontAttributes="Bold"/>
+                    </Frame>
+
+                    <Label Grid.Row="5" x:Name="BackTranslationLabelIOS" Text="Rueckuebersetzung:" FontSize="12" TextColor="#666"/>
+                    <Frame Grid.Row="6" BackgroundColor="White" Padding="8" CornerRadius="6">
+                        <Label x:Name="PreviewBackLabelIOS" FontSize="13" TextColor="#333" FontAttributes="Italic"/>
+                    </Frame>
+                </Grid>
+            </Frame>
+
+            <!-- Android: VerticalStackLayout-based popup -->
+            <Frame x:Name="TranslationPopupAndroid" BackgroundColor="#fff3e0" BorderColor="#e65100" CornerRadius="15"
+                   Padding="15" Margin="20" VerticalOptions="Center" HorizontalOptions="Fill">
+                <Frame.IsVisible>
+                    <OnPlatform x:TypeArguments="x:Boolean">
+                        <On Platform="iOS" Value="False"/>
+                        <On Platform="Android" Value="True"/>
+                    </OnPlatform>
+                </Frame.IsVisible>
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label x:Name="TranslationPreviewTitle" Text="Uebersetzung" FontSize="16"
@@ -140,7 +290,7 @@
             </Frame>
         </Grid>
 
-        <!-- MENU OVERLAY -->
+        <!-- MENU OVERLAY (shared) -->
         <Grid x:Name="MenuOverlayGrid" IsVisible="False" BackgroundColor="#80000000" ZIndex="101">
             <Grid.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnOverlayTapped"/>

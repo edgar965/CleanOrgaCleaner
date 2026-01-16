@@ -8,6 +8,7 @@ namespace CleanOrgaCleaner.Views;
 /// <summary>
 /// Chat page for messaging with admin
 /// Supports translations and real-time updates via WebSocket
+/// Platform-specific layouts: Grid for iOS, VerticalStackLayout for Android
 /// </summary>
 public partial class ChatPage : ContentPage, IQueryAttributable
 {
@@ -16,6 +17,50 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     private readonly ObservableCollection<ChatMessage> _messages;
     private string _partnerId = "admin";
     private string _partnerName = "Admin";
+
+    // Platform-specific element access
+    private CollectionView CurrentMessagesCollection => DeviceInfo.Platform == DevicePlatform.iOS
+        ? MessagesCollectionIOS : MessagesCollection;
+
+    private Entry CurrentMessageEntry => DeviceInfo.Platform == DevicePlatform.iOS
+        ? MessageEntryIOS : MessageEntry;
+
+    private Button CurrentSendButton => DeviceInfo.Platform == DevicePlatform.iOS
+        ? SendButtonIOS : SendButton;
+
+    private Button CurrentPreviewButton => DeviceInfo.Platform == DevicePlatform.iOS
+        ? PreviewButtonIOS : PreviewButton;
+
+    private Frame CurrentOfflineBanner => DeviceInfo.Platform == DevicePlatform.iOS
+        ? OfflineBannerIOS : OfflineBanner;
+
+    private ActivityIndicator CurrentOfflineSpinner => DeviceInfo.Platform == DevicePlatform.iOS
+        ? OfflineSpinnerIOS : OfflineSpinner;
+
+    private Button CurrentMenuButton => DeviceInfo.Platform == DevicePlatform.iOS
+        ? MenuButtonIOS : MenuButton;
+
+    // Translation Preview Labels - Platform specific
+    private Label CurrentPreviewOriginalLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? PreviewOriginalLabelIOS : PreviewOriginalLabel;
+
+    private Label CurrentPreviewTranslatedLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? PreviewTranslatedLabelIOS : PreviewTranslatedLabel;
+
+    private Label CurrentPreviewBackLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? PreviewBackLabelIOS : PreviewBackLabel;
+
+    private Label CurrentTranslationPreviewTitle => DeviceInfo.Platform == DevicePlatform.iOS
+        ? TranslationPreviewTitleIOS : TranslationPreviewTitle;
+
+    private Label CurrentYourTextLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? YourTextLabelIOS : YourTextLabel;
+
+    private Label CurrentTranslationForAdminLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? TranslationForAdminLabelIOS : TranslationForAdminLabel;
+
+    private Label CurrentBackTranslationLabel => DeviceInfo.Platform == DevicePlatform.iOS
+        ? BackTranslationLabelIOS : BackTranslationLabel;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -32,7 +77,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
         _messages = new ObservableCollection<ChatMessage>();
+
+        // Set ItemsSource for both collections (only the visible one matters)
         MessagesCollection.ItemsSource = _messages;
+        MessagesCollectionIOS.ItemsSource = _messages;
     }
 
     protected override async void OnAppearing()
@@ -90,8 +138,8 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
     private void UpdateOfflineBanner(bool showOffline)
     {
-        OfflineBanner.IsVisible = showOffline;
-        OfflineSpinner.IsRunning = showOffline;
+        CurrentOfflineBanner.IsVisible = showOffline;
+        CurrentOfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()
@@ -99,19 +147,26 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         var t = Translations.Get;
         Title = t("chat");
 
+        // Apply to both platforms (only visible one matters)
         MessageEntry.Placeholder = t("message_placeholder");
+        MessageEntryIOS.Placeholder = t("message_placeholder");
         MenuButton.Text = t("chat");
+        MenuButtonIOS.Text = t("chat");
 
         // Menu translations
         MenuTodayButton.Text = $"🏠 {t("today")}";
         MenuChatButton.Text = $"💬 {t("chat")}";
         MenuSettingsButton.Text = $"⚙️ {t("settings")}";
 
-        // Translation Preview translations
+        // Translation Preview translations - both platforms
         TranslationPreviewTitle.Text = t("translation_preview");
+        TranslationPreviewTitleIOS.Text = t("translation_preview");
         YourTextLabel.Text = t("your_text") + ":";
+        YourTextLabelIOS.Text = t("your_text") + ":";
         TranslationForAdminLabel.Text = t("translation_for_admin") + ":";
+        TranslationForAdminLabelIOS.Text = t("translation_for_admin") + ":";
         BackTranslationLabel.Text = t("back_translation") + ":";
+        BackTranslationLabelIOS.Text = t("back_translation") + ":";
     }
 
     // Menu handling
@@ -158,7 +213,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             {
                 // Add to end and scroll to bottom
                 _messages.Add(message);
-                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                CurrentMessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
         });
     }
@@ -180,7 +235,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             if (_messages.Count > 0)
             {
                 await Task.Delay(100); // Let UI render
-                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                CurrentMessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
         }
         catch (Exception ex)
@@ -191,14 +246,14 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
     private async void OnSendClicked(object sender, EventArgs e)
     {
-        var text = MessageEntry.Text?.Trim();
+        var text = CurrentMessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
 
-        SendButton.IsEnabled = false;
+        CurrentSendButton.IsEnabled = false;
 
         try
         {
@@ -222,8 +277,8 @@ public partial class ChatPage : ContentPage, IQueryAttributable
                     response.Message.FromCurrentUser = true;
                     _messages.Add(response.Message);
                 }
-                MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
-                MessageEntry.Text = "";
+                CurrentMessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                CurrentMessageEntry.Text = "";
             }
             else
             {
@@ -238,13 +293,13 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
         finally
         {
-            SendButton.IsEnabled = true;
+            CurrentSendButton.IsEnabled = true;
         }
     }
 
     private async void OnPreviewClicked(object sender, EventArgs e)
     {
-        var text = MessageEntry.Text?.Trim();
+        var text = CurrentMessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
             await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
@@ -252,10 +307,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
 
         // Tastatur schließen bevor Popup erscheint
-        MessageEntry.Unfocus();
+        CurrentMessageEntry.Unfocus();
         await Task.Delay(300); // Warten bis Tastatur geschlossen
 
-        PreviewButton.IsEnabled = false;
+        CurrentPreviewButton.IsEnabled = false;
 
         try
         {
@@ -263,9 +318,13 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
             if (response.Success)
             {
+                // Set text on both platforms (only visible one matters)
                 PreviewOriginalLabel.Text = text;
+                PreviewOriginalLabelIOS.Text = text;
                 PreviewTranslatedLabel.Text = response.Translated ?? text;
+                PreviewTranslatedLabelIOS.Text = response.Translated ?? text;
                 PreviewBackLabel.Text = response.BackTranslated ?? "";
+                PreviewBackLabelIOS.Text = response.BackTranslated ?? "";
 
                 TranslationPreview.IsVisible = true;
             }
@@ -282,7 +341,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
         finally
         {
-            PreviewButton.IsEnabled = true;
+            CurrentPreviewButton.IsEnabled = true;
         }
     }
 
@@ -308,10 +367,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
                 Pitch = 1.0f,
                 Volume = 1.0f
             };
-            
+
             // Get language from preferences
             var lang = Preferences.Get("language", "de");
-            
+
             await TextToSpeech.Default.SpeakAsync(text, settings);
         }
         catch (Exception ex)
