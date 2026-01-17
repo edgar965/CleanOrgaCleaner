@@ -142,7 +142,8 @@ public partial class App : Application
 
                 // Check if we're already on the chat page
                 var currentPage = Shell.Current?.CurrentPage;
-                if (currentPage?.GetType().Name == "ChatPage")
+                var pageName = currentPage?.GetType().Name;
+                if (pageName == "ChatPage" || pageName == "ChatCurrentPage")
                 {
                     // Already on chat page, don't show popup
                     return;

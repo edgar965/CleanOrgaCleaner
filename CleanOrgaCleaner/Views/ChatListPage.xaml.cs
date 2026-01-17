@@ -66,14 +66,14 @@ public partial class ChatListPage : ContentPage
 
     private async void OnAdminChatTapped(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync($"ChatPage?partner=admin");
+        await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin");
     }
 
     private async void OnCleanerChatTapped(object sender, EventArgs e)
     {
         if (sender is Button btn && btn.CommandParameter is CleanerInfo cleaner)
         {
-            await Shell.Current.GoToAsync($"ChatPage?partner={cleaner.Id}");
+            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}");
         }
     }
 

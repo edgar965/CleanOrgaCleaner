@@ -5,12 +5,7 @@ using System.Collections.ObjectModel;
 
 namespace CleanOrgaCleaner.Views;
 
-/// <summary>
-/// Chat page for messaging with admin
-/// Supports translations and real-time updates via WebSocket
-/// Unified layout for both iOS and Android (no platform-specific layouts)
-/// </summary>
-public partial class ChatPage : ContentPage, IQueryAttributable
+public partial class ChatCurrentPage : ContentPage, IQueryAttributable
 {
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
@@ -27,14 +22,12 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
     }
 
-    public ChatPage()
+    public ChatCurrentPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
         _messages = new ObservableCollection<ChatMessage>();
-
-        // Set ItemsSource for the unified collection
         MessagesCollection.ItemsSource = _messages;
     }
 
@@ -42,36 +35,29 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         base.OnAppearing();
 
-        // Subscribe to connection status
         _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
         UpdateOfflineBanner(!_webSocketService.IsOnline);
 
         ApplyTranslations();
 
-        // Check for pending message from notification
         if (App.PendingChatMessage != null)
         {
-            // Small delay to ensure message is saved on server
             await Task.Delay(500);
         }
 
-        // Load existing messages
         await LoadMessagesAsync();
 
-        // Add pending message if not already in list
         if (App.PendingChatMessage != null)
         {
             var pending = App.PendingChatMessage;
             App.PendingChatMessage = null;
 
-            // Check if message is already in the list
             if (!_messages.Any(m => m.Id == pending.Id))
             {
                 _messages.Add(pending);
             }
         }
 
-        // Connect WebSocket for real-time updates
         _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
         await _webSocketService.ConnectChatAsync();
     }
@@ -101,66 +87,35 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         var t = Translations.Get;
         Title = t("chat");
-
-        // Apply translations to unified elements
-        MessageEntry.Placeholder = t("message_placeholder");
         MenuButton.Text = t("chat");
+        LogoutButton.Text = t("logout");
+        MessageEntry.Placeholder = t("message_placeholder");
 
-        // Menu translations
-        MenuTodayButton.Text = $"🏠 {t("today")}";
-        MenuChatButton.Text = $"💬 {t("chat")}";
-        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+        MenuTodayLabel.Text = $"🏠 {t("today")}";
+        MenuChatLabel.Text = $"💬 {t("chat")}";
+        MenuMyTasksLabel.Text = $"📋 {t("new_task")}";
+        MenuSettingsLabel.Text = $"⚙️ {t("settings")}";
 
-        // Translation Preview translations
         TranslationPreviewTitle.Text = t("translation_preview");
         YourTextLabel.Text = t("your_text") + ":";
         TranslationForAdminLabel.Text = t("translation_for_admin") + ":";
         BackTranslationLabel.Text = t("back_translation") + ":";
     }
 
-    // Menu handling
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
-    }
-
-    private void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        // Already on chat
-    }
-
-    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MyTasksPage");
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//SettingsPage");
-    }
-
     private void OnNewMessageReceived(ChatMessage message)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Check if message already exists (avoid duplicates)
             if (!_messages.Any(m => m.Id == message.Id))
             {
-                // Add to end and scroll to bottom
+                // Check if this message is from the current user
+                var currentUsername = Preferences.Get("username", "");
+                if (!string.IsNullOrEmpty(currentUsername) &&
+                    message.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    message.FromCurrentUser = true;
+                }
+
                 _messages.Add(message);
                 MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
@@ -174,16 +129,14 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             var messages = await _apiService.GetChatMessagesAsync(_partnerId);
             _messages.Clear();
 
-            // Add messages (oldest first, so newest appears at bottom near input)
             foreach (var msg in messages.OrderBy(m => m.Id))
             {
                 _messages.Add(msg);
             }
 
-            // Scroll to bottom to show latest messages
             if (_messages.Count > 0)
             {
-                await Task.Delay(100); // Let UI render
+                await Task.Delay(100);
                 MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
         }
@@ -210,13 +163,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
             if (response.Success && response.Message != null)
             {
-                // Check if message already added via WebSocket
                 var existing = _messages.FirstOrDefault(m => m.Id == response.Message.Id);
                 if (existing != null)
                 {
-                    // Update FromCurrentUser (WebSocket might have set it wrong)
                     existing.FromCurrentUser = true;
-                    // Force UI refresh
                     var idx = _messages.IndexOf(existing);
                     _messages.RemoveAt(idx);
                     _messages.Insert(idx, existing);
@@ -255,9 +205,8 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             return;
         }
 
-        // Tastatur schliessen bevor Popup erscheint
         MessageEntry.Unfocus();
-        await Task.Delay(300); // Warten bis Tastatur geschlossen
+        await Task.Delay(300);
 
         PreviewButton.IsEnabled = false;
 
@@ -267,7 +216,6 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
             if (response.Success)
             {
-                // Set text on unified elements
                 PreviewOriginalLabel.Text = text;
                 PreviewTranslatedLabel.Text = response.Translated ?? text;
                 PreviewBackLabel.Text = response.BackTranslated ?? "";
@@ -291,47 +239,54 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
     }
 
-    private async void OnCancelClicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private void OnReadAloudClicked(object sender, EventArgs e)
-    {
-        if (sender is Button btn && btn.CommandParameter is string text)
-        {
-            SpeakText(text);
-        }
-    }
-
-    private async void SpeakText(string text)
-    {
-        try
-        {
-            var settings = new SpeechOptions
-            {
-                Pitch = 1.0f,
-                Volume = 1.0f
-            };
-
-            // Get language from preferences
-            var lang = Preferences.Get("language", "de");
-
-            await TextToSpeech.Default.SpeakAsync(text, settings);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
-        }
-    }
-
     private void OnClosePreviewClicked(object sender, EventArgs e)
     {
         TranslationPreview.IsVisible = false;
     }
 
+    private async void OnBackClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
+    }
+
+    // Menu handling
+    private void OnMenuButtonClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private void OnOverlayTapped(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+    }
+
+    private async void OnMenuTodayClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//TodayPage");
+    }
+
+    private void OnMenuChatsClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+    }
+
+    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//MyTasksPage");
+    }
+
+    private async void OnMenuSettingsClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//SettingsPage");
+    }
+
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
+        MenuOverlayGrid.IsVisible = false;
+
         var confirm = await DisplayAlert(
             Translations.Get("logout"),
             Translations.Get("really_logout"),
@@ -347,10 +302,8 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         }
         catch
         {
-            // Ignore errors - we're logging out anyway
         }
 
-        // Clear stored credentials
         Preferences.Remove("property_id");
         Preferences.Remove("username");
         Preferences.Remove("language");
@@ -358,13 +311,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         Preferences.Remove("remember_me");
         Preferences.Remove("biometric_login_enabled");
 
-        // Clear secure storage
         SecureStorage.Remove("password");
 
-        // Disconnect WebSocket
         WebSocketService.Instance.Dispose();
 
-        // Navigate to login page
         await Shell.Current.GoToAsync("//LoginPage");
     }
 }

@@ -41,6 +41,17 @@
                         Padding="10,6"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
+
+                <!-- Logout Button -->
+                <Button Grid.Column="2"
+                        x:Name="HeaderLogoutButton"
+                        Text="Logout"
+                        BackgroundColor="#1565C0"
+                        TextColor="White"
+                        FontSize="13"
+                        CornerRadius="8"
+                        Padding="10,6"
+                        Clicked="OnLogoutClicked"/>
             </Grid>
         </Grid>
 
