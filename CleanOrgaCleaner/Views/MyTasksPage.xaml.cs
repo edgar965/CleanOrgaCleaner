@@ -168,7 +168,7 @@ public partial class MyTasksPage : ContentPage
         StatusImported.IsChecked = true;
         BtnDelete.IsVisible = false;
 
-        UpdateCleanersList();
+        // Cleaner werden beim Tab-Klick geladen (iOS-Bug mit unsichtbaren Containern)
         UpdateImagesDisplay();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
@@ -228,7 +228,7 @@ public partial class MyTasksPage : ContentPage
         // Load images
         LoadTaskImages(task.Id);
 
-        UpdateCleanersList();
+        // Cleaner werden beim Tab-Klick geladen (iOS-Bug mit unsichtbaren Containern)
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
     }
@@ -314,7 +314,7 @@ public partial class MyTasksPage : ContentPage
 
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
     private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
-    private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
+    private void OnTabAssignClicked(object sender, EventArgs e) { ShowTab("assign"); UpdateCleanersList(); }
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
     private void OnAufgabenartChanged(object sender, EventArgs e)
     {
