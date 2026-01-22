@@ -240,9 +240,10 @@ public partial class MyTasksPage : ContentPage
         {
             c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
-        CleanersList.ItemsSource = null;
-        CleanersList.ItemsSource = _cleaners;
-        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList.ItemsSource set to {_cleaners.Count} items");
+        // BindableLayout statt CollectionView (iOS-Bug mit CollectionView in ScrollView)
+        BindableLayout.SetItemsSource(CleanersList, null);
+        BindableLayout.SetItemsSource(CleanersList, _cleaners);
+        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList ItemsSource set to {_cleaners.Count} items");
     }
 
     private void ShowTab(string tab)
