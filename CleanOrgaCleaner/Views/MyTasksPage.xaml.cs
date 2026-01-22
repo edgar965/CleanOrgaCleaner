@@ -240,9 +240,9 @@ public partial class MyTasksPage : ContentPage
         {
             c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
-        // BindableLayout statt CollectionView (iOS-Bug mit CollectionView in ScrollView)
+        // BindableLayout braucht eine neue Liste-Instanz für korrektes Re-Rendering auf iOS
         BindableLayout.SetItemsSource(CleanersList, null);
-        BindableLayout.SetItemsSource(CleanersList, _cleaners);
+        BindableLayout.SetItemsSource(CleanersList, _cleaners.ToList());
         System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList ItemsSource set to {_cleaners.Count} items");
     }
 
