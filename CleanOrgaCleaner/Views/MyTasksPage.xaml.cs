@@ -87,6 +87,12 @@ public partial class MyTasksPage : ContentPage
                     .Select(c => new CleanerAssignmentInfo(c))
                     .ToList();
 
+                System.Diagnostics.Debug.WriteLine($"[MyTasksPage] Loaded {_cleaners.Count} cleaners");
+                foreach (var c in _cleaners)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[MyTasksPage]   - {c.Id}: {c.Name}");
+                }
+
                 UpdateTasksList();
                 UpdatePickers();
             }
@@ -229,12 +235,14 @@ public partial class MyTasksPage : ContentPage
 
     private void UpdateCleanersList()
     {
+        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] UpdateCleanersList called, _cleaners.Count = {_cleaners.Count}");
         foreach (var c in _cleaners)
         {
             c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
         CleanersList.ItemsSource = null;
         CleanersList.ItemsSource = _cleaners;
+        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList.ItemsSource set to {_cleaners.Count} items");
     }
 
     private void ShowTab(string tab)
