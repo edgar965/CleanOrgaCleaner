@@ -36,7 +36,7 @@ public partial class AppHeader : ContentView
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        ApiService.Instance.Logout();
+        await ApiService.Instance.LogoutAsync();
         await Shell.Current.GoToAsync("//LoginPage");
     }
 }

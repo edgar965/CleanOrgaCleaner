@@ -11,7 +11,7 @@ public static class Main
     /// <summary>
     /// App version number
     /// </summary>
-    public const string Version = "0.40";
+    public const string Version = "1.06";
 
     /// <summary>
     /// Server URL
@@ -80,14 +80,13 @@ public static class Main
     /// <summary>
     /// Clear login state
     /// </summary>
-    public static void ClearLogin()
+    public static async Task ClearLoginAsync()
     {
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
+        // Nur is_logged_in löschen - property_id und username behalten für "Anmeldedaten merken"
         Preferences.Remove("is_logged_in");
 
-        // Clear API service session
-        ApiService.Instance.Logout();
+        // Clear API service session (sends offline status to server)
+        await ApiService.Instance.LogoutAsync();
 
         // Disconnect WebSocket
         WebSocketService.Instance.Dispose();
@@ -106,7 +105,7 @@ public static class Main
     /// </summary>
     public static async Task NavigateToLogin()
     {
-        ClearLogin();
+        await ClearLoginAsync();
         await Shell.Current.GoToAsync("//LoginPage");
     }
 

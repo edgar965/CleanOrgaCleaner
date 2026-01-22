@@ -100,6 +100,9 @@ public class ApiService
                 CleanerLanguage = result.Cleaner?.Language ?? "de";
                 CleanerId = result.Cleaner?.Id;
 
+                // Start heartbeat to maintain online status
+                StartHeartbeat();
+
                 return new LoginResult
                 {
                     Success = true,
@@ -123,6 +126,7 @@ public class ApiService
 
     public void Logout()
     {
+        StopHeartbeat();
         CleanerName = null;
         CleanerLanguage = null;
         CleanerId = null;
@@ -131,9 +135,14 @@ public class ApiService
 
     public async Task LogoutAsync()
     {
+        // WICHTIG: Heartbeat ZUERST stoppen, BEVOR wir den Server-Logout aufrufen!
+        // Sonst kann der Heartbeat-Timer während des Logouts feuern und
+        // den Online-Status senden, was den Offline-Status überschreibt.
+        StopHeartbeat();
+
         try
         {
-            // Try to call server logout endpoint (optional)
+            // Server-Logout aufrufen (sendet Offline-Status via WebSocket)
             await _httpClient.PostAsync("/mobile/api/logout/", null);
         }
         catch
@@ -141,8 +150,11 @@ public class ApiService
             // Ignore - server logout is optional
         }
 
-        // Clear local state
-        Logout();
+        // Clear local state (cookies, etc.)
+        CleanerName = null;
+        CleanerLanguage = null;
+        CleanerId = null;
+        _handler.CookieContainer = new System.Net.CookieContainer();
     }
 
     /// <summary>
@@ -1115,6 +1127,90 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: EXCEPTION - {ex.Message}");
             return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    #endregion
+
+    #region Heartbeat / Online Status
+
+    private System.Timers.Timer? _heartbeatTimer;
+    private int _heartbeatIntervalSeconds = 30;
+    private volatile bool _heartbeatStopped = false; // Flag um Heartbeats nach Logout zu verhindern
+
+    /// <summary>
+    /// Starts the heartbeat timer to periodically ping the server.
+    /// Call this after successful login.
+    /// </summary>
+    public void StartHeartbeat()
+    {
+        StopHeartbeat(); // Stop any existing timer
+        _heartbeatStopped = false; // Reset flag
+
+        _heartbeatTimer = new System.Timers.Timer(_heartbeatIntervalSeconds * 1000);
+        _heartbeatTimer.Elapsed += async (sender, e) => await SendHeartbeatAsync();
+        _heartbeatTimer.AutoReset = true;
+        _heartbeatTimer.Start();
+
+        System.Diagnostics.Debug.WriteLine($"[Heartbeat] Started with interval {_heartbeatIntervalSeconds}s");
+
+        // Send first heartbeat immediately
+        _ = SendHeartbeatAsync();
+    }
+
+    /// <summary>
+    /// Stops the heartbeat timer.
+    /// Call this on logout.
+    /// </summary>
+    public void StopHeartbeat()
+    {
+        _heartbeatStopped = true; // Set flag FIRST to prevent any in-flight heartbeats
+
+        if (_heartbeatTimer != null)
+        {
+            _heartbeatTimer.Stop();
+            _heartbeatTimer.Dispose();
+            _heartbeatTimer = null;
+            System.Diagnostics.Debug.WriteLine("[Heartbeat] Stopped");
+        }
+    }
+
+    /// <summary>
+    /// Sends a heartbeat to the server and updates the interval if changed.
+    /// </summary>
+    private async Task SendHeartbeatAsync()
+    {
+        // Check if heartbeat was stopped (logout in progress)
+        if (_heartbeatStopped)
+        {
+            System.Diagnostics.Debug.WriteLine("[Heartbeat] Skipped - logout in progress");
+            return;
+        }
+
+        try
+        {
+            var response = await _httpClient.GetAsync("/mobile/api/heartbeat/");
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            System.Diagnostics.Debug.WriteLine($"[Heartbeat] Response: {response.StatusCode} - {responseText}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<HeartbeatResponse>(responseText, _jsonOptions);
+                if (result?.PingInterval > 0 && result.PingInterval != _heartbeatIntervalSeconds)
+                {
+                    _heartbeatIntervalSeconds = result.PingInterval;
+                    if (_heartbeatTimer != null)
+                    {
+                        _heartbeatTimer.Interval = _heartbeatIntervalSeconds * 1000;
+                        System.Diagnostics.Debug.WriteLine($"[Heartbeat] Interval updated to {_heartbeatIntervalSeconds}s");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Heartbeat] Error: {ex.Message}");
         }
     }
 

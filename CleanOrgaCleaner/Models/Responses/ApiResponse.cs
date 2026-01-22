@@ -24,3 +24,21 @@ public class ApiResponse
         return Error ?? Message ?? defaultMessage;
     }
 }
+
+/// <summary>
+/// Response from heartbeat/ping endpoint
+/// </summary>
+public class HeartbeatResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("timestamp")]
+    public string? Timestamp { get; set; }
+
+    [JsonPropertyName("ping_interval")]
+    public int PingInterval { get; set; } = 30;
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+}

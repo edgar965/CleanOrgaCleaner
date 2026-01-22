@@ -175,7 +175,7 @@ public partial class BasePage : ContentPage
 
     protected virtual async void OnLogoutClicked(object? sender, EventArgs e)
     {
-        ApiService.Instance.Logout();
+        await ApiService.Instance.LogoutAsync();
         await Shell.Current.GoToAsync("//LoginPage");
     }
 
