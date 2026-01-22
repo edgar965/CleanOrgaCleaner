@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.07</ApplicationDisplayVersion>
-		<ApplicationVersion>28</ApplicationVersion>
+		<ApplicationVersion>29</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
