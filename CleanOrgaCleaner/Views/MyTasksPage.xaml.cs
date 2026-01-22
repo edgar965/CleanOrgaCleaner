@@ -236,14 +236,63 @@ public partial class MyTasksPage : ContentPage
     private void UpdateCleanersList()
     {
         System.Diagnostics.Debug.WriteLine($"[MyTasksPage] UpdateCleanersList called, _cleaners.Count = {_cleaners.Count}");
-        foreach (var c in _cleaners)
+
+        // Manuell aufbauen - zuverlässiger als BindableLayout auf iOS
+        CleanersList.Children.Clear();
+
+        foreach (var cleaner in _cleaners)
         {
-            c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
+            cleaner.IsAssigned = _assignments.Cleaning?.Contains(cleaner.Id) ?? false;
+
+            var border = new Border
+            {
+                Margin = new Thickness(0, 5),
+                Padding = new Thickness(12),
+                BackgroundColor = Color.FromArgb("#f8f9fa"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }
+            };
+
+            var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
+
+            // Avatar
+            var avatar = new Border
+            {
+                WidthRequest = 40,
+                HeightRequest = 40,
+                BackgroundColor = Color.FromArgb("#4CAF50"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 20 },
+                Content = new Label { Text = cleaner.Initial, TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
+            };
+            Grid.SetColumn(avatar, 0);
+
+            // Name
+            var nameLabel = new Label { Text = cleaner.Name, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(12, 0, 0, 0) };
+            Grid.SetColumn(nameLabel, 1);
+
+            // Button
+            var btn = new Button
+            {
+                Text = "Zuweisen",
+                BackgroundColor = cleaner.IsAssigned ? Color.FromArgb("#2196F3") : Colors.White,
+                TextColor = cleaner.IsAssigned ? Colors.White : Color.FromArgb("#2196F3"),
+                BorderColor = Color.FromArgb("#2196F3"),
+                BorderWidth = 2,
+                FontSize = 12,
+                Padding = new Thickness(12, 6),
+                CornerRadius = 8,
+                CommandParameter = cleaner.Id
+            };
+            btn.Clicked += OnAssignToggled;
+            Grid.SetColumn(btn, 2);
+
+            grid.Children.Add(avatar);
+            grid.Children.Add(nameLabel);
+            grid.Children.Add(btn);
+            border.Content = grid;
+            CleanersList.Children.Add(border);
         }
-        // BindableLayout braucht eine neue Liste-Instanz für korrektes Re-Rendering auf iOS
-        BindableLayout.SetItemsSource(CleanersList, null);
-        BindableLayout.SetItemsSource(CleanersList, _cleaners.ToList());
-        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList ItemsSource set to {_cleaners.Count} items");
+
+        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList built with {CleanersList.Children.Count} items");
     }
 
     private void ShowTab(string tab)
