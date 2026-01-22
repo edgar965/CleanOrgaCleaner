@@ -231,7 +231,7 @@
                             <!-- Assign Tab -->
                             <VerticalStackLayout x:Name="AssignTabContent" IsVisible="False" Spacing="10">
                                 <Label x:Name="LabelAssignCleaners" Text="Cleaner zuweisen" FontSize="14" FontAttributes="Bold"/>
-                                <CollectionView x:Name="CleanersList" SelectionMode="None">
+                                <CollectionView x:Name="CleanersList" SelectionMode="None" MinimumHeightRequest="200">
                                     <CollectionView.ItemTemplate>
                                         <DataTemplate>
                                             <Border Margin="0,5" Padding="12" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10">
