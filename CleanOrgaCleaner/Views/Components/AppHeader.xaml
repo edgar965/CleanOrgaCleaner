@@ -3,36 +3,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CleanOrgaCleaner.Views.Components.AppHeader">
 
-    <Grid Padding="15,45,15,15" BackgroundColor="#1a3a5c">
+    <Grid Padding="20,45,20,12" BackgroundColor="#1a3a5c">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Row 0: App Name, Menu Button, Logout -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
-            <!-- Logo and App Name - Tappable to go to Today -->
-            <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                <HorizontalStackLayout.GestureRecognizers>
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <!-- App Name - Tappable to go to Today -->
+            <Label Grid.Column="0"
+                   Text="CleanOrga"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="#2196F3"
+                   VerticalOptions="Center">
+                <Label.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnLogoTapped"/>
-                </HorizontalStackLayout.GestureRecognizers>
-                <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
-                    <Image.Clip>
-                        <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
-                    </Image.Clip>
-                </Image>
-                <Label Text="CleanOrga" FontSize="18" FontAttributes="Bold" TextColor="#4a9eff" VerticalOptions="Center"/>
-            </HorizontalStackLayout>
+                </Label.GestureRecognizers>
+            </Label>
 
-            <!-- Menu Dropdown Button -->
+            <!-- Hamburger Menu Button (centered) -->
             <Button Grid.Column="1"
                     x:Name="MenuButton"
-                    Text="&#x2261;  Menu &#x25BC;"
-                    BackgroundColor="#0078D4"
+                    Text="≡ Menü ▼"
+                    BackgroundColor="#2196F3"
                     TextColor="White"
-                    FontSize="15"
+                    FontSize="16"
                     FontAttributes="Bold"
-                    CornerRadius="12"
+                    CornerRadius="8"
                     Padding="20,10"
                     HorizontalOptions="Center"
                     Clicked="OnMenuButtonClicked"/>
@@ -41,21 +40,21 @@
             <Button Grid.Column="2"
                     x:Name="LogoutButton"
                     Text="Logout"
-                    BackgroundColor="#0078D4"
+                    BackgroundColor="#2196F3"
                     TextColor="White"
-                    FontSize="15"
+                    FontSize="16"
                     FontAttributes="Bold"
-                    CornerRadius="12"
+                    CornerRadius="8"
                     Padding="20,10"
                     Clicked="OnLogoutClicked"/>
         </Grid>
 
-        <!-- Row 1: Date and User Info (like Django) -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+        <!-- Row 1: Current Page and User Info -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
             <Label Grid.Column="0"
-                   x:Name="DateLabel"
+                   x:Name="PageTitleLabel"
                    Text=""
-                   FontSize="13"
+                   FontSize="18"
                    TextColor="White"
                    FontAttributes="Bold"
                    VerticalOptions="Center"/>
@@ -63,8 +62,9 @@
             <Label Grid.Column="1"
                    x:Name="UserInfoLabel"
                    Text=""
-                   FontSize="13"
-                   TextColor="#4a9eff"/>
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#4fc3f7"/>
         </Grid>
     </Grid>
 </ContentView>

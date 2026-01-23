@@ -71,9 +71,8 @@ public partial class SettingsPage : ContentPage
         Title = t("settings");
 
         // Header
-        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         HeaderLogoutButton.Text = t("logout");
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        PageTitleLabel.Text = t("settings");
         UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
 
         // Content

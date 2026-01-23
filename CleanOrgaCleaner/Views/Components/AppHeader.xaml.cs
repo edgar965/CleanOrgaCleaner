@@ -17,13 +17,16 @@ public partial class AppHeader : ContentView
 
     public void ApplyTranslations()
     {
-        MenuButton.Text = "\u2261  " + Translations.Get("menu") + " \u25BC";
         LogoutButton.Text = Translations.Get("logout");
+    }
+
+    public void SetPageTitle(string titleKey)
+    {
+        PageTitleLabel.Text = Translations.Get(titleKey);
     }
 
     public void UpdateUserInfo()
     {
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
         UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
     }
 

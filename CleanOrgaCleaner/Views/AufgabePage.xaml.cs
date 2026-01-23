@@ -75,9 +75,8 @@ public partial class AufgabePage : ContentPage
         Title = t("task");
 
         // Header
-        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        PageTitleLabel.Text = t("task");
         UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
 
         // Menu - fixed text, no dynamic override
@@ -87,7 +86,6 @@ public partial class AufgabePage : ContentPage
         MenuSettingsButton.Text = t("settings");
 
         // Buttons
-        CancelButton.Text = t("back");
         AddProblemButton.Text = $"⚠️ {t("report_problem")}";
         AddAnmerkungButton.Text = $"+ {t("add_note").ToUpper()}";
 

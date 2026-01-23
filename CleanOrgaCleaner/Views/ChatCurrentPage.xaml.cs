@@ -88,9 +88,8 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         var t = Translations.Get;
         Title = t("chat");
         // Header
-        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        PageTitleLabel.Text = t("chat");
         UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessageEntry.Placeholder = t("message_placeholder");
 

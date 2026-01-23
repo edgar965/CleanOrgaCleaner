@@ -582,29 +582,34 @@ public class ApiService
         }
     }
 
-    public async Task<ApiResponse> UploadBildStatusBytesAsync(int taskId, byte[] imageBytes, string fileName, string notiz)
+    public async Task<ApiResponse> UploadBildStatusBytesAsync(int taskId, byte[]? imageBytes, string fileName, string notiz)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: Start - TaskId={taskId}, FileName={fileName}, Size={imageBytes.Length}");
+            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: Start - TaskId={taskId}, FileName={fileName}, Size={imageBytes?.Length ?? 0}");
 
             var formData = new MultipartFormDataContent();
-            var fileContent = new ByteArrayContent(imageBytes);
 
-            // Content-Type basierend auf Dateiendung
-            var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
-            var contentType = extension switch
+            // Bild nur hinzufügen wenn vorhanden
+            if (imageBytes != null && imageBytes.Length > 0)
             {
-                ".png" => "image/png",
-                ".gif" => "image/gif",
-                ".webp" => "image/webp",
-                _ => "image/jpeg"
-            };
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                var fileContent = new ByteArrayContent(imageBytes);
 
-            formData.Add(fileContent, "image", fileName);
-            if (!string.IsNullOrEmpty(notiz))
-                formData.Add(new StringContent(notiz), "notiz");
+                // Content-Type basierend auf Dateiendung
+                var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+                var contentType = extension switch
+                {
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    ".webp" => "image/webp",
+                    _ => "image/jpeg"
+                };
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+                formData.Add(fileContent, "image", fileName);
+            }
+
+            // Notiz immer hinzufügen
+            formData.Add(new StringContent(notiz ?? ""), "notiz");
 
             System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: POST /api/task/{taskId}/bilder/upload/");
             var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);

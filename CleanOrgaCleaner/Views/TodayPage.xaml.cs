@@ -35,8 +35,8 @@ public partial class TodayPage : ContentPage
         // Apply translations
         ApplyTranslations();
 
-        // Set date
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        // Set page title
+        PageTitleLabel.Text = Translations.Get("today");
 
         // Ensure WebSocket is connected (for auto-login case)
         _ = App.InitializeWebSocketAsync();

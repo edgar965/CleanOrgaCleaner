@@ -41,9 +41,8 @@ public partial class AuftragPage : ContentPage
     {
         var t = Translations.Get;
         // Header
-        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        PageTitleLabel.Text = t("task");
         UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");

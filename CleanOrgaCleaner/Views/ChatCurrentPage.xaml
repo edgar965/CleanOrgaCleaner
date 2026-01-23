@@ -13,48 +13,47 @@
         <!-- Header -->
         <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
 
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
-                <!-- Logo and App Name - Tappable to go to Today -->
-                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                    <HorizontalStackLayout.GestureRecognizers>
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+                <!-- App Name - Tappable to go to Today -->
+                <Label Grid.Column="0"
+                       Text="CleanOrga"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="#4a9eff"
+                       VerticalOptions="Center">
+                    <Label.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnLogoTapped"/>
-                    </HorizontalStackLayout.GestureRecognizers>
-                    <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
-                        <Image.Clip>
-                            <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
-                        </Image.Clip>
-                    </Image>
-                    <Label Text="CleanOrga" FontSize="18" FontAttributes="Bold" TextColor="#4a9eff" VerticalOptions="Center"/>
-                </HorizontalStackLayout>
+                    </Label.GestureRecognizers>
+                </Label>
 
+                <!-- Hamburger Menu Button (centered) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="≡  Menü ▼"
+                        Text="&#x2261;"
                         BackgroundColor="#0078D4"
                         TextColor="White"
-                        FontSize="15"
-                        FontAttributes="Bold"
-                        CornerRadius="12"
-                        Padding="20,10"
+                        FontSize="18"
+                        CornerRadius="8"
+                        Padding="12,6"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
+                <!-- Logout Button (compact) -->
                 <Button Grid.Column="2"
                         x:Name="LogoutButton"
-                        Text="Logout"
+                        Text="Abmelden"
                         BackgroundColor="#0078D4"
                         TextColor="White"
-                        FontSize="15"
-                        FontAttributes="Bold"
-                        CornerRadius="12"
-                        Padding="20,10"
+                        FontSize="13"
+                        CornerRadius="8"
+                        Padding="10,6"
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
-            <!-- Row 1: Date and User Info -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <!-- Row 1: Current Page and User Info -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
                 <Label Grid.Column="0"
-                       x:Name="DateLabel"
+                       x:Name="PageTitleLabel"
                        Text=""
                        FontSize="13"
                        TextColor="White"

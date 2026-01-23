@@ -30,9 +30,8 @@ public partial class ChatListPage : ContentPage
     {
         var t = Translations.Get;
         // Header
-        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
-        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        PageTitleLabel.Text = t("chat");
         UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessagesLabel.Text = t("messages");
         SelectContactLabel.Text = t("select_contact");
