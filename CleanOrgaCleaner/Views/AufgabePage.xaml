@@ -10,15 +10,15 @@
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- Header -->
-        <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
+        <Grid Grid.Row="0" Padding="20,45,20,12" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
 
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
                 <!-- App Name - Tappable to go to Today -->
                 <Label Grid.Column="0"
                        Text="CleanOrga"
-                       FontSize="18"
+                       FontSize="28"
                        FontAttributes="Bold"
-                       TextColor="#4a9eff"
+                       TextColor="#2196F3"
                        VerticalOptions="Center">
                     <Label.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnLogoTapped"/>
@@ -28,24 +28,26 @@
                 <!-- Hamburger Menu Button (centered) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="&#x2261;"
-                        BackgroundColor="#0078D4"
+                        Text="≡ Menü ▼"
+                        BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="18"
+                        FontSize="16"
+                        FontAttributes="Bold"
                         CornerRadius="8"
-                        Padding="12,6"
+                        Padding="20,10"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
-                <!-- Logout Button (compact) -->
+                <!-- Logout Button -->
                 <Button Grid.Column="2"
                         x:Name="LogoutButton"
-                        Text="Abmelden"
-                        BackgroundColor="#0078D4"
+                        Text="Logout"
+                        BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="13"
+                        FontSize="16"
+                        FontAttributes="Bold"
                         CornerRadius="8"
-                        Padding="10,6"
+                        Padding="20,10"
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
@@ -54,15 +56,16 @@
                 <Label Grid.Column="0"
                        x:Name="PageTitleLabel"
                        Text=""
-                       FontSize="13"
+                       FontSize="18"
                        TextColor="White"
                        FontAttributes="Bold"
                        VerticalOptions="Center"/>
                 <Label Grid.Column="1"
                        x:Name="UserInfoLabel"
                        Text=""
-                       FontSize="13"
-                       TextColor="#4a9eff"/>
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       TextColor="#4fc3f7"/>
             </Grid>
         </Grid>
 

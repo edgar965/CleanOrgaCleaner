@@ -35,9 +35,6 @@ public partial class TodayPage : ContentPage
         // Apply translations
         ApplyTranslations();
 
-        // Set page title
-        PageTitleLabel.Text = Translations.Get("today");
-
         // Ensure WebSocket is connected (for auto-login case)
         _ = App.InitializeWebSocketAsync();
 
@@ -85,11 +82,15 @@ public partial class TodayPage : ContentPage
     {
         var t = Translations.Get;
 
-        // Update UI texts based on current language
+        // Header
+        MenuButton.Text = "≡";
         LogoutButton.Text = t("logout");
+        PageTitleLabel.Text = t("today");
+
+        // Empty state
         NoTasksLabel.Text = t("no_tasks");
 
-        // Menu items - no emojis, fixed text
+        // Menu items
         MenuTodayLabel.Text = t("today");
         MenuChatLabel.Text = t("chat");
         MenuAuftragLabel.Text = t("task");
@@ -121,7 +122,7 @@ public partial class TodayPage : ContentPage
 
     private void BuildTaskGrid()
     {
-        TasksFlexLayout.Children.Clear();
+        TasksStackLayout.Children.Clear();
 
         if (_tasks.Count == 0)
         {
@@ -135,110 +136,47 @@ public partial class TodayPage : ContentPage
 
         foreach (var task in _tasks)
         {
-            var taskCard = CreateTaskCard(task);
-            TasksFlexLayout.Children.Add(taskCard);
+            var taskButton = CreateTaskButton(task);
+            TasksStackLayout.Children.Add(taskButton);
         }
     }
 
-    private View CreateTaskCard(CleaningTask task)
+    private View CreateTaskButton(CleaningTask task)
     {
-        // Card container
-        var border = new Border
+        // Full-width button like Django client
+        var button = new Button
         {
-            BackgroundColor = Colors.White,
-            StrokeShape = new RoundRectangle { CornerRadius = 15 },
-            Padding = 0,
-            Margin = new Thickness(5),
-            WidthRequest = 160,
-            HeightRequest = 120,
-            Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(2, 2), Radius = 5, Opacity = 0.3f }
+            Text = string.IsNullOrEmpty(task.ApartmentName)
+                ? task.Aufgabenart
+                : $"{task.ApartmentName}  {task.Aufgabenart}",
+            BackgroundColor = Color.FromArgb("#2196F3"),
+            TextColor = Colors.White,
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            CornerRadius = 15,
+            Padding = new Thickness(25, 18),
+            HorizontalOptions = LayoutOptions.Fill
         };
 
         // Add border for completed tasks
         if (task.IsCompleted)
         {
-            border.Stroke = Colors.Black;
+            button.BorderColor = Color.FromArgb("#1565c0");
+            button.BorderWidth = 3;
         }
 
-        var grid = new Grid
+        // Shadow effect
+        button.Shadow = new Shadow
         {
-            Padding = 15
+            Brush = Color.FromArgb("#2196F3"),
+            Offset = new Point(0, 3),
+            Radius = 10,
+            Opacity = 0.3f
         };
 
-        // Background color from task type
-        grid.BackgroundColor = task.TaskColor;
+        button.Clicked += async (s, e) => await OnTaskTapped(task);
 
-        var stack = new VerticalStackLayout
-        {
-            Spacing = 5,
-            VerticalOptions = LayoutOptions.Center
-        };
-
-        // Apartment name
-        var nameLabel = new Label
-        {
-            Text = task.ApartmentName,
-            FontSize = 28,
-            FontAttributes = FontAttributes.Bold,
-            TextColor = Colors.White,
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        stack.Children.Add(nameLabel);
-
-        // Task type badge
-        var badgeBorder = new Border
-        {
-            BackgroundColor = Color.FromRgba(255, 255, 255, 77),
-            StrokeShape = new RoundRectangle { CornerRadius = 8 },
-            Stroke = Colors.Transparent,
-            Padding = new Thickness(8, 4),
-            HorizontalOptions = LayoutOptions.Center
-        };
-
-        var badgeLabel = new Label
-        {
-            Text = task.Aufgabenart,
-            FontSize = 12,
-            TextColor = Colors.White,
-            HorizontalTextAlignment = TextAlignment.Center
-        };
-        badgeBorder.Content = badgeLabel;
-        stack.Children.Add(badgeBorder);
-
-        // Status indicator
-        if (task.IsStarted)
-        {
-            var statusLabel = new Label
-            {
-                Text = Translations.Get("running") + "...",
-                FontSize = 11,
-                TextColor = Colors.White,
-                Opacity = 0.8,
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-            stack.Children.Add(statusLabel);
-        }
-        else if (task.IsCompleted)
-        {
-            var statusLabel = new Label
-            {
-                Text = "✓ " + Translations.Get("done"),
-                FontSize = 11,
-                TextColor = Colors.White,
-                HorizontalTextAlignment = TextAlignment.Center
-            };
-            stack.Children.Add(statusLabel);
-        }
-
-        grid.Children.Add(stack);
-        border.Content = grid;
-
-        // Tap gesture
-        var tapGesture = new TapGestureRecognizer();
-        tapGesture.Tapped += async (s, e) => await OnTaskTapped(task);
-        border.GestureRecognizers.Add(tapGesture);
-
-        return border;
+        return button;
     }
 
     private async Task OnTaskTapped(CleaningTask task)
