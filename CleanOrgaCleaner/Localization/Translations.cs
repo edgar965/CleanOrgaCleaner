@@ -16,6 +16,7 @@ public static class Translations
             ["chat"] = "Chat",
             ["settings"] = "Einstellungen",
             ["logout"] = "Abmelden",
+            ["menu"] = "Menü",
 
             // Chat
             ["chat_title"] = "Chat",
@@ -217,6 +218,7 @@ public static class Translations
             ["chat"] = "Chat",
             ["settings"] = "Settings",
             ["logout"] = "Logout",
+            ["menu"] = "Menu",
 
             ["chat_title"] = "Chat",
             ["message_placeholder"] = "Enter message...",
@@ -412,6 +414,7 @@ public static class Translations
             ["chat"] = "Chat",
             ["settings"] = "Configuración",
             ["logout"] = "Cerrar sesión",
+            ["menu"] = "Menú",
 
             // Chat
             ["chat_title"] = "Chat",
@@ -614,6 +617,7 @@ public static class Translations
             ["chat"] = "Chat",
             ["settings"] = "Setări",
             ["logout"] = "Deconectare",
+            ["menu"] = "Meniu",
 
             // Chat
             ["chat_title"] = "Chat",
@@ -816,6 +820,7 @@ public static class Translations
             ["chat"] = "Czat",
             ["settings"] = "Ustawienia",
             ["logout"] = "Wyloguj",
+            ["menu"] = "Menu",
 
             // Chat
             ["chat_title"] = "Czat",
@@ -1018,6 +1023,7 @@ public static class Translations
             ["chat"] = "Чат",
             ["settings"] = "Настройки",
             ["logout"] = "Выход",
+            ["menu"] = "Меню",
 
             // Chat
             ["chat_title"] = "Чат",
@@ -1220,6 +1226,7 @@ public static class Translations
             ["chat"] = "Чат",
             ["settings"] = "Налаштування",
             ["logout"] = "Вихід",
+            ["menu"] = "Меню",
 
             // Chat
             ["chat_title"] = "Чат",
@@ -1422,6 +1429,7 @@ public static class Translations
             ["chat"] = "Trò chuyện",
             ["settings"] = "Cài đặt",
             ["logout"] = "Đăng xuất",
+            ["menu"] = "Menu",
 
             // Chat
             ["chat_title"] = "Trò chuyện",

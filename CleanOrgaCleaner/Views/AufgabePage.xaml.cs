@@ -74,6 +74,12 @@ public partial class AufgabePage : ContentPage
         var t = Translations.Get;
         Title = t("task");
 
+        // Header
+        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
+        LogoutButton.Text = t("logout");
+        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
+
         // Menu - fixed text, no dynamic override
         MenuTodayButton.Text = t("today");
         MenuChatButton.Text = t("chat");
@@ -121,6 +127,12 @@ public partial class AufgabePage : ContentPage
     private async void OnLogoTapped(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+    }
+
+    private async void OnLogoutClicked(object sender, EventArgs e)
+    {
+        await ApiService.Instance.LogoutAsync();
+        await Shell.Current.GoToAsync("//LoginPage");
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
@@ -220,8 +232,6 @@ public partial class AufgabePage : ContentPage
             }
 
             ApartmentLabel.Text = _task.ApartmentName;
-            TaskTypeLabel.Text = _task.Aufgabenart;
-            TaskTypeBadge.BackgroundColor = _task.TaskColor;
 
             // Aufgabe tab content - mit Übersetzung
             string aufgabeText = GetTranslatedAufgabe();

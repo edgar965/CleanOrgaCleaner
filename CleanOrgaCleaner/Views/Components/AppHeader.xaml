@@ -2,52 +2,69 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="CleanOrgaCleaner.Views.Components.AppHeader">
-    
-    <Grid RowDefinitions="Auto">
-        <!-- Header Bar -->
-        <Grid Grid.Row="0" Padding="15,45,15,15">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#2196F3" Offset="0"/>
-                    <GradientStop Color="#1976D2" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.Background>
 
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <!-- Logo and App Name -->
-                <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
-                    <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
-                        <Image.Clip>
-                            <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
-                        </Image.Clip>
-                    </Image>
-                    <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
-                </HorizontalStackLayout>
+    <Grid Padding="15,45,15,15" BackgroundColor="#1a3a5c">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-                <!-- Menu Dropdown Button -->
-                <Button Grid.Column="1"
-                        x:Name="MenuButton"
-                        Text="Menu"
-                        BackgroundColor="#ffffff33"
-                        TextColor="White"
-                        FontSize="13"
-                        FontAttributes="Bold"
-                        CornerRadius="8"
-                        Padding="10,6"
-                        HorizontalOptions="Center"
-                        Clicked="OnMenuButtonClicked"/>
+        <!-- Row 0: App Name, Menu Button, Logout -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+            <!-- Logo and App Name - Tappable to go to Today -->
+            <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                <HorizontalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnLogoTapped"/>
+                </HorizontalStackLayout.GestureRecognizers>
+                <Image Source="logo.jpg" WidthRequest="28" HeightRequest="28">
+                    <Image.Clip>
+                        <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
+                    </Image.Clip>
+                </Image>
+                <Label Text="CleanOrga" FontSize="18" FontAttributes="Bold" TextColor="#4a9eff" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
 
-                <!-- Logout Button -->
-                <Button Grid.Column="2"
-                        x:Name="LogoutButton"
-                        Text="Logout"
-                        BackgroundColor="#ffffff33"
-                        TextColor="White"
-                        FontSize="13"
-                        CornerRadius="8"
-                        Padding="10,6"
-                        Clicked="OnLogoutClicked"/>
-            </Grid>
+            <!-- Menu Dropdown Button -->
+            <Button Grid.Column="1"
+                    x:Name="MenuButton"
+                    Text="&#x2261;  Menu &#x25BC;"
+                    BackgroundColor="#0078D4"
+                    TextColor="White"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    Padding="20,10"
+                    HorizontalOptions="Center"
+                    Clicked="OnMenuButtonClicked"/>
+
+            <!-- Logout Button -->
+            <Button Grid.Column="2"
+                    x:Name="LogoutButton"
+                    Text="Logout"
+                    BackgroundColor="#0078D4"
+                    TextColor="White"
+                    FontSize="15"
+                    FontAttributes="Bold"
+                    CornerRadius="12"
+                    Padding="20,10"
+                    Clicked="OnLogoutClicked"/>
+        </Grid>
+
+        <!-- Row 1: Date and User Info (like Django) -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <Label Grid.Column="0"
+                   x:Name="DateLabel"
+                   Text=""
+                   FontSize="13"
+                   TextColor="White"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"/>
+
+            <Label Grid.Column="1"
+                   x:Name="UserInfoLabel"
+                   Text=""
+                   FontSize="13"
+                   TextColor="#4a9eff"/>
         </Grid>
     </Grid>
 </ContentView>

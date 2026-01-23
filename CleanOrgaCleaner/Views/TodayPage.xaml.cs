@@ -85,11 +85,7 @@ public partial class TodayPage : ContentPage
     {
         var t = Translations.Get;
 
-        // Page title
-        PageTitleLabel.Text = t("today");
-
         // Update UI texts based on current language
-        WorkButton.Text = _isWorking ? t("stop_work") : t("start_work");
         LogoutButton.Text = t("logout");
         NoTasksLabel.Text = t("no_tasks");
 
@@ -111,19 +107,6 @@ public partial class TodayPage : ContentPage
 
             // Update user info
             UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
-
-            // Update work status
-            _isWorking = data.WorkStatus.IsWorking;
-            UpdateWorkButton();
-
-            if (data.WorkStatus.IsWorking && !string.IsNullOrEmpty(data.WorkStatus.StartTime))
-            {
-                WorkStatusLabel.Text = $"{Translations.Get("working_since")} {data.WorkStatus.StartTime}";
-            }
-            else
-            {
-                WorkStatusLabel.Text = "";
-            }
 
             // Build task grid
             BuildTaskGrid();
@@ -258,103 +241,10 @@ public partial class TodayPage : ContentPage
         return border;
     }
 
-    private void UpdateWorkButton()
-    {
-        if (_isWorking)
-        {
-            WorkButton.Text = Translations.Get("stop_work");
-            WorkButton.BackgroundColor = Color.FromArgb("#2196F3");
-        }
-        else
-        {
-            WorkButton.Text = Translations.Get("start_work");
-            WorkButton.BackgroundColor = Color.FromArgb("#9e9e9e");
-        }
-    }
-
-    private async void OnWorkButtonClicked(object sender, EventArgs e)
-    {
-        WorkButton.IsEnabled = false;
-
-        try
-        {
-            if (_isWorking)
-            {
-                // Show confirmation dialog
-                var confirm = await DisplayAlert(
-                    Translations.Get("cleaning_finished"),
-                    Translations.Get("end_work_question"),
-                    Translations.Get("yes"),
-                    Translations.Get("no"));
-
-                if (confirm)
-                {
-                    var response = await _apiService.EndWorkAsync();
-                    if (response.Success)
-                    {
-                        _isWorking = false;
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            UpdateWorkButton();
-                            WorkStatusLabel.Text = "";
-                        });
-
-                        var hours = response.TotalHours?.ToString("F2").Replace(".", ",") ?? "?";
-                        await DisplayAlert(Translations.Get("work_ended"),
-                            $"{Translations.Get("total_hours")}: {hours}h", Translations.Get("ok"));
-                    }
-                    else
-                    {
-                        await DisplayAlert(Translations.Get("error"),
-                            response.Error ?? Translations.Get("work_could_not_end"),
-                            Translations.Get("ok"));
-                    }
-                }
-            }
-            else
-            {
-                var response = await _apiService.StartWorkAsync();
-                if (response.Success)
-                {
-                    _isWorking = true;
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        UpdateWorkButton();
-                        WorkStatusLabel.Text = $"{Translations.Get("working_since")} {response.StartTime}";
-                    });
-                }
-                else
-                {
-                    await DisplayAlert(Translations.Get("error"),
-                        response.Error ?? Translations.Get("work_could_not_start"),
-                        Translations.Get("ok"));
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[TodayPage] Work button error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), ex.Message, Translations.Get("ok"));
-        }
-        finally
-        {
-            MainThread.BeginInvokeOnMainThread(() => WorkButton.IsEnabled = true);
-        }
-    }
-
     private async Task OnTaskTapped(CleaningTask task)
     {
         // Close menu if open
         MenuOverlayGrid.IsVisible = false;
-
-        // Check if work is started
-        if (!_isWorking)
-        {
-            await DisplayAlert(Translations.Get("hint"),
-                Translations.Get("start_work_first"),
-                Translations.Get("ok"));
-            return;
-        }
 
         // Navigate to task detail using Shell navigation
         await Shell.Current.GoToAsync($"AufgabePage?taskId={task.Id}");

@@ -40,10 +40,11 @@ public partial class AuftragPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        // Page title
-        PageTitleLabel.Text = t("task");
-        MenuButton.Text = t("new_task");
+        // Header
+        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
+        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");
         MenuTodayBtn.Text = t("today");

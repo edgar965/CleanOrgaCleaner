@@ -87,8 +87,11 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         var t = Translations.Get;
         Title = t("chat");
-        // MenuButton.Text stays as "☰ Menü" from XAML
+        // Header
+        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
+        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessageEntry.Placeholder = t("message_placeholder");
 
         // Menu items - no emojis

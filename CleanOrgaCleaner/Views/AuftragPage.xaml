@@ -10,13 +10,7 @@
     <Grid RowDefinitions="Auto,*">
 
         <!-- Header -->
-        <Grid Grid.Row="0" Padding="15,45,15,15" BackgroundColor="#1a3a5c">
-
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+        <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
 
             <!-- Row 0: App Name, Menu Button, Logout -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
@@ -56,32 +50,40 @@
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
-            <!-- Row 1: Page Title -->
-            <Label Grid.Row="1"
-                   x:Name="PageTitleLabel"
-                   Text="Auftrag"
-                   FontSize="16"
-                   TextColor="White"
-                   FontAttributes="Bold"
-                   Margin="0,0,0,10"/>
+            <!-- Row 1: Date and User Info -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       x:Name="DateLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       x:Name="UserInfoLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="#4a9eff"/>
+            </Grid>
+        </Grid>
 
-            <!-- Row 2: New Task Button -->
-            <Button Grid.Row="2"
+        <!-- Content -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+            <!-- New Task Button -->
+            <Button Grid.Row="0"
                     x:Name="NewTaskButton"
                     Text="+ Neue Aufgabe erstellen"
-                    BackgroundColor="White"
-                    TextColor="#2196F3"
+                    BackgroundColor="#2196F3"
+                    TextColor="White"
                     FontSize="16"
                     FontAttributes="Bold"
                     CornerRadius="12"
                     HeightRequest="50"
+                    Margin="15,15,15,0"
                     Clicked="OnNewTaskClicked"/>
-        </Grid>
 
-        <!-- Content -->
-        <Grid Grid.Row="1">
             <!-- Empty State -->
-            <VerticalStackLayout x:Name="EmptyStateView"
+            <VerticalStackLayout Grid.Row="1" x:Name="EmptyStateView"
                                  IsVisible="False"
                                  VerticalOptions="Center"
                                  HorizontalOptions="Center"
@@ -93,7 +95,7 @@
             </VerticalStackLayout>
 
             <!-- Tasks List -->
-            <RefreshView x:Name="TaskRefreshView" Refreshing="OnRefreshing" IsVisible="True">
+            <RefreshView Grid.Row="1" x:Name="TaskRefreshView" Refreshing="OnRefreshing" IsVisible="True">
                 <CollectionView x:Name="TasksCollectionView" SelectionMode="Single" SelectionChanged="OnTaskSelected">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>

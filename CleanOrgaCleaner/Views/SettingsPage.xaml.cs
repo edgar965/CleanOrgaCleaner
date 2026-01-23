@@ -70,10 +70,13 @@ public partial class SettingsPage : ContentPage
         var t = Translations.Get;
         Title = t("settings");
 
-        // Page title
-        PageTitleLabel.Text = t("settings");
+        // Header
+        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
+        HeaderLogoutButton.Text = t("logout");
+        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
 
-        // Header - MenuButton.Text stays as "☰ Menü" from XAML
+        // Content
         SettingsTitleLabel.Text = t("settings");
 
         // User Info

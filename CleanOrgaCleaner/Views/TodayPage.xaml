@@ -15,10 +15,9 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Row 1: App Name, Menu Button, Logout -->
+            <!-- Row 0: App Name, Menu Button, Logout -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
                 <!-- Logo and App Name - Tappable to go to Today -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
@@ -64,52 +63,21 @@
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
-            <!-- Row 2: Page Title and User Info -->
-            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
+            <!-- Row 1: Date and User Info (like Django) -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
                 <Label Grid.Column="0"
-                       x:Name="PageTitleLabel"
-                       Text="Heute"
-                       FontSize="16"
+                       x:Name="DateLabel"
+                       Text=""
+                       FontSize="13"
                        TextColor="White"
                        FontAttributes="Bold"
                        VerticalOptions="Center"/>
 
                 <Label Grid.Column="1"
-                       x:Name="DateLabel"
-                       Text=""
-                       FontSize="13"
-                       TextColor="White"
-                       Opacity="0.85"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center"/>
-
-                <Label Grid.Column="2"
                        x:Name="UserInfoLabel"
                        Text=""
                        FontSize="13"
                        TextColor="#4a9eff"/>
-            </Grid>
-
-            <!-- Row 3: Work Button -->
-            <Grid Grid.Row="2" ColumnDefinitions="*,Auto">
-                <Button Grid.Column="0"
-                        x:Name="WorkButton"
-                        Text="Start Arbeit"
-                        BackgroundColor="#9e9e9e"
-                        TextColor="White"
-                        FontSize="16"
-                        FontAttributes="Bold"
-                        CornerRadius="12"
-                        HeightRequest="50"
-                        Clicked="OnWorkButtonClicked"/>
-
-                <Label Grid.Column="1"
-                       x:Name="WorkStatusLabel"
-                       Text=""
-                       FontSize="12"
-                       TextColor="White"
-                       VerticalOptions="Center"
-                       Margin="10,0,0,0"/>
             </Grid>
         </Grid>
 

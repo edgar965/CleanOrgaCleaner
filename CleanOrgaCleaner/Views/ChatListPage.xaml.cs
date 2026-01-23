@@ -29,10 +29,11 @@ public partial class ChatListPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        // Page title
-        PageTitleLabel.Text = t("chat");
-        // MenuButton.Text stays as "☰ Menü" from XAML
+        // Header
+        MenuButton.Text = "\u2261  " + t("menu") + " \u25BC";
         LogoutButton.Text = t("logout");
+        DateLabel.Text = DateTime.Now.ToString("dd.MM.yyyy");
+        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessagesLabel.Text = t("messages");
         SelectContactLabel.Text = t("select_contact");
         AdminSectionLabel.Text = t("administration").ToUpper();

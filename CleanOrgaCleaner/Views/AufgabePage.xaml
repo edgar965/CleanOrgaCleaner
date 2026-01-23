@@ -9,16 +9,10 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto">
 
-        <!-- Header mit Menu - mit SafeArea Padding oben -->
-        <Grid Grid.Row="0" Padding="15,45,15,15">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#2196F3" Offset="0"/>
-                    <GradientStop Color="#1976D2" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.Background>
+        <!-- Header -->
+        <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
 
-            <Grid ColumnDefinitions="Auto,*,Auto">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
                 <!-- Logo and App Name - Tappable to go to Today -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
                     <HorizontalStackLayout.GestureRecognizers>
@@ -29,26 +23,48 @@
                             <EllipseGeometry Center="14,14" RadiusX="14" RadiusY="14"/>
                         </Image.Clip>
                     </Image>
-                    <Label Text="CleanOrga" FontSize="16" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                    <Label Text="CleanOrga" FontSize="18" FontAttributes="Bold" TextColor="#4a9eff" VerticalOptions="Center"/>
                 </HorizontalStackLayout>
 
                 <!-- Menu Dropdown Button -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="☰ Menü"
-                        BackgroundColor="#1565C0"
+                        Text="≡  Menü ▼"
+                        BackgroundColor="#0078D4"
                         TextColor="White"
-                        FontSize="13"
+                        FontSize="15"
                         FontAttributes="Bold"
-                        CornerRadius="8"
-                        Padding="10,6"
+                        CornerRadius="12"
+                        Padding="20,10"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
-                <!-- Apartment Badge -->
-                <Border Grid.Column="2" x:Name="TaskTypeBadge" BackgroundColor="#1565C0" StrokeShape="RoundRectangle 8" Stroke="Transparent" Padding="8,4">
-                    <Label x:Name="TaskTypeLabel" Text="" FontSize="12" FontAttributes="Bold" TextColor="White"/>
-                </Border>
+                <Button Grid.Column="2"
+                        x:Name="LogoutButton"
+                        Text="Logout"
+                        BackgroundColor="#0078D4"
+                        TextColor="White"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        CornerRadius="12"
+                        Padding="20,10"
+                        Clicked="OnLogoutClicked"/>
+            </Grid>
+
+            <!-- Row 1: Date and User Info -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       x:Name="DateLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       x:Name="UserInfoLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="#4a9eff"/>
             </Grid>
         </Grid>
 

@@ -12,7 +12,7 @@
         <!-- Header -->
         <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
 
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
                 <!-- Logo and App Name - Tappable to go to Today -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
                     <HorizontalStackLayout.GestureRecognizers>
@@ -51,14 +51,21 @@
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
-            <!-- Row 2: Page Title -->
-            <Label Grid.Row="1"
-                   x:Name="PageTitleLabel"
-                   Text="Chat"
-                   FontSize="16"
-                   TextColor="White"
-                   FontAttributes="Bold"
-                   Margin="0,10,0,0"/>
+            <!-- Row 1: Date and User Info -->
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                <Label Grid.Column="0"
+                       x:Name="DateLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                <Label Grid.Column="1"
+                       x:Name="UserInfoLabel"
+                       Text=""
+                       FontSize="13"
+                       TextColor="#4a9eff"/>
+            </Grid>
         </Grid>
 
         <!-- Content -->
