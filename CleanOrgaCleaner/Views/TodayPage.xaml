@@ -10,13 +10,7 @@
     <Grid RowDefinitions="Auto,Auto,*">
 
         <!-- Header with Menu - mit SafeArea Padding oben -->
-        <Grid Grid.Row="0" Padding="15,45,15,15">
-            <Grid.Background>
-                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                    <GradientStop Color="#2196F3" Offset="0"/>
-                    <GradientStop Color="#1976D2" Offset="1"/>
-                </LinearGradientBrush>
-            </Grid.Background>
+        <Grid Grid.Row="0" Padding="15,45,15,15" BackgroundColor="#1a3a5c">
 
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -26,8 +20,11 @@
 
             <!-- Row 1: App Name, Menu Button, Logout -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
-                <!-- Logo and App Name -->
+                <!-- Logo and App Name - Tappable to go to Today -->
                 <HorizontalStackLayout Grid.Column="0" Spacing="6" VerticalOptions="Center">
+                    <HorizontalStackLayout.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnLogoTapped"/>
+                    </HorizontalStackLayout.GestureRecognizers>
                     <Image Source="logo.jpg"
                            WidthRequest="28"
                            HeightRequest="28">
@@ -36,52 +33,61 @@
                         </Image.Clip>
                     </Image>
                     <Label Text="CleanOrga"
-                           FontSize="16"
+                           FontSize="18"
                            FontAttributes="Bold"
-                           TextColor="White"
+                           TextColor="#4a9eff"
                            VerticalOptions="Center"/>
                 </HorizontalStackLayout>
 
                 <!-- Menu Dropdown Button -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="Heute ▼"
-                        BackgroundColor="#1565C0"
+                        Text="≡  Menü ▼"
+                        BackgroundColor="#0078D4"
                         TextColor="White"
-                        FontSize="13"
+                        FontSize="15"
                         FontAttributes="Bold"
-                        CornerRadius="8"
-                        Padding="10,6"
+                        CornerRadius="12"
+                        Padding="20,10"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
                 <Button Grid.Column="2"
                         x:Name="LogoutButton"
                         Text="Logout"
-                        BackgroundColor="#1565C0"
+                        BackgroundColor="#0078D4"
                         TextColor="White"
-                        FontSize="13"
-                        CornerRadius="8"
-                        Padding="10,6"
+                        FontSize="15"
+                        FontAttributes="Bold"
+                        CornerRadius="12"
+                        Padding="20,10"
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
-            <!-- Row 2: Date and User Info -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+            <!-- Row 2: Page Title and User Info -->
+            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,10">
                 <Label Grid.Column="0"
+                       x:Name="PageTitleLabel"
+                       Text="Heute"
+                       FontSize="16"
+                       TextColor="White"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+
+                <Label Grid.Column="1"
                        x:Name="DateLabel"
                        Text=""
                        FontSize="13"
                        TextColor="White"
-                       Opacity="0.95"
-                       FontAttributes="Bold"/>
+                       Opacity="0.85"
+                       HorizontalOptions="Center"
+                       VerticalOptions="Center"/>
 
-                <Label Grid.Column="1"
+                <Label Grid.Column="2"
                        x:Name="UserInfoLabel"
                        Text=""
                        FontSize="13"
-                       TextColor="White"
-                       Opacity="0.95"/>
+                       TextColor="#4a9eff"/>
             </Grid>
 
             <!-- Row 3: Work Button -->
@@ -177,43 +183,38 @@
                     Stroke="Transparent"
                     Padding="0"
                     Margin="60,95,60,0"
-                    VerticalOptions="Start">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2196F3" Offset="0"/>
-                        <GradientStop Color="#1976D2" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
+                    VerticalOptions="Start"
+                    BackgroundColor="#1a3a5c">
                 <Border.Shadow>
                     <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="0">
-                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnMenuTodayClicked"/>
                                 </Border.GestureRecognizers>
-                                <Label x:Name="MenuTodayLabel" Text="🏠 Heute" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                                <Label x:Name="MenuTodayLabel" Text="Heute" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
                             </Border>
                     <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnMenuChatClicked"/>
                                 </Border.GestureRecognizers>
-                                <Label x:Name="MenuChatLabel" Text="💬 Chat" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                                <Label x:Name="MenuChatLabel" Text="Chat" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
                             </Border>
                     <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
                                 <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnMenuMyTasksClicked"/>
+                                    <TapGestureRecognizer Tapped="OnMenuAuftragClicked"/>
                                 </Border.GestureRecognizers>
-                                <Label x:Name="MenuMyTasksLabel" Text="📋 Neue Aufgabe" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                                <Label x:Name="MenuAuftragLabel" Text="Auftrag" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
                             </Border>
                     <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#2196F3" Padding="20,15" HorizontalOptions="Fill">
+                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnMenuSettingsClicked"/>
                                 </Border.GestureRecognizers>
-                                <Label x:Name="MenuSettingsLabel" Text="⚙️ Einstellungen" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
+                                <Label x:Name="MenuSettingsLabel" Text="Einstellungen" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
                             </Border>
                 </VerticalStackLayout>
             </Border>

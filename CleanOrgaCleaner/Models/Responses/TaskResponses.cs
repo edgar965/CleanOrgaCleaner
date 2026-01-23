@@ -33,9 +33,9 @@ public class ChecklistToggleResponse
 }
 
 /// <summary>
-/// Response from task detail API
+/// Response from Aufgabe detail API
 /// </summary>
-public class TaskDetailResponse
+public class AufgabeDetailResponse
 {
     [JsonPropertyName("success")]
     public bool Success { get; set; }

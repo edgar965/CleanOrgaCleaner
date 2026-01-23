@@ -260,31 +260,31 @@ public class ApiService
         return new TodayDataResponse();
     }
 
-    public async Task<CleaningTask?> GetTaskDetailAsync(int taskId, bool forceRefresh = true)
+    public async Task<CleaningTask?> GetAufgabeDetailAsync(int taskId, bool forceRefresh = true)
     {
         // Always reload to get fresh data with images
         // forceRefresh=true by default to ensure images are loaded
         if (!forceRefresh && _taskCache.TryGetValue(taskId, out var cachedTask))
         {
-            System.Diagnostics.Debug.WriteLine($"TaskDetail from cache: {taskId}, Bilder: {cachedTask.Bilder?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"Aufgabe from cache: {taskId}, Bilder: {cachedTask.Bilder?.Count ?? 0}");
             return cachedTask;
         }
 
         // Reload today data to get fresh tasks with images
         try
         {
-            System.Diagnostics.Debug.WriteLine($"TaskDetail: reloading today data for task {taskId}");
+            System.Diagnostics.Debug.WriteLine($"Aufgabe: reloading today data for task {taskId}");
             _taskCache.Clear(); // Clear cache to force fresh data
             var todayData = await GetTodayDataAsync();
             if (_taskCache.TryGetValue(taskId, out var task))
             {
-                System.Diagnostics.Debug.WriteLine($"TaskDetail loaded: {taskId}, Bilder: {task.Bilder?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"Aufgabe loaded: {taskId}, Bilder: {task.Bilder?.Count ?? 0}");
                 return task;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"GetTaskDetail error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"GetAufgabeDetail error: {ex.Message}");
         }
         return null;
     }
@@ -861,29 +861,29 @@ public class ApiService
 
     #region My Tasks
 
-    public async Task<MyTasksPageDataResponse> GetMyTasksDataAsync()
+    public async Task<AuftragsPageDataResponse> GetAuftragsDataAsync()
     {
         try
         {
             var response = await _httpClient.GetAsync("/mobile/api/my-tasks-data/");
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"GetMyTasksData: {response.StatusCode}");
+            System.Diagnostics.Debug.WriteLine($"GetAuftragsData: {response.StatusCode}");
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<MyTasksPageDataResponse>(responseText, _jsonOptions)
-                    ?? new MyTasksPageDataResponse { Success = false, Error = "Parse error" };
+                return JsonSerializer.Deserialize<AuftragsPageDataResponse>(responseText, _jsonOptions)
+                    ?? new AuftragsPageDataResponse { Success = false, Error = "Parse error" };
             }
-            return new MyTasksPageDataResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
+            return new AuftragsPageDataResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"GetMyTasksData error: {ex.Message}");
-            return new MyTasksPageDataResponse { Success = false, Error = ex.Message };
+            System.Diagnostics.Debug.WriteLine($"GetAuftragsData error: {ex.Message}");
+            return new AuftragsPageDataResponse { Success = false, Error = ex.Message };
         }
     }
 
-    public async Task<MyTaskDetailResponse> GetMyTaskAsync(int taskId)
+    public async Task<AuftragDetailResponse> GetAuftragAsync(int taskId)
     {
         try
         {
@@ -892,18 +892,18 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<MyTaskDetailResponse>(responseText, _jsonOptions)
-                    ?? new MyTaskDetailResponse { Success = false, Error = "Parse error" };
+                return JsonSerializer.Deserialize<AuftragDetailResponse>(responseText, _jsonOptions)
+                    ?? new AuftragDetailResponse { Success = false, Error = "Parse error" };
             }
-            return new MyTaskDetailResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
+            return new AuftragDetailResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
         }
         catch (Exception ex)
         {
-            return new MyTaskDetailResponse { Success = false, Error = ex.Message };
+            return new AuftragDetailResponse { Success = false, Error = ex.Message };
         }
     }
 
-    public async Task<ApiResponse> CreateMyTaskAsync(string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
+    public async Task<ApiResponse> CreateAuftragAsync(string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
     {
         try
         {
@@ -923,7 +923,7 @@ public class ApiService
 
             var response = await _httpClient.PostAsync("/mobile/api/task/create/", content);
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"CreateMyTask: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"CreateAuftrag: {response.StatusCode} - {responseText}");
 
             // Check if response is JSON
             if (string.IsNullOrWhiteSpace(responseText) || !responseText.TrimStart().StartsWith("{"))
@@ -940,7 +940,7 @@ public class ApiService
         }
     }
 
-    public async Task<ApiResponse> UpdateMyTaskAsync(int taskId, string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
+    public async Task<ApiResponse> UpdateAuftragAsync(int taskId, string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
     {
         try
         {
@@ -960,7 +960,7 @@ public class ApiService
 
             var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/update/", content);
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"UpdateMyTask: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"UpdateAuftrag: {response.StatusCode} - {responseText}");
 
             // Check if response is JSON
             if (string.IsNullOrWhiteSpace(responseText) || !responseText.TrimStart().StartsWith("{"))
@@ -977,14 +977,14 @@ public class ApiService
         }
     }
 
-    public async Task<ApiResponse> DeleteMyTaskAsync(int taskId)
+    public async Task<ApiResponse> DeleteAuftragAsync(int taskId)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: Deleting task {taskId}");
+            System.Diagnostics.Debug.WriteLine($"DeleteAuftrag: Deleting task {taskId}");
             var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/delete/", new StringContent("{}"));
             var responseText = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"DeleteAuftrag: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -996,7 +996,7 @@ public class ApiService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"DeleteMyTask: EXCEPTION - {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"DeleteAuftrag: EXCEPTION - {ex.Message}");
             return new ApiResponse { Success = false, Error = ex.Message };
         }
     }

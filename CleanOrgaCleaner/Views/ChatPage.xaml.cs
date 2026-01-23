@@ -104,12 +104,13 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
         // Apply translations to unified elements
         MessageEntry.Placeholder = t("message_placeholder");
-        MenuButton.Text = t("chat");
+        // MenuButton.Text stays as "☰ Menü" from XAML
 
-        // Menu translations
-        MenuTodayButton.Text = $"🏠 {t("today")}";
-        MenuChatButton.Text = $"💬 {t("chat")}";
-        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+        // Menu translations - no emojis
+        MenuTodayButton.Text = t("today");
+        MenuChatButton.Text = t("chat");
+        MenuAuftragButton.Text = t("task");
+        MenuSettingsButton.Text = t("settings");
 
         // Translation Preview translations
         TranslationPreviewTitle.Text = t("translation_preview");
@@ -122,6 +123,11 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     private void OnMenuButtonClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
@@ -141,10 +147,10 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         // Already on chat
     }
 
-    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    private async void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 
     private async void OnMenuSettingsClicked(object sender, EventArgs e)

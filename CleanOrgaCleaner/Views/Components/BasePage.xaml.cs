@@ -131,7 +131,7 @@ public partial class BasePage : ContentPage
         AddMenuDivider(menuStack);
         AddMenuItem(menuStack, "💬 Chat", OnMenuChatClicked);
         AddMenuDivider(menuStack);
-        AddMenuItem(menuStack, "📋 Neue Aufgabe", OnMenuMyTasksClicked);
+        AddMenuItem(menuStack, "📋 Auftrag", OnMenuAuftragClicked);
         AddMenuDivider(menuStack);
         AddMenuItem(menuStack, "⚙️ Einstellungen", OnMenuSettingsClicked);
 
@@ -191,10 +191,10 @@ public partial class BasePage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    protected virtual async void OnMenuMyTasksClicked(object? sender, EventArgs e)
+    protected virtual async void OnMenuAuftragClicked(object? sender, EventArgs e)
     {
         if (MenuOverlayGrid != null) MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 
     protected virtual async void OnMenuSettingsClicked(object? sender, EventArgs e)

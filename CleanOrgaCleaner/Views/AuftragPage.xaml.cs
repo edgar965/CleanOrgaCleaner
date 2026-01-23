@@ -8,14 +8,14 @@ using Microsoft.Maui.Controls.Shapes;
 
 namespace CleanOrgaCleaner.Views;
 
-public partial class MyTasksPage : ContentPage
+public partial class AuftragPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private List<MyTask> _tasks = new();
+    private List<Auftrag> _tasks = new();
     private List<ApartmentInfo> _apartments = new();
     private List<AufgabenartInfo> _aufgabenarten = new();
     private List<CleanerAssignmentInfo> _cleaners = new();
-    private MyTask? _currentTask;
+    private Auftrag? _currentTask;
     private bool _isNewTask = true;
     private TaskAssignments _assignments = new() { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
 
@@ -24,7 +24,7 @@ public partial class MyTasksPage : ContentPage
     private FileResult? _selectedImageFile;
     private TaskImageInfo? _selectedDetailImage;
 
-    public MyTasksPage()
+    public AuftragPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
@@ -40,13 +40,15 @@ public partial class MyTasksPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
+        // Page title
+        PageTitleLabel.Text = t("task");
         MenuButton.Text = t("new_task");
         LogoutButton.Text = t("logout");
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");
         MenuTodayBtn.Text = t("today");
         MenuChatBtn.Text = t("chat");
-        MenuMyTasksBtn.Text = t("new_task");
+        MenuAuftragsBtn.Text = t("new_task");
         MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
         TabImages.Text = t("images_tab");
@@ -75,10 +77,10 @@ public partial class MyTasksPage : ContentPage
     {
         try
         {
-            var data = await _apiService.GetMyTasksDataAsync();
+            var data = await _apiService.GetAuftragsDataAsync();
             if (data.Success)
             {
-                _tasks = data.Tasks ?? new List<MyTask>();
+                _tasks = data.Tasks ?? new List<Auftrag>();
                 _apartments = data.Apartments ?? new List<ApartmentInfo>();
                 _aufgabenarten = data.Aufgabenarten ?? new List<AufgabenartInfo>();
 
@@ -86,12 +88,6 @@ public partial class MyTasksPage : ContentPage
                 _cleaners = (data.Cleaners ?? new List<CleanerInfo>())
                     .Select(c => new CleanerAssignmentInfo(c))
                     .ToList();
-
-                System.Diagnostics.Debug.WriteLine($"[MyTasksPage] Loaded {_cleaners.Count} cleaners");
-                foreach (var c in _cleaners)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[MyTasksPage]   - {c.Id}: {c.Name}");
-                }
 
                 UpdateTasksList();
                 UpdatePickers();
@@ -140,7 +136,7 @@ public partial class MyTasksPage : ContentPage
 
     private void OnTaskSelected(object sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is MyTask task)
+        if (e.CurrentSelection.FirstOrDefault() is Auftrag task)
         {
             OpenEditPopup(task);
             TasksCollectionView.SelectedItem = null;
@@ -168,13 +164,13 @@ public partial class MyTasksPage : ContentPage
         StatusImported.IsChecked = true;
         BtnDelete.IsVisible = false;
 
-        // Cleaner werden beim Tab-Klick geladen (iOS-Bug mit unsichtbaren Containern)
+        UpdateCleanersList();
         UpdateImagesDisplay();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
     }
 
-    private void OpenEditPopup(MyTask task)
+    private void OpenEditPopup(Auftrag task)
     {
         _isNewTask = false;
         _currentTask = task;
@@ -228,71 +224,19 @@ public partial class MyTasksPage : ContentPage
         // Load images
         LoadTaskImages(task.Id);
 
-        // Cleaner werden beim Tab-Klick geladen (iOS-Bug mit unsichtbaren Containern)
+        UpdateCleanersList();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
     }
 
     private void UpdateCleanersList()
     {
-        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] UpdateCleanersList called, _cleaners.Count = {_cleaners.Count}");
-
-        // Manuell aufbauen - zuverlässiger als BindableLayout auf iOS
-        CleanersList.Children.Clear();
-
-        foreach (var cleaner in _cleaners)
+        foreach (var c in _cleaners)
         {
-            cleaner.IsAssigned = _assignments.Cleaning?.Contains(cleaner.Id) ?? false;
-
-            var border = new Border
-            {
-                Margin = new Thickness(0, 5),
-                Padding = new Thickness(12),
-                BackgroundColor = Color.FromArgb("#f8f9fa"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }
-            };
-
-            var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
-
-            // Avatar
-            var avatar = new Border
-            {
-                WidthRequest = 40,
-                HeightRequest = 40,
-                BackgroundColor = Color.FromArgb("#4CAF50"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 20 },
-                Content = new Label { Text = cleaner.Initial, TextColor = Colors.White, FontAttributes = FontAttributes.Bold, HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center }
-            };
-            Grid.SetColumn(avatar, 0);
-
-            // Name
-            var nameLabel = new Label { Text = cleaner.Name, FontAttributes = FontAttributes.Bold, VerticalOptions = LayoutOptions.Center, Margin = new Thickness(12, 0, 0, 0) };
-            Grid.SetColumn(nameLabel, 1);
-
-            // Button
-            var btn = new Button
-            {
-                Text = "Zuweisen",
-                BackgroundColor = cleaner.IsAssigned ? Color.FromArgb("#2196F3") : Colors.White,
-                TextColor = cleaner.IsAssigned ? Colors.White : Color.FromArgb("#2196F3"),
-                BorderColor = Color.FromArgb("#2196F3"),
-                BorderWidth = 2,
-                FontSize = 12,
-                Padding = new Thickness(12, 6),
-                CornerRadius = 8,
-                CommandParameter = cleaner.Id
-            };
-            btn.Clicked += OnAssignToggled;
-            Grid.SetColumn(btn, 2);
-
-            grid.Children.Add(avatar);
-            grid.Children.Add(nameLabel);
-            grid.Children.Add(btn);
-            border.Content = grid;
-            CleanersList.Children.Add(border);
+            c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
-
-        System.Diagnostics.Debug.WriteLine($"[MyTasksPage] CleanersList built with {CleanersList.Children.Count} items");
+        CleanersList.ItemsSource = null;
+        CleanersList.ItemsSource = _cleaners;
     }
 
     private void ShowTab(string tab)
@@ -314,7 +258,7 @@ public partial class MyTasksPage : ContentPage
 
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
     private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
-    private void OnTabAssignClicked(object sender, EventArgs e) { ShowTab("assign"); UpdateCleanersList(); }
+    private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
     private void OnAufgabenartChanged(object sender, EventArgs e)
     {
@@ -386,11 +330,11 @@ public partial class MyTasksPage : ContentPage
         ApiResponse result;
         if (_isNewTask)
         {
-            result = await _apiService.CreateMyTaskAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+            result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
         }
         else
         {
-            result = await _apiService.UpdateMyTaskAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+            result = await _apiService.UpdateAuftragAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
         }
 
         if (result.Success)
@@ -454,7 +398,7 @@ public partial class MyTasksPage : ContentPage
 
         if (!confirm) return;
 
-        var result = await _apiService.DeleteMyTaskAsync(_currentTask.Id);
+        var result = await _apiService.DeleteAuftragAsync(_currentTask.Id);
         if (result.Success)
         {
             TaskPopupOverlay.IsVisible = false;
@@ -697,6 +641,11 @@ public partial class MyTasksPage : ContentPage
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
     }
 
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+    }
+
     private void OnOverlayTapped(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
@@ -714,7 +663,7 @@ public partial class MyTasksPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    private void OnMenuMyTasksClicked(object sender, EventArgs e)
+    private void OnMenuAuftragsClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
         // Already here

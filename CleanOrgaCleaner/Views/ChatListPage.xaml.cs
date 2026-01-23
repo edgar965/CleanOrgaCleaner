@@ -29,16 +29,18 @@ public partial class ChatListPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        MenuButton.Text = $"{t("chat")} ▼";
+        // Page title
+        PageTitleLabel.Text = t("chat");
+        // MenuButton.Text stays as "☰ Menü" from XAML
         LogoutButton.Text = t("logout");
         MessagesLabel.Text = t("messages");
         SelectContactLabel.Text = t("select_contact");
         AdminSectionLabel.Text = t("administration").ToUpper();
         ColleaguesSectionLabel.Text = t("colleagues").ToUpper();
-        MenuTodayLabel.Text = $"🏠 {t("today")}";
-        MenuChatLabel.Text = $"💬 {t("chat")}";
-        MenuMyTasksLabel.Text = $"📋 {t("new_task")}";
-        MenuSettingsLabel.Text = $"⚙️ {t("settings")}";
+        MenuTodayLabel.Text = t("today");
+        MenuChatLabel.Text = t("chat");
+        MenuAuftragLabel.Text = t("task");
+        MenuSettingsLabel.Text = t("settings");
     }
 
     private async Task LoadCleanersAsync()
@@ -99,6 +101,11 @@ public partial class ChatListPage : ContentPage
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
     }
 
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+    }
+
     private void OnOverlayTapped(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
@@ -144,9 +151,9 @@ public partial class ChatListPage : ContentPage
         await Shell.Current.GoToAsync("//LoginPage");
     }
 
-    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    private async void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 }

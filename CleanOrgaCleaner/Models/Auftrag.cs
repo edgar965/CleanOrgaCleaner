@@ -5,7 +5,7 @@ namespace CleanOrgaCleaner.Models;
 /// <summary>
 /// Represents a manually created task by the user
 /// </summary>
-public class MyTask
+public class Auftrag
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
@@ -83,13 +83,13 @@ public class TaskAssignments
 /// <summary>
 /// Response for my tasks list
 /// </summary>
-public class MyTasksResponse
+public class AuftragsResponse
 {
     [JsonPropertyName("success")]
     public bool Success { get; set; }
 
     [JsonPropertyName("tasks")]
-    public List<MyTask>? Tasks { get; set; }
+    public List<Auftrag>? Tasks { get; set; }
 
     [JsonPropertyName("error")]
     public string? Error { get; set; }
@@ -98,13 +98,13 @@ public class MyTasksResponse
 /// <summary>
 /// Response for task detail
 /// </summary>
-public class MyTaskDetailResponse
+public class AuftragDetailResponse
 {
     [JsonPropertyName("success")]
     public bool Success { get; set; }
 
     [JsonPropertyName("task")]
-    public MyTask? Task { get; set; }
+    public Auftrag? Task { get; set; }
 
     [JsonPropertyName("error")]
     public string? Error { get; set; }
@@ -143,13 +143,13 @@ public class AufgabenartInfo
 /// <summary>
 /// Response for my tasks page data
 /// </summary>
-public class MyTasksPageDataResponse
+public class AuftragsPageDataResponse
 {
     [JsonPropertyName("success")]
     public bool Success { get; set; }
 
     [JsonPropertyName("tasks")]
-    public List<MyTask>? Tasks { get; set; }
+    public List<Auftrag>? Tasks { get; set; }
 
     [JsonPropertyName("apartments")]
     public List<ApartmentInfo>? Apartments { get; set; }

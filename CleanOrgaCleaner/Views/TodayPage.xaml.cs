@@ -85,19 +85,19 @@ public partial class TodayPage : ContentPage
     {
         var t = Translations.Get;
 
+        // Page title
+        PageTitleLabel.Text = t("today");
+
         // Update UI texts based on current language
         WorkButton.Text = _isWorking ? t("stop_work") : t("start_work");
         LogoutButton.Text = t("logout");
         NoTasksLabel.Text = t("no_tasks");
 
-        // Menu button shows current view
-        MenuButton.Text = $"{t("today")} ▼";
-        
-        // Menu items
-        MenuTodayLabel.Text = $"🏠 {t("today")}";
-        MenuChatLabel.Text = $"💬 {t("chat")}";
-        MenuMyTasksLabel.Text = $"📋 {t("new_task")}";
-        MenuSettingsLabel.Text = $"⚙️ {t("settings")}";
+        // Menu items - no emojis, fixed text
+        MenuTodayLabel.Text = t("today");
+        MenuChatLabel.Text = t("chat");
+        MenuAuftragLabel.Text = t("task");
+        MenuSettingsLabel.Text = t("settings");
 
         System.Diagnostics.Debug.WriteLine($"[TodayPage] Language: {Translations.CurrentLanguage}");
     }
@@ -357,7 +357,7 @@ public partial class TodayPage : ContentPage
         }
 
         // Navigate to task detail using Shell navigation
-        await Shell.Current.GoToAsync($"TaskDetailPage?taskId={task.Id}");
+        await Shell.Current.GoToAsync($"AufgabePage?taskId={task.Id}");
     }
 
     private async void OnRefreshing(object sender, EventArgs e)
@@ -371,6 +371,12 @@ public partial class TodayPage : ContentPage
     private void OnMenuButtonClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        // Already on TodayPage, just refresh
+        await LoadDataAsync();
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
@@ -391,10 +397,10 @@ public partial class TodayPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    private async void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 
     private async void OnMenuSettingsClicked(object sender, EventArgs e)

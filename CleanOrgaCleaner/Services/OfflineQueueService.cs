@@ -426,7 +426,7 @@ public class OfflineQueueService : IDisposable
             assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
         }
 
-        var response = await api.CreateMyTaskAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
+        var response = await api.CreateAuftragAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
         return response.Success;
     }
 
@@ -447,7 +447,7 @@ public class OfflineQueueService : IDisposable
             assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
         }
 
-        var response = await api.UpdateMyTaskAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
+        var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
         return response.Success;
     }
 

@@ -70,8 +70,10 @@ public partial class SettingsPage : ContentPage
         var t = Translations.Get;
         Title = t("settings");
 
-        // Header
-        MenuButton.Text = $"{t("settings")} ▼";
+        // Page title
+        PageTitleLabel.Text = t("settings");
+
+        // Header - MenuButton.Text stays as "☰ Menü" from XAML
         SettingsTitleLabel.Text = t("settings");
 
         // User Info
@@ -85,23 +87,29 @@ public partial class SettingsPage : ContentPage
         // App Info
         AppInfoLabel.Text = t("app_info");
         VersionLabel.Text = t("version");
+        VersionValueLabel.Text = Main.Version;
         ServerLabel.Text = t("server");
 
         // Buttons
         LogoutButton.Text = t("logout");
         ExitButton.Text = t("exit_app");
 
-        // Menu items
-        MenuTodayButton.Text = $"🏠 {t("today")}";
-        MenuChatButton.Text = $"💬 {t("chat")}";
-        MenuMyTasksButton.Text = $"📋 {t("new_task")}";
-        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
+        // Menu items - no emojis
+        MenuTodayButton.Text = t("today");
+        MenuChatButton.Text = t("chat");
+        MenuAuftragButton.Text = t("task");
+        MenuSettingsButton.Text = t("settings");
     }
 
     // Menu handling
     private void OnMenuButtonClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
@@ -121,10 +129,10 @@ public partial class SettingsPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    private async void OnMenuMyTasksClicked(object sender, EventArgs e)
+    private async void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/MyTasksPage");
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 
     private void OnMenuSettingsClicked(object sender, EventArgs e)

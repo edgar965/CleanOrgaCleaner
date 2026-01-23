@@ -7,17 +7,17 @@ using Microsoft.Maui.Controls.Shapes;
 namespace CleanOrgaCleaner.Views;
 
 [QueryProperty(nameof(TaskId), "taskId")]
-public partial class TaskDetailPage : ContentPage
+public partial class AufgabePage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
     private int _taskId;
     private CleaningTask? _task;
-    private List<CleaningTask> _allTasks = new(); // All tasks for the user
     private List<(string FileName, byte[] Bytes)> _selectedPhotos = new(); // Store photo bytes for Problem
     private string? _selectedBildPath;
     private byte[]? _selectedBildBytes; // Store bytes in memory for BildStatus upload
     private BildStatus? _currentBildDetail;
+    private string _currentTab = "aufgabe"; // Track current tab for state persistence
 
     public string TaskId
     {
@@ -28,14 +28,14 @@ public partial class TaskDetailPage : ContentPage
         }
     }
 
-    public TaskDetailPage()
+    public AufgabePage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
     }
 
-    public TaskDetailPage(int taskId) : this() { _taskId = taskId; }
+    public AufgabePage(int taskId) : this() { _taskId = taskId; }
 
     protected override async void OnAppearing()
     {
@@ -46,7 +46,6 @@ public partial class TaskDetailPage : ContentPage
         UpdateOfflineBanner(!_webSocketService.IsOnline);
 
         ApplyTranslations();
-        await LoadAllTasksAsync();
         await LoadTaskAsync();
     }
 
@@ -75,23 +74,16 @@ public partial class TaskDetailPage : ContentPage
         var t = Translations.Get;
         Title = t("task");
 
-        // Menu
-        MenuButton.Text = $"{t("task")} ▼";
-        MenuTodayButton.Text = $"🏠 {t("today")}";
-        MenuChatButton.Text = $"💬 {t("chat")}";
-        MenuSettingsButton.Text = $"⚙️ {t("settings")}";
-
-        // Content Labels
-        NoticeTitleLabel.Text = t("important_notice");
-        MyNotesLabel.Text = t("my_notes");
-        NotesEditor.Placeholder = t("note_placeholder");
-        ImagesTitleLabel.Text = t("images");
-        LogTitleLabel.Text = t("log");
+        // Menu - fixed text, no dynamic override
+        MenuTodayButton.Text = t("today");
+        MenuChatButton.Text = t("chat");
+        MenuAuftragButton.Text = t("task");
+        MenuSettingsButton.Text = t("settings");
 
         // Buttons
         CancelButton.Text = t("back");
         AddProblemButton.Text = $"⚠️ {t("report_problem")}";
-        AddBildButton.Text = $"+ {t("add_image").ToUpper()}";
+        AddAnmerkungButton.Text = $"+ {t("add_note").ToUpper()}";
 
         // Problem Popup
         ProblemPopupTitle.Text = t("report_problem");
@@ -103,14 +95,14 @@ public partial class TaskDetailPage : ContentPage
         SaveProblemButton.Text = t("save");
         CancelProblemButton.Text = t("cancel");
 
-        // Bild Popup
-        BildPopupTitle.Text = t("add_image");
-        SelectImageLabel.Text = t("select_image");
-        BildTakePhotoButton.Text = t("camera");
-        BildPickPhotoButton.Text = t("gallery");
+        // Anmerkung Popup
+        AnmerkungPopupTitle.Text = t("add_note");
+        SelectImageLabel.Text = t("image_optional");
+        AnmerkungTakePhotoButton.Text = t("camera");
+        AnmerkungPickPhotoButton.Text = t("gallery");
         NoteLabel.Text = t("note");
-        SaveBildButton.Text = t("save");
-        CancelBildButton.Text = t("cancel");
+        SaveAnmerkungButton.Text = t("save");
+        CancelAnmerkungButton.Text = t("cancel");
 
         // Bild Detail Popup
         BildDetailTitle.Text = t("image_details");
@@ -118,85 +110,17 @@ public partial class TaskDetailPage : ContentPage
         DeleteBildButton.Text = t("delete");
         CloseBildButton.Text = t("cancel");
         SaveBildDetailButton.Text = t("save");
-
-        // Tasks section label
-        TasksSectionLabel.Text = t("tasks_today").ToUpper();
-    }
-
-    private async Task LoadAllTasksAsync()
-    {
-        try
-        {
-            var todayData = await _apiService.GetTodayDataAsync();
-            _allTasks = todayData.Tasks;
-            PopulateTasksMenu();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Error loading tasks: {ex.Message}");
-        }
-    }
-
-    private void PopulateTasksMenu()
-    {
-        TasksMenuStack.Children.Clear();
-
-        if (_allTasks.Count == 0)
-        {
-            TasksSectionLabel.IsVisible = false;
-            return;
-        }
-
-        TasksSectionLabel.IsVisible = true;
-
-        foreach (var task in _allTasks)
-        {
-            // Highlight current task
-            var isCurrentTask = task.Id == _taskId;
-            var backgroundColor = isCurrentTask ? "#1565C0" : "Transparent";
-            var fontAttrs = isCurrentTask ? FontAttributes.Bold : FontAttributes.None;
-
-            var taskButton = new Button
-            {
-                Text = $"{task.ApartmentName} - {task.Aufgabenart}",
-                BackgroundColor = Color.FromArgb(isCurrentTask ? "#1565C0" : "#00000000"),
-                TextColor = Colors.White,
-                FontSize = 15,
-                FontAttributes = fontAttrs,
-                Padding = new Thickness(20, 12),
-                HorizontalOptions = LayoutOptions.Fill,
-                CommandParameter = task.Id
-            };
-            taskButton.Clicked += OnTaskMenuItemClicked;
-            TasksMenuStack.Children.Add(taskButton);
-
-            // Add separator
-            TasksMenuStack.Children.Add(new BoxView
-            {
-                HeightRequest = 1,
-                Color = Color.FromArgb("#ffffff33")
-            });
-        }
-    }
-
-    private async void OnTaskMenuItemClicked(object? sender, EventArgs e)
-    {
-        if (sender is Button button && button.CommandParameter is int taskId)
-        {
-            MenuOverlayGrid.IsVisible = false;
-
-            if (taskId != _taskId)
-            {
-                // Navigate to the selected task
-                await Shell.Current.GoToAsync($"TaskDetailPage?taskId={taskId}");
-            }
-        }
     }
 
     // Menu handling
     private void OnMenuButtonClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+    }
+
+    private async void OnLogoTapped(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
@@ -216,17 +140,78 @@ public partial class TaskDetailPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
+    private async void OnMenuAuftragClicked(object sender, EventArgs e)
+    {
+        MenuOverlayGrid.IsVisible = false;
+        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
+    }
+
     private async void OnMenuSettingsClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
         await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
     }
 
+    // Tab handling
+    private void OnTabAufgabeClicked(object sender, EventArgs e)
+    {
+        SelectTab("aufgabe");
+    }
+
+    private void OnTabProblemeClicked(object sender, EventArgs e)
+    {
+        SelectTab("probleme");
+    }
+
+    private void OnTabAnmerkungenClicked(object sender, EventArgs e)
+    {
+        SelectTab("anmerkungen");
+    }
+
+    private void SelectTab(string tab)
+    {
+        // Save current tab for state persistence
+        _currentTab = tab;
+
+        // Reset all tab buttons
+        TabAufgabeButton.BackgroundColor = Color.FromArgb("#e0e0e0");
+        TabAufgabeButton.TextColor = Color.FromArgb("#666666");
+        TabProblemeButton.BackgroundColor = Color.FromArgb("#e0e0e0");
+        TabProblemeButton.TextColor = Color.FromArgb("#666666");
+        TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#e0e0e0");
+        TabAnmerkungenButton.TextColor = Color.FromArgb("#666666");
+
+        // Hide all tab content
+        TabAufgabeContent.IsVisible = false;
+        TabProblemeContent.IsVisible = false;
+        TabAnmerkungenContent.IsVisible = false;
+
+        // Activate selected tab
+        switch (tab)
+        {
+            case "aufgabe":
+                TabAufgabeButton.BackgroundColor = Color.FromArgb("#6c5ce7");
+                TabAufgabeButton.TextColor = Colors.White;
+                TabAufgabeContent.IsVisible = true;
+                break;
+            case "probleme":
+                TabProblemeButton.BackgroundColor = Color.FromArgb("#6c5ce7");
+                TabProblemeButton.TextColor = Colors.White;
+                TabProblemeContent.IsVisible = true;
+                break;
+            case "anmerkungen":
+                TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#6c5ce7");
+                TabAnmerkungenButton.TextColor = Colors.White;
+                TabAnmerkungenContent.IsVisible = true;
+                break;
+        }
+    }
+
     private async Task LoadTaskAsync()
     {
         try
         {
-            _task = await _apiService.GetTaskDetailAsync(_taskId);
+            _task = await _apiService.GetAufgabeDetailAsync(_taskId);
             if (_task == null)
             {
                 await DisplayAlert("Fehler", "Aufgabe nicht gefunden", "OK");
@@ -238,18 +223,26 @@ public partial class TaskDetailPage : ContentPage
             TaskTypeLabel.Text = _task.Aufgabenart;
             TaskTypeBadge.BackgroundColor = _task.TaskColor;
 
-            if (!string.IsNullOrEmpty(_task.WichtigerHinweis))
+            // Aufgabe tab content - mit Übersetzung
+            string aufgabeText = GetTranslatedAufgabe();
+            if (!string.IsNullOrEmpty(aufgabeText))
             {
-                NoticeFrame.IsVisible = true;
-                NoticeLabel.Text = _task.WichtigerHinweis;
+                NoticeLabel.IsVisible = true;
+                NoticeLabel.Text = aufgabeText;
+                NoTaskDescriptionLabel.IsVisible = false;
             }
-            else NoticeFrame.IsVisible = false;
+            else
+            {
+                NoticeLabel.IsVisible = false;
+                NoTaskDescriptionLabel.IsVisible = true;
+            }
 
             UpdateStartStopButton();
-            NotesEditor.Text = _task.AnmerkungMitarbeiter ?? "";
             BuildProblems();
             LoadBilder();
-            LoadLogs();
+
+            // Restore current tab after refresh
+            SelectTab(_currentTab);
         }
         catch (Exception ex)
         {
@@ -280,6 +273,35 @@ public partial class TaskDetailPage : ContentPage
                 StartStopButton.IsEnabled = true;  // Erlaubt Reset zurück zu "not_started"
                 break;
         }
+    }
+
+    /// <summary>
+    /// Gibt die übersetzte Aufgabenbeschreibung zurück.
+    /// Prüft zuerst ob eine gecachte Übersetzung für die aktuelle Sprache vorhanden ist.
+    /// </summary>
+    private string GetTranslatedAufgabe()
+    {
+        if (_task == null) return string.Empty;
+
+        // Aktuelle Sprache des Clients
+        string currentLang = Translations.CurrentLanguage;
+
+        // Wenn Deutsch, Original zurückgeben
+        if (currentLang == "de")
+        {
+            return _task.Aufgabe ?? string.Empty;
+        }
+
+        // Prüfen ob Übersetzung gecached ist
+        if (_task.AufgabeTranslated != null &&
+            _task.AufgabeTranslated.TryGetValue(currentLang, out string? cached) &&
+            !string.IsNullOrEmpty(cached))
+        {
+            return cached;
+        }
+
+        // Fallback: Original-Text (noch nicht übersetzt)
+        return _task.Aufgabe ?? string.Empty;
     }
 
     private async void OnStartStopClicked(object sender, EventArgs e)
@@ -329,78 +351,15 @@ public partial class TaskDetailPage : ContentPage
         }
     }
 
-    private async void LoadLogs()
-    {
-        LogStack.Children.Clear();
-
-        try
-        {
-            var logs = await _apiService.GetTaskLogsAsync(_taskId);
-            if (logs == null || logs.Count == 0)
-            {
-                LogEmptyLabel.IsVisible = true;
-                LogStack.Children.Add(LogEmptyLabel);
-                return;
-            }
-
-            LogEmptyLabel.IsVisible = false;
-            foreach (var log in logs)
-            {
-                var logBorder = new Border
-                {
-                    BackgroundColor = Color.FromArgb("#f8f9fa"),
-                    StrokeShape = new RoundRectangle { CornerRadius = 10 },
-                    Stroke = Colors.Transparent,
-                    Padding = 12
-                };
-
-                // Left border accent
-                logBorder.Margin = new Thickness(4, 0, 0, 0);
-
-                var logStack = new VerticalStackLayout { Spacing = 4 };
-
-                var timeLabel = new Label
-                {
-                    Text = log.DatumZeit,
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#999")
-                };
-                logStack.Children.Add(timeLabel);
-
-                var userLabel = new Label
-                {
-                    Text = log.User,
-                    FontSize = 12,
-                    TextColor = Color.FromArgb("#667eea"),
-                    FontAttributes = FontAttributes.Bold
-                };
-                logStack.Children.Add(userLabel);
-
-                var textLabel = new Label
-                {
-                    Text = log.Text,
-                    FontSize = 14,
-                    TextColor = Color.FromArgb("#333")
-                };
-                logStack.Children.Add(textLabel);
-
-                logBorder.Content = logStack;
-                LogStack.Children.Add(logBorder);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"LoadLogs error: {ex.Message}");
-            LogEmptyLabel.Text = "Fehler beim Laden der Logs";
-            LogEmptyLabel.IsVisible = true;
-            LogStack.Children.Add(LogEmptyLabel);
-        }
-    }
-
     private void BuildProblems()
     {
         ProblemsStack.Children.Clear();
-        if (_task?.Probleme == null || _task.Probleme.Count == 0) return;
+        if (_task?.Probleme == null || _task.Probleme.Count == 0)
+        {
+            NoProblemsLabel.IsVisible = true;
+            return;
+        }
+        NoProblemsLabel.IsVisible = false;
         foreach (var problem in _task.Probleme)
             ProblemsStack.Children.Add(CreateProblemView(problem));
     }
@@ -547,28 +506,6 @@ public partial class TaskDetailPage : ContentPage
     // Cancel button - go back
     private async void OnCancelClicked(object sender, EventArgs e) { await Shell.Current.GoToAsync(".."); }
 
-    // Save notes when editor loses focus
-    private async void OnNotesEditorUnfocused(object sender, FocusEventArgs e)
-    {
-        if (_task == null) return;
-        var newNotes = NotesEditor.Text?.Trim() ?? "";
-        if (newNotes == (_task.AnmerkungMitarbeiter ?? "")) return;
-        try
-        {
-            NotesStatusLabel.Text = "Speichern...";
-            var response = await _apiService.UpdateTaskNotesAsync(_taskId, newNotes);
-            if (response.Success)
-            {
-                _task.AnmerkungMitarbeiter = newNotes;
-                NotesStatusLabel.Text = "Gespeichert";
-                await Task.Delay(2000);
-                NotesStatusLabel.Text = "";
-            }
-            else NotesStatusLabel.Text = "Fehler: " + (response.Error ?? "");
-        }
-        catch { NotesStatusLabel.Text = "Fehler beim Speichern"; }
-    }
-
     // Bilder section
     private string GetAbsoluteImageUrl(string? url)
     {
@@ -581,21 +518,30 @@ public partial class TaskDetailPage : ContentPage
 
     private async void LoadBilder()
     {
-        BilderStack.Children.Clear();
+        AnmerkungenStack.Children.Clear();
         var bilderCount = _task?.Bilder?.Count ?? 0;
 
         Console.WriteLine($"=== LoadBilder START ===");
         Console.WriteLine($"Task ID: {_task?.Id}, Bilder Count: {bilderCount}");
 
-        // Show count in UI
-        BilderCountLabel.Text = bilderCount == 0 ? "Keine Bilder" : $"{bilderCount} Bild(er)";
+        // Update badge on tab
+        if (bilderCount > 0)
+        {
+            AnmerkungenBadge.IsVisible = true;
+            AnmerkungenBadgeLabel.Text = bilderCount.ToString();
+        }
+        else
+        {
+            AnmerkungenBadge.IsVisible = false;
+        }
 
         if (_task?.Bilder == null || _task.Bilder.Count == 0)
         {
             Console.WriteLine($"LoadBilder: No images found, exiting");
-            BilderCountLabel.Text = $"DEBUG: Bilder ist {(_task?.Bilder == null ? "NULL" : "LEER")}";
+            NoAnmerkungenLabel.IsVisible = true;
             return;
         }
+        NoAnmerkungenLabel.IsVisible = false;
 
         foreach (var bild in _task.Bilder)
         {
@@ -704,7 +650,7 @@ public partial class TaskDetailPage : ContentPage
 
             grid.Children.Add(imageBorder);
             grid.Children.Add(deleteBtn);
-            BilderStack.Children.Add(grid);
+            AnmerkungenStack.Children.Add(grid);
         }
     }
 
@@ -831,19 +777,19 @@ public partial class TaskDetailPage : ContentPage
         }
     }
 
-    private void OnAddBildClicked(object sender, EventArgs e)
+    private void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
         _selectedBildPath = null;
-        BildPreviewBorder.IsVisible = false;
-        BildNotizEditor.Text = "";
-        SaveBildButton.IsEnabled = false;
-        BildPopupOverlay.IsVisible = true;
+        _selectedBildBytes = null;
+        AnmerkungPreviewBorder.IsVisible = false;
+        AnmerkungNotizEditor.Text = "";
+        AnmerkungPopupOverlay.IsVisible = true;
     }
 
-    private void OnBildPopupBackgroundTapped(object sender, EventArgs e) { BildPopupOverlay.IsVisible = false; }
-    private void OnCancelBildClicked(object sender, EventArgs e) { BildPopupOverlay.IsVisible = false; }
+    private void OnAnmerkungPopupBackgroundTapped(object sender, EventArgs e) { AnmerkungPopupOverlay.IsVisible = false; }
+    private void OnCancelAnmerkungClicked(object sender, EventArgs e) { AnmerkungPopupOverlay.IsVisible = false; }
 
-    private async void OnBildTakePhotoClicked(object sender, EventArgs e)
+    private async void OnAnmerkungTakePhotoClicked(object sender, EventArgs e)
     {
         try
         {
@@ -870,9 +816,8 @@ public partial class TaskDetailPage : ContentPage
                 _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
                 _selectedBildPath = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-                BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
-                BildPreviewBorder.IsVisible = true;
-                SaveBildButton.IsEnabled = true;
+                AnmerkungPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
+                AnmerkungPreviewBorder.IsVisible = true;
             }
         }
         catch (PermissionException)
@@ -881,12 +826,12 @@ public partial class TaskDetailPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Bild Camera error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Anmerkung Camera error: {ex.Message}");
             await DisplayAlert("Kamera-Fehler", ex.Message, "OK");
         }
     }
 
-    private async void OnBildPickPhotoClicked(object sender, EventArgs e)
+    private async void OnAnmerkungPickPhotoClicked(object sender, EventArgs e)
     {
         try
         {
@@ -908,9 +853,8 @@ public partial class TaskDetailPage : ContentPage
                 _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
                 _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
-                BildPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
-                BildPreviewBorder.IsVisible = true;
-                SaveBildButton.IsEnabled = true;
+                AnmerkungPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
+                AnmerkungPreviewBorder.IsVisible = true;
             }
         }
         catch (PermissionException)
@@ -919,53 +863,55 @@ public partial class TaskDetailPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Bild Gallery error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Anmerkung Gallery error: {ex.Message}");
             await DisplayAlert("Galerie-Fehler", ex.Message, "OK");
         }
     }
 
-    private async void OnSaveBildClicked(object sender, EventArgs e)
+    private async void OnSaveAnmerkungClicked(object sender, EventArgs e)
     {
-        if (_selectedBildBytes == null || _selectedBildBytes.Length == 0)
+        var notiz = AnmerkungNotizEditor.Text?.Trim() ?? "";
+
+        // Mindestens Notiz oder Bild erforderlich
+        if (string.IsNullOrEmpty(notiz) && (_selectedBildBytes == null || _selectedBildBytes.Length == 0))
         {
-            await DisplayAlert("Fehler", "Kein Bild ausgewählt", "OK");
+            await DisplayAlert("Fehler", "Bitte gib eine Notiz ein oder wähle ein Bild aus", "OK");
             return;
         }
 
         // Button deaktivieren während Upload
-        SaveBildButton.IsEnabled = false;
-        SaveBildButton.Text = "Wird hochgeladen...";
+        SaveAnmerkungButton.IsEnabled = false;
+        SaveAnmerkungButton.Text = "Wird gespeichert...";
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Start Upload, {_selectedBildBytes!.Length} bytes");
-            var notiz = BildNotizEditor.Text?.Trim() ?? "";
-            var fileName = _selectedBildPath ?? $"image_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-            var response = await _apiService.UploadBildStatusBytesAsync(_taskId, _selectedBildBytes!, fileName, notiz);
+            System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Start Upload");
+            var fileName = _selectedBildPath ?? $"note_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+            var response = await _apiService.UploadBildStatusBytesAsync(_taskId, _selectedBildBytes, fileName, notiz);
 
             if (response.Success)
             {
-                BildPopupOverlay.IsVisible = false;
+                AnmerkungPopupOverlay.IsVisible = false;
                 _selectedBildBytes = null;
                 _selectedBildPath = null;
-                await DisplayAlert("Gespeichert", "Bild wurde hochgeladen", "OK");
+                await DisplayAlert("Gespeichert", "Anmerkung wurde gespeichert", "OK");
                 await LoadTaskAsync();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"OnSaveBildClicked: Upload fehlgeschlagen - {response.Error}");
-                await DisplayAlert("Fehler", response.Error ?? "Upload fehlgeschlagen", "OK");
+                System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Upload fehlgeschlagen - {response.Error}");
+                await DisplayAlert("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Upload Bild error: {ex.Message}\n{ex.StackTrace}");
-            await DisplayAlert("Fehler", $"Upload-Fehler: {ex.Message}", "OK");
+            System.Diagnostics.Debug.WriteLine($"Upload Anmerkung error: {ex.Message}\n{ex.StackTrace}");
+            await DisplayAlert("Fehler", $"Fehler: {ex.Message}", "OK");
         }
         finally
         {
-            SaveBildButton.Text = "Speichern";
-            SaveBildButton.IsEnabled = _selectedBildBytes != null;
+            SaveAnmerkungButton.Text = "Speichern";
+            SaveAnmerkungButton.IsEnabled = true;
         }
     }
 }

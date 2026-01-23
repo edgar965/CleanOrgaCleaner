@@ -31,8 +31,11 @@ public class CleaningTask
     [JsonPropertyName("planned_date")]
     public string PlannedDate { get; set; } = "";
 
-    [JsonPropertyName("wichtiger_hinweis")]
-    public string? WichtigerHinweis { get; set; }
+    [JsonPropertyName("aufgabe")]
+    public string? Aufgabe { get; set; }
+
+    [JsonPropertyName("aufgabe_translated")]
+    public Dictionary<string, string>? AufgabeTranslated { get; set; }
 
     [JsonPropertyName("anmerkung_mitarbeiter")]
     public string? AnmerkungMitarbeiter { get; set; }
@@ -143,9 +146,9 @@ public class CleaningTask
     public int ProblemCount => Probleme?.Count ?? 0;
 
     /// <summary>
-    /// Does this task have an important notice?
+    /// Does this task have a task description?
     /// </summary>
-    public bool HasWichtigerHinweis => !string.IsNullOrEmpty(WichtigerHinweis);
+    public bool HasAufgabe => !string.IsNullOrEmpty(Aufgabe);
 
     #endregion
 }

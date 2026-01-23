@@ -22,16 +22,16 @@
             ContentTemplate="{DataTemplate views:TodayPage}" />
 
         <ShellContent
-            Title="Chats"
+            Title="Chat"
             Icon="chat_icon.png"
             Route="ChatListPage"
             ContentTemplate="{DataTemplate views:ChatListPage}" />
 
         <ShellContent
-            Title="Aufgaben"
+            Title="Auftrag"
             Icon="home_icon.png"
-            Route="MyTasksPage"
-            ContentTemplate="{DataTemplate views:MyTasksPage}" />
+            Route="AuftragPage"
+            ContentTemplate="{DataTemplate views:AuftragPage}" />
 
         <ShellContent
             Title="Einstellungen"
