@@ -48,7 +48,7 @@ public partial class AuftragPage : ContentPage
         EmptyLabel.Text = t("no_my_tasks");
         MenuTodayBtn.Text = t("today");
         MenuChatBtn.Text = t("chat");
-        MenuAuftragsBtn.Text = t("new_task");
+        MenuAuftragBtn.Text = t("new_task");
         MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
         TabImages.Text = t("images_tab");
@@ -663,7 +663,7 @@ public partial class AuftragPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    private void OnMenuAuftragsClicked(object sender, EventArgs e)
+    private void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
         // Already here
