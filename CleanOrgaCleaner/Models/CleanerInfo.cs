@@ -13,7 +13,13 @@ public class CleanerInfo
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
+    [JsonPropertyName("avatar")]
+    public string? Avatar { get; set; }
+
     public string Initial => string.IsNullOrEmpty(Name) ? "?" : Name[0].ToString().ToUpper();
+
+    // Display Avatar if available, otherwise Initial
+    public string DisplayAvatar => !string.IsNullOrEmpty(Avatar) ? Avatar : Initial;
 
     [JsonPropertyName("unread_count")]
     public int UnreadCount { get; set; }
@@ -32,4 +38,7 @@ public class CleanersListResponse
 
     [JsonPropertyName("cleaners")]
     public List<CleanerInfo> Cleaners { get; set; } = new();
+
+    [JsonPropertyName("admin_avatar")]
+    public string AdminAvatar { get; set; } = "";
 }

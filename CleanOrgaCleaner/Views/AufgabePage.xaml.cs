@@ -10,7 +10,6 @@ namespace CleanOrgaCleaner.Views;
 public partial class AufgabePage : ContentPage
 {
     private readonly ApiService _apiService;
-    private readonly WebSocketService _webSocketService;
     private int _taskId;
     private CleaningTask? _task;
     private List<(string FileName, byte[] Bytes)> _selectedPhotos = new(); // Store photo bytes for Problem
@@ -32,7 +31,6 @@ public partial class AufgabePage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
-        _webSocketService = WebSocketService.Instance;
     }
 
     public AufgabePage(int taskId) : this() { _taskId = taskId; }
@@ -41,32 +39,12 @@ public partial class AufgabePage : ContentPage
     {
         base.OnAppearing();
 
-        // Subscribe to connection status
-        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
-        UpdateOfflineBanner(!_webSocketService.IsOnline);
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("task");
 
         ApplyTranslations();
         await LoadTaskAsync();
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
-    }
-
-    private void OnConnectionStatusChanged(bool isConnected)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateOfflineBanner(!isConnected);
-        });
-    }
-
-    private void UpdateOfflineBanner(bool showOffline)
-    {
-        OfflineBanner.IsVisible = showOffline;
-        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()
@@ -74,31 +52,21 @@ public partial class AufgabePage : ContentPage
         var t = Translations.Get;
         Title = t("task");
 
-        // Header
-        MenuButton.Text = $"≡ {t("menu")} ▼";
-        LogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("task");
-        UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
-
-        // Tab Buttons
-        TabAufgabeButton.Text = t("task_tab");
-        TabProblemeButton.Text = t("problems_tab");
-        TabAnmerkungenButton.Text = t("notes_tab");
-
-        // Menu
-        MenuTodayButton.Text = t("today");
-        MenuChatButton.Text = t("chat");
-        MenuAuftragButton.Text = t("task");
-        MenuSettingsButton.Text = t("settings");
+        // Tab Buttons with emojis
+        TabAufgabeButton.Text = $"📋 {t("task_tab")}";
+        TabProblemeButton.Text = $"⚠️ {t("problems_tab")}";
+        TabAnmerkungenButton.Text = $"📝 {t("notes_tab")}";
+        TabLogsButton.Text = $"📜 {t("protocol")}";
 
         // Buttons
-        AddProblemButton.Text = $"⚠️ {t("report_problem")}";
+        AddProblemButton.Text = $"+ {t("report_problem")}";
         AddAnmerkungButton.Text = $"+ {t("add_note").ToUpper()}";
 
         // Empty state labels
         NoTaskDescriptionLabel.Text = t("no_task_description");
         NoProblemsLabel.Text = t("no_problems");
         NoAnmerkungenLabel.Text = t("no_notes");
+        NoLogsLabel.Text = t("no_logs");
 
         // Problem Popup
         ProblemPopupTitle.Text = t("report_problem");
@@ -127,52 +95,6 @@ public partial class AufgabePage : ContentPage
         SaveBildDetailButton.Text = t("save");
     }
 
-    // Menu handling
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        await ApiService.Instance.LogoutAsync();
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
-    }
-
     // Tab handling
     private void OnTabAufgabeClicked(object sender, EventArgs e)
     {
@@ -189,6 +111,12 @@ public partial class AufgabePage : ContentPage
         SelectTab("anmerkungen");
     }
 
+    private async void OnTabLogsClicked(object sender, EventArgs e)
+    {
+        SelectTab("logs");
+        await LoadLogsAsync();
+    }
+
     private void SelectTab(string tab)
     {
         // Save current tab for state persistence
@@ -201,11 +129,14 @@ public partial class AufgabePage : ContentPage
         TabProblemeButton.TextColor = Color.FromArgb("#666666");
         TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#e0e0e0");
         TabAnmerkungenButton.TextColor = Color.FromArgb("#666666");
+        TabLogsButton.BackgroundColor = Color.FromArgb("#e0e0e0");
+        TabLogsButton.TextColor = Color.FromArgb("#666666");
 
         // Hide all tab content
         TabAufgabeContent.IsVisible = false;
         TabProblemeContent.IsVisible = false;
         TabAnmerkungenContent.IsVisible = false;
+        TabLogsContent.IsVisible = false;
 
         // Activate selected tab
         switch (tab)
@@ -224,6 +155,11 @@ public partial class AufgabePage : ContentPage
                 TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#6c5ce7");
                 TabAnmerkungenButton.TextColor = Colors.White;
                 TabAnmerkungenContent.IsVisible = true;
+                break;
+            case "logs":
+                TabLogsButton.BackgroundColor = Color.FromArgb("#6c5ce7");
+                TabLogsButton.TextColor = Colors.White;
+                TabLogsContent.IsVisible = true;
                 break;
         }
     }
@@ -635,7 +571,7 @@ public partial class AufgabePage : ContentPage
                 Margin = new Thickness(0, 4, 4, 0),
                 Content = new Label
                 {
-                    Text = "✕",
+                    Text = "X",
                     TextColor = Colors.White,
                     FontSize = 14,
                     HorizontalTextAlignment = TextAlignment.Center,
@@ -660,7 +596,7 @@ public partial class AufgabePage : ContentPage
                     Margin = new Thickness(4, 0, 0, 4),
                     Content = new Label
                     {
-                        Text = "📝",
+                        Text = "N",
                         FontSize = 10
                     }
                 };
@@ -931,6 +867,85 @@ public partial class AufgabePage : ContentPage
         {
             SaveAnmerkungButton.Text = "Speichern";
             SaveAnmerkungButton.IsEnabled = true;
+        }
+    }
+
+    // ============================================
+    // Protokoll / Logs
+    // ============================================
+
+    private async Task LoadLogsAsync()
+    {
+        try
+        {
+            LogsStack.Children.Clear();
+            NoLogsLabel.IsVisible = false;
+
+            var logs = await _apiService.GetTaskLogsAsync(_taskId);
+
+            if (logs == null || logs.Count == 0)
+            {
+                NoLogsLabel.IsVisible = true;
+                return;
+            }
+
+            foreach (var log in logs)
+            {
+                var logEntry = new Border
+                {
+                    BackgroundColor = Color.FromArgb("#f8f9fa"),
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
+                    Stroke = Colors.Transparent,
+                    Padding = 12,
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+
+                // Left border accent
+                var grid = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(new GridLength(4)), new ColumnDefinition(GridLength.Star) } };
+
+                var accent = new BoxView { Color = Color.FromArgb("#667eea"), VerticalOptions = LayoutOptions.Fill };
+                grid.Children.Add(accent);
+                Grid.SetColumn(accent, 0);
+
+                var content = new VerticalStackLayout { Spacing = 4, Padding = new Thickness(10, 0, 0, 0) };
+
+                // Date/Time
+                content.Children.Add(new Label
+                {
+                    Text = log.DatumZeit,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#999999")
+                });
+
+                // User
+                content.Children.Add(new Label
+                {
+                    Text = log.User,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#667eea"),
+                    FontAttributes = FontAttributes.Bold
+                });
+
+                // Text
+                content.Children.Add(new Label
+                {
+                    Text = log.Text,
+                    FontSize = 14,
+                    TextColor = Color.FromArgb("#333333")
+                });
+
+                grid.Children.Add(content);
+                Grid.SetColumn(content, 1);
+
+                logEntry.Content = grid;
+                LogsStack.Children.Add(logEntry);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LoadLogsAsync error: {ex.Message}");
+            NoLogsLabel.Text = Translations.Get("error");
+            NoLogsLabel.IsVisible = true;
         }
     }
 }

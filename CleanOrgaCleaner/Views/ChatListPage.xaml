@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:CleanOrgaCleaner.Views.Components"
              x:Class="CleanOrgaCleaner.Views.ChatListPage"
              Title="Chats"
              BackgroundColor="#f5f5f5"
@@ -9,67 +10,13 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
-
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
-                <!-- App Name - Tappable to go to Today -->
-                <Label Grid.Column="0"
-                       Text="CleanOrga"
-                       FontSize="18"
-                       FontAttributes="Bold"
-                       TextColor="#4a9eff"
-                       VerticalOptions="Center">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnLogoTapped"/>
-                    </Label.GestureRecognizers>
-                </Label>
-
-                <!-- Hamburger Menu Button (centered) -->
-                <Button Grid.Column="1"
-                        x:Name="MenuButton"
-                        Text="&#x2261;"
-                        BackgroundColor="#0078D4"
-                        TextColor="White"
-                        FontSize="18"
-                        CornerRadius="8"
-                        Padding="12,6"
-                        HorizontalOptions="Center"
-                        Clicked="OnMenuButtonClicked"/>
-
-                <!-- Logout Button (compact) -->
-                <Button Grid.Column="2"
-                        x:Name="LogoutButton"
-                        Text="Abmelden"
-                        BackgroundColor="#0078D4"
-                        TextColor="White"
-                        FontSize="13"
-                        CornerRadius="8"
-                        Padding="10,6"
-                        Clicked="OnLogoutClicked"/>
-            </Grid>
-
-            <!-- Row 1: Current Page and User Info -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                <Label Grid.Column="0"
-                       x:Name="PageTitleLabel"
-                       Text=""
-                       FontSize="13"
-                       TextColor="White"
-                       FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                <Label Grid.Column="1"
-                       x:Name="UserInfoLabel"
-                       Text=""
-                       FontSize="13"
-                       TextColor="#4a9eff"/>
-            </Grid>
-        </Grid>
+        <!-- AppHeader Component -->
+        <components:AppHeader x:Name="Header" Grid.Row="0"/>
 
         <!-- Content -->
         <ScrollView Grid.Row="1" Padding="15,15,15,50">
             <VerticalStackLayout Spacing="15">
-                
+
                 <!-- Header Card -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
                     <VerticalStackLayout Spacing="5">
@@ -82,7 +29,7 @@
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
                     <VerticalStackLayout>
                         <Label x:Name="AdminSectionLabel" Text="ADMINISTRATION" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
-                        
+
                         <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
                             <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="Transparent">
                                 <Border.Background>
@@ -91,14 +38,14 @@
                                         <GradientStop Color="#1976D2" Offset="1"/>
                                     </LinearGradientBrush>
                                 </Border.Background>
-                                <Label Text="A" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                <Label x:Name="AdminAvatarLabel" Text="A" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
                             </Border>
-                            
+
                             <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                 <Label Text="Admin" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
                                 <Label Text="Buero / Verwaltung" FontSize="13" TextColor="#888"/>
                             </VerticalStackLayout>
-                            
+
                             <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" Clicked="OnAdminChatTapped"/>
                         </Grid>
                     </VerticalStackLayout>
@@ -108,25 +55,30 @@
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
                     <VerticalStackLayout>
                         <Label x:Name="ColleaguesSectionLabel" Text="KOLLEGEN" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
-                        
+
                         <CollectionView x:Name="CleanersCollection" SelectionMode="None">
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
-                                        <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="Transparent" BackgroundColor="#4CAF50">
-                                            <Label Text="{Binding Initial}" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
-                                        </Border>
-                                        
+                                        <!-- Avatar or Initial -->
+                                        <Label Grid.Column="0"
+                                               Text="{Binding DisplayAvatar}"
+                                               FontSize="32"
+                                               WidthRequest="50"
+                                               HeightRequest="50"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+
                                         <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                             <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
                                             <Label Text="Reinigungskraft" FontSize="13" TextColor="#888"/>
                                         </VerticalStackLayout>
-                                        
+
                                         <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" CommandParameter="{Binding .}" Clicked="OnCleanerChatTapped"/>
                                     </Grid>
                                 </DataTemplate>
                             </CollectionView.ItemTemplate>
-                            
+
                             <CollectionView.EmptyView>
                                 <VerticalStackLayout Padding="20" HorizontalOptions="Center">
                                     <Label Text="Keine Kollegen verfuegbar" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
@@ -138,60 +90,6 @@
 
             </VerticalStackLayout>
         </ScrollView>
-
-
-        <!-- Menu Overlay -->
-        <Grid x:Name="MenuOverlayGrid"
-              Grid.RowSpan="2"
-              IsVisible="False"
-              ZIndex="1000">
-
-            <BoxView Color="Transparent">
-                <BoxView.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnOverlayTapped"/>
-                </BoxView.GestureRecognizers>
-            </BoxView>
-
-            <Border StrokeShape="RoundRectangle 12"
-                    Stroke="Transparent"
-                    Padding="0"
-                    Margin="60,95,60,0"
-                    VerticalOptions="Start"
-                    BackgroundColor="#1a3a5c">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="0">
-                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnMenuTodayClicked"/>
-                                </Border.GestureRecognizers>
-                                <Label x:Name="MenuTodayLabel" Text="Heute" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
-                            </Border>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnMenuChatsClicked"/>
-                                </Border.GestureRecognizers>
-                                <Label x:Name="MenuChatLabel" Text="Chat" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
-                            </Border>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnMenuAuftragClicked"/>
-                                </Border.GestureRecognizers>
-                                <Label x:Name="MenuAuftragLabel" Text="Auftrag" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
-                            </Border>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Border BackgroundColor="#1a3a5c" Padding="20,15" HorizontalOptions="Fill">
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnMenuSettingsClicked"/>
-                                </Border.GestureRecognizers>
-                                <Label x:Name="MenuSettingsLabel" Text="Einstellungen" TextColor="White" FontSize="16" HorizontalOptions="Center"/>
-                            </Border>
-                </VerticalStackLayout>
-            </Border>
-        </Grid>
 
     </Grid>
 </ContentPage>

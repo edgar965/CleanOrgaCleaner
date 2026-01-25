@@ -9,6 +9,7 @@ public partial class ChatListPage : ContentPage
 {
     private readonly ApiService _apiService;
     private ObservableCollection<CleanerInfo> _cleaners;
+    private string _adminAvatar = "A";
 
     public ChatListPage()
     {
@@ -21,6 +22,11 @@ public partial class ChatListPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("chat");
+
         ApplyTranslations();
         System.Diagnostics.Debug.WriteLine("[ChatListPage] OnAppearing called");
         await LoadCleanersAsync();
@@ -29,18 +35,10 @@ public partial class ChatListPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        // Header
-        LogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("chat");
-        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessagesLabel.Text = t("messages");
         SelectContactLabel.Text = t("select_contact");
         AdminSectionLabel.Text = t("administration").ToUpper();
         ColleaguesSectionLabel.Text = t("colleagues").ToUpper();
-        MenuTodayLabel.Text = t("today");
-        MenuChatLabel.Text = t("chat");
-        MenuAuftragLabel.Text = t("task");
-        MenuSettingsLabel.Text = t("settings");
     }
 
     private async Task LoadCleanersAsync()
@@ -48,16 +46,34 @@ public partial class ChatListPage : ContentPage
         try
         {
             System.Diagnostics.Debug.WriteLine("[ChatListPage] Loading cleaners...");
-            var cleaners = await _apiService.GetAllCleanersAsync();
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Got {cleaners.Count} cleaners from API");
-            
-            _cleaners.Clear();
-            foreach (var c in cleaners)
+            var response = await _apiService.GetCleanersListAsync();
+
+            if (response != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Adding cleaner: {c.Name} (ID: {c.Id})");
-                _cleaners.Add(c);
+                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Got {response.Cleaners.Count} cleaners from API");
+                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Admin avatar: '{response.AdminAvatar}'");
+
+                _cleaners.Clear();
+                foreach (var c in response.Cleaners)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ChatListPage] Adding cleaner: {c.Name} (ID: {c.Id})");
+                    _cleaners.Add(c);
+                }
+                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Collection now has {_cleaners.Count} items");
+
+                // Set admin avatar
+                if (!string.IsNullOrEmpty(response.AdminAvatar))
+                {
+                    _adminAvatar = response.AdminAvatar;
+                    AdminAvatarLabel.Text = _adminAvatar;
+                    AdminAvatarLabel.FontSize = 32;
+                }
+                else
+                {
+                    AdminAvatarLabel.Text = "A";
+                    AdminAvatarLabel.FontSize = 20;
+                }
             }
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Collection now has {_cleaners.Count} items");
         }
         catch (Exception ex)
         {
@@ -77,83 +93,5 @@ public partial class ChatListPage : ContentPage
         {
             await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}");
         }
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
-    }
-
-    private void OnMenuChatsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//SettingsPage");
-    }
-
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        // Clear secure storage
-        SecureStorage.Remove("password");
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
     }
 }

@@ -11,6 +11,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class AuftragPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private List<Auftrag> _tasks = new();
     private List<ApartmentInfo> _apartments = new();
     private List<AufgabenartInfo> _aufgabenarten = new();
@@ -28,28 +29,50 @@ public partial class AuftragPage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Subscribe to task updates
+        _webSocketService.OnTaskUpdate += OnTaskUpdate;
+
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("task");
+
         ApplyTranslations();
         await LoadDataAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+    }
+
+    private void OnTaskUpdate(string updateType)
+    {
+        System.Diagnostics.Debug.WriteLine($"[AuftragPage] Task update received: {updateType}");
+
+        // Reload tasks when task changes or aufgabe (description) changes
+        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
+            || updateType == "assignment_update" || updateType == "aufgabe_update")
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await LoadDataAsync();
+            });
+        }
     }
 
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        // Header
-        LogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("task");
-        UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");
-        MenuTodayBtn.Text = t("today");
-        MenuChatBtn.Text = t("chat");
-        MenuAuftragBtn.Text = t("new_task");
-        MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
         TabImages.Text = t("images_tab");
         TabAssign.Text = t("assign_tab");
@@ -245,6 +268,7 @@ public partial class AuftragPage : ContentPage
         ImagesTabContent.IsVisible = tab == "images";
         AssignTabContent.IsVisible = tab == "assign";
         StatusTabContent.IsVisible = tab == "status";
+        LogsTabContent.IsVisible = tab == "logs";
 
         TabDetails.TextColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabDetails.FontAttributes = tab == "details" ? FontAttributes.Bold : FontAttributes.None;
@@ -254,12 +278,80 @@ public partial class AuftragPage : ContentPage
         TabAssign.FontAttributes = tab == "assign" ? FontAttributes.Bold : FontAttributes.None;
         TabStatus.TextColor = tab == "status" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabStatus.FontAttributes = tab == "status" ? FontAttributes.Bold : FontAttributes.None;
+        TabLogs.TextColor = tab == "logs" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabLogs.FontAttributes = tab == "logs" ? FontAttributes.Bold : FontAttributes.None;
     }
 
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
     private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
     private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
+    private async void OnTabLogsClicked(object sender, EventArgs e)
+    {
+        ShowTab("logs");
+        if (_currentTask?.Id != null)
+            await LoadLogsAsync(_currentTask.Id);
+    }
+
+    private async Task LoadLogsAsync(int taskId)
+    {
+        try
+        {
+            var logs = await _apiService.GetTaskLogsAsync(taskId);
+            LogsStack.Children.Clear();
+
+            if (logs == null || logs.Count == 0)
+            {
+                NoLogsLabel.IsVisible = true;
+            }
+            else
+            {
+                NoLogsLabel.IsVisible = false;
+                foreach (var log in logs)
+                {
+                    var logBorder = new Border
+                    {
+                        Padding = 12,
+                        BackgroundColor = Color.FromArgb("#f8f9fa"),
+                        StrokeShape = new RoundRectangle { CornerRadius = 10 },
+                        Stroke = Color.FromArgb("#667eea"),
+                        StrokeThickness = 0,
+                    };
+
+                    // Add left border effect
+                    logBorder.Margin = new Thickness(4, 0, 0, 8);
+
+                    var stack = new VerticalStackLayout { Spacing = 4 };
+                    stack.Children.Add(new Label
+                    {
+                        Text = log.DatumZeit,
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#888")
+                    });
+                    stack.Children.Add(new Label
+                    {
+                        Text = log.Text,
+                        FontSize = 14,
+                        TextColor = Color.FromArgb("#333")
+                    });
+                    stack.Children.Add(new Label
+                    {
+                        Text = $"von {log.User}",
+                        FontSize = 12,
+                        TextColor = Color.FromArgb("#667eea")
+                    });
+
+                    logBorder.Content = stack;
+                    LogsStack.Children.Add(logBorder);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LoadLogs error: {ex.Message}");
+        }
+    }
+
     private void OnAufgabenartChanged(object sender, EventArgs e)
     {
         // No longer need checklist display
@@ -630,90 +722,6 @@ public partial class AuftragPage : ContentPage
     private void OnImageDetailPopupBackgroundTapped(object sender, EventArgs e)
     {
         // Don't close on background tap
-    }
-
-    #endregion
-
-    #region Menu Handlers
-
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        // Already here
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            // Call logout API
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        // Clear secure storage
-        SecureStorage.Remove("password");
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
     }
 
     #endregion

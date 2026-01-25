@@ -9,7 +9,6 @@ namespace CleanOrgaCleaner.Views;
 public partial class SettingsPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private readonly WebSocketService _webSocketService;
     private readonly BiometricService _biometricService;
     private readonly Dictionary<int, string> _languageMap = new()
     {
@@ -23,11 +22,31 @@ public partial class SettingsPage : ContentPage
         { 7, "vi" }   // Tieng Viet
     };
 
+    // Avatar options - diverse emoji avatars
+    private readonly List<string> _avatarOptions = new()
+    {
+        "", // Logo (default)
+        "👨🏻", "👨🏼", "👨🏽", "👨🏾", "👨🏿",
+        "👨🏻‍🦰", "👨🏽‍🦰", "👨🏻‍🦱", "👨🏾‍🦱", "👨🏼‍🦳", "👨🏽‍🦲",
+        "🧔🏻", "🧔🏽", "🧔🏾",
+        "👷🏻‍♂️", "👷🏽‍♂️", "👷🏾‍♂️",
+        "🧑🏻‍🔧", "🧑🏽‍🔧", "🧑🏾‍🔧",
+        "👨🏻‍💼", "👨🏽‍💼", "👨🏾‍💼",
+        "👴🏻", "👴🏽", "👴🏿",
+        "👩🏻", "👩🏼", "👩🏽", "👩🏾", "👩🏿",
+        "👩🏻‍🦰", "👩🏽‍🦰", "👩🏻‍🦱", "👩🏾‍🦱", "👩🏼‍🦳",
+        "👱🏻‍♀️", "👱🏽‍♀️",
+        "👷🏻‍♀️", "👷🏽‍♀️", "👷🏾‍♀️",
+        "👩🏻‍💼", "👩🏽‍💼", "👩🏾‍💼",
+        "👵🏻", "👵🏽", "👵🏿",
+        "🧑🏻", "🧑🏼", "🧑🏽", "🧑🏾", "🧑🏿",
+        "🧓🏻", "🧓🏽", "🧓🏿"
+    };
+
     public SettingsPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
-        _webSocketService = WebSocketService.Instance;
         _biometricService = BiometricService.Instance;
     }
 
@@ -35,45 +54,27 @@ public partial class SettingsPage : ContentPage
     {
         base.OnAppearing();
 
-        // Subscribe to connection status
-        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
-        UpdateOfflineBanner(!_webSocketService.IsOnline);
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("settings");
 
         ApplyTranslations();
         LoadUserInfo();
+        LoadCurrentAvatar();
         LoadCurrentLanguage();
         await LoadBiometricSettingsAsync();
     }
 
-    protected override void OnDisappearing()
+    private void LoadCurrentAvatar()
     {
-        base.OnDisappearing();
-        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
-    }
-
-    private void OnConnectionStatusChanged(bool isConnected)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateOfflineBanner(!isConnected);
-        });
-    }
-
-    private void UpdateOfflineBanner(bool showOffline)
-    {
-        OfflineBanner.IsVisible = showOffline;
-        OfflineSpinner.IsRunning = showOffline;
+        var avatar = Preferences.Get("avatar", "");
+        CurrentAvatarLabel.Text = string.IsNullOrEmpty(avatar) ? "🏠" : avatar;
     }
 
     private void ApplyTranslations()
     {
         var t = Translations.Get;
         Title = t("settings");
-
-        // Header
-        HeaderLogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("settings");
-        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
 
         // Content
         SettingsTitleLabel.Text = t("settings");
@@ -93,54 +94,7 @@ public partial class SettingsPage : ContentPage
         ServerLabel.Text = t("server");
 
         // Buttons
-        LogoutButton.Text = t("logout");
         ExitButton.Text = t("exit_app");
-
-        // Menu items - no emojis
-        MenuTodayButton.Text = t("today");
-        MenuChatButton.Text = t("chat");
-        MenuAuftragButton.Text = t("task");
-        MenuSettingsButton.Text = t("settings");
-    }
-
-    // Menu handling
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
-    }
-
-    private void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        // Already on settings
     }
 
     private void LoadUserInfo()
@@ -198,44 +152,6 @@ public partial class SettingsPage : ContentPage
         }
     }
 
-    private async void OnLogoutClicked(object? sender, EventArgs e)
-    {
-        var confirm = await DisplayAlert(
-            "Abmelden",
-            "Moechtest du dich wirklich abmelden?",
-            "Ja", "Nein");
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            // Call logout API
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        // Clear secure storage
-        SecureStorage.Remove("password");
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
     private async void OnExitClicked(object? sender, EventArgs e)
     {
         var confirm = await DisplayAlert(
@@ -251,6 +167,55 @@ public partial class SettingsPage : ContentPage
 
         // Exit the application
         Application.Current?.Quit();
+    }
+
+    private async void OnChangeAvatarClicked(object? sender, EventArgs e)
+    {
+        // Build display list for action sheet (show emoji or "Logo" for empty)
+        var displayOptions = _avatarOptions.Select(a => string.IsNullOrEmpty(a) ? "🏠 Logo" : a).ToArray();
+
+        var result = await DisplayActionSheet(
+            "Avatar waehlen",
+            "Abbrechen",
+            null,
+            displayOptions);
+
+        if (result == null || result == "Abbrechen")
+            return;
+
+        // Find the selected avatar
+        var selectedIndex = Array.IndexOf(displayOptions, result);
+        if (selectedIndex < 0 || selectedIndex >= _avatarOptions.Count)
+            return;
+
+        var selectedAvatar = _avatarOptions[selectedIndex];
+
+        try
+        {
+            var response = await _apiService.SetAvatarAsync(selectedAvatar);
+
+            if (response.Success)
+            {
+                // Store locally
+                Preferences.Set("avatar", selectedAvatar);
+
+                // Update display
+                CurrentAvatarLabel.Text = string.IsNullOrEmpty(selectedAvatar) ? "🏠" : selectedAvatar;
+
+                await DisplayAlert("Gespeichert", "Avatar wurde geaendert", "OK");
+            }
+            else
+            {
+                await DisplayAlert("Fehler",
+                    response.Error ?? "Avatar konnte nicht geaendert werden",
+                    "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SetAvatar error: {ex.Message}");
+            await DisplayAlert("Fehler", "Verbindungsfehler", "OK");
+        }
     }
 
     private async Task LoadBiometricSettingsAsync()

@@ -1,342 +1,223 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:components="clr-namespace:CleanOrgaCleaner.Views.Components"
              x:Class="CleanOrgaCleaner.Views.SettingsPage"
              Title="Einstellungen"
              BackgroundColor="#f5f5f5"
              Shell.NavBarIsVisible="False"
              Shell.TabBarIsVisible="False">
 
-    <Grid RowDefinitions="Auto,Auto,*">
+    <Grid RowDefinitions="Auto,*">
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Padding="15,45,15,15" RowDefinitions="Auto,Auto" BackgroundColor="#1a3a5c">
+        <!-- AppHeader Component -->
+        <components:AppHeader x:Name="Header" Grid.Row="0"/>
 
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
-                <!-- App Name - Tappable to go to Today -->
-                <Label Grid.Column="0"
-                       Text="CleanOrga"
-                       FontSize="18"
+        <!-- Content -->
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="20" Padding="20">
+
+                <Label x:Name="SettingsTitleLabel"
+                       Text="Einstellungen"
+                       FontSize="24"
                        FontAttributes="Bold"
-                       TextColor="#4a9eff"
-                       VerticalOptions="Center">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnLogoTapped"/>
-                    </Label.GestureRecognizers>
-                </Label>
+                       TextColor="#333"
+                       HorizontalOptions="Center"/>
 
-                <!-- Hamburger Menu Button (centered) -->
-                <Button Grid.Column="1"
-                        x:Name="MenuButton"
-                        Text="&#x2261;"
-                        BackgroundColor="#0078D4"
-                        TextColor="White"
-                        FontSize="18"
-                        CornerRadius="8"
-                        Padding="12,6"
-                        HorizontalOptions="Center"
-                        Clicked="OnMenuButtonClicked"/>
+                <!-- User Info -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="10">
+                        <Label x:Name="LoggedInAsLabel"
+                               Text="Angemeldet als"
+                               FontSize="14"
+                               TextColor="#888"/>
+                        <Label x:Name="UserNameLabel"
+                               Text=""
+                               FontSize="18"
+                               FontAttributes="Bold"
+                               TextColor="#333"/>
+                    </VerticalStackLayout>
+                </Border>
 
-                <!-- Logout Button (compact) -->
-                <Button Grid.Column="2"
-                        x:Name="HeaderLogoutButton"
-                        Text="Abmelden"
-                        BackgroundColor="#0078D4"
-                        TextColor="White"
-                        FontSize="13"
-                        CornerRadius="8"
-                        Padding="10,6"
-                        Clicked="OnLogoutClicked"/>
-            </Grid>
+                <!-- Avatar Selection -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="AvatarTitleLabel"
+                               Text="Avatar"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#333"/>
 
-            <!-- Row 1: Current Page and User Info -->
-            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
-                <Label Grid.Column="0"
-                       x:Name="PageTitleLabel"
-                       Text=""
-                       FontSize="13"
-                       TextColor="White"
-                       FontAttributes="Bold"
-                       VerticalOptions="Center"/>
-                <Label Grid.Column="1"
-                       x:Name="UserInfoLabel"
-                       Text=""
-                       FontSize="13"
-                       TextColor="#4a9eff"/>
-            </Grid>
-        </Grid>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="15">
+                            <!-- Current Avatar Display -->
+                            <Border WidthRequest="60"
+                                    HeightRequest="60"
+                                    StrokeShape="RoundRectangle 30"
+                                    Stroke="#e0e0e0"
+                                    BackgroundColor="#f5f5f5">
+                                <Label x:Name="CurrentAvatarLabel"
+                                       Text=""
+                                       FontSize="32"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Border>
 
-        <!-- Offline Banner -->
-        <Border x:Name="OfflineBanner"
-                Grid.Row="1"
-                BackgroundColor="#ff9800"
-                Padding="10,8"
-                IsVisible="False">
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
-                <Label Text="Offline"
-                       TextColor="White"
-                       FontSize="13"
-                       VerticalOptions="Center"/>
-                <ActivityIndicator x:Name="OfflineSpinner"
-                                   IsRunning="True"
-                                   Color="White"
-                                   WidthRequest="16"
-                                   HeightRequest="16"/>
-            </HorizontalStackLayout>
-        </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label x:Name="AvatarHintLabel"
+                                       Text="Tippen zum Aendern"
+                                       FontSize="14"
+                                       TextColor="#666"/>
+                            </VerticalStackLayout>
 
-    <ScrollView Grid.Row="2">
-        <VerticalStackLayout Spacing="20" Padding="20">
+                            <Button Grid.Column="2"
+                                    x:Name="ChangeAvatarButton"
+                                    Text="Aendern"
+                                    BackgroundColor="#2196F3"
+                                    TextColor="White"
+                                    FontSize="14"
+                                    CornerRadius="10"
+                                    Padding="15,10"
+                                    Clicked="OnChangeAvatarClicked"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- Header Icon -->
-            <Border BackgroundColor="#2196F3"
-                    WidthRequest="80"
-                    HeightRequest="80"
-                    StrokeShape="RoundRectangle 40"
-                    Stroke="Transparent"
-                    HorizontalOptions="Center"
-                    Padding="0">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                        <GradientStop Color="#2196F3" Offset="0"/>
-                        <GradientStop Color="#1976D2" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <Label Text="⚙"
-                       FontSize="40"
-                       TextColor="White"
-                       HorizontalOptions="Center"
-                       VerticalOptions="Center"/>
-            </Border>
+                <!-- Language Selection -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="LanguageTitleLabel"
+                               Text="Sprache"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#333"/>
 
-            <Label x:Name="SettingsTitleLabel"
-                   Text="Einstellungen"
-                   FontSize="24"
-                   FontAttributes="Bold"
-                   TextColor="#333"
-                   HorizontalOptions="Center"/>
+                        <Picker x:Name="LanguagePicker"
+                                Title="Sprache waehlen"
+                                FontSize="16"
+                                TextColor="#333"
+                                SelectedIndexChanged="OnLanguageChanged">
+                            <Picker.Items>
+                                <x:String>DE Deutsch</x:String>
+                                <x:String>GB English</x:String>
+                                <x:String>ES Espanol</x:String>
+                                <x:String>RO Romana</x:String>
+                                <x:String>PL Polski</x:String>
+                                <x:String>RU Russkij</x:String>
+                                <x:String>UA Ukrainska</x:String>
+                                <x:String>VN Tieng Viet</x:String>
+                            </Picker.Items>
+                        </Picker>
 
-            <!-- User Info -->
-            <Border BackgroundColor="White"
-                    StrokeShape="RoundRectangle 15"
-                    Stroke="Transparent"
-                    Padding="20">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="10">
-                    <Label x:Name="LoggedInAsLabel"
-                           Text="Angemeldet als"
-                           FontSize="14"
-                           TextColor="#888"/>
-                    <Label x:Name="UserNameLabel"
-                           Text=""
-                           FontSize="18"
-                           FontAttributes="Bold"
-                           TextColor="#333"/>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- Language Selection -->
-            <Border BackgroundColor="White"
-                    StrokeShape="RoundRectangle 15"
-                    Stroke="Transparent"
-                    Padding="20">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="15">
-                    <Label x:Name="LanguageTitleLabel"
-                           Text="Sprache"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="#333"/>
-
-                    <Picker x:Name="LanguagePicker"
-                            Title="Sprache waehlen"
-                            FontSize="16"
-                            TextColor="#333"
-                            SelectedIndexChanged="OnLanguageChanged">
-                        <Picker.Items>
-                            <x:String>DE Deutsch</x:String>
-                            <x:String>GB English</x:String>
-                            <x:String>ES Espanol</x:String>
-                            <x:String>RO Romana</x:String>
-                            <x:String>PL Polski</x:String>
-                            <x:String>RU Russkij</x:String>
-                            <x:String>UA Ukrainska</x:String>
-                            <x:String>VN Tieng Viet</x:String>
-                        </Picker.Items>
-                    </Picker>
-
-                    <Label x:Name="LanguageHintLabel"
-                           Text="Die Sprache wird fuer Chat-Uebersetzungen verwendet"
-                           FontSize="12"
-                           TextColor="#888"/>
-                </VerticalStackLayout>
-            </Border>
-
-            <!-- Biometric Login -->
-            <Border x:Name="BiometricSection"
-                    BackgroundColor="White"
-                    StrokeShape="RoundRectangle 15"
-                    Stroke="Transparent"
-                    Padding="20"
-                    IsVisible="False">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="15">
-                    <Label x:Name="BiometricTitleLabel"
-                           Text="Sicherheit"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="#333"/>
-
-                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-                        <Label x:Name="BiometricLabel"
-                               Text="Face ID / Touch ID"
-                               TextColor="#333"
-                               FontSize="15"
-                               VerticalOptions="Center"/>
-                        <Switch x:Name="BiometricSwitch"
-                                Grid.Column="1"
-                                OnColor="#2196F3"
-                                Toggled="OnBiometricToggled"/>
-                        <Label Grid.Row="1"
-                               Grid.ColumnSpan="2"
-                               x:Name="BiometricHintLabel"
-                               Text="Schnelle und sichere Anmeldung mit Biometrie"
+                        <Label x:Name="LanguageHintLabel"
+                               Text="Die Sprache wird fuer Chat-Uebersetzungen verwendet"
                                FontSize="12"
                                TextColor="#888"/>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- App Info -->
-            <Border BackgroundColor="White"
-                    StrokeShape="RoundRectangle 15"
-                    Stroke="Transparent"
-                    Padding="20">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="10">
-                    <Label x:Name="AppInfoLabel"
-                           Text="App Info"
-                           FontSize="16"
-                           FontAttributes="Bold"
-                           TextColor="#333"/>
-
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label x:Name="VersionLabel"
-                               Text="Version"
-                               TextColor="#666"/>
-                        <Label x:Name="VersionValueLabel"
-                               Grid.Column="1"
-                               Text="1.08"
+                <!-- Biometric Login -->
+                <Border x:Name="BiometricSection"
+                        BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20"
+                        IsVisible="False">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="BiometricTitleLabel"
+                               Text="Sicherheit"
+                               FontSize="16"
+                               FontAttributes="Bold"
                                TextColor="#333"/>
-                    </Grid>
 
-                    <Grid ColumnDefinitions="*,Auto">
-                        <Label x:Name="ServerLabel"
-                               Text="Server"
-                               TextColor="#666"/>
-                        <Label Grid.Column="1"
-                               Text="cleanorga.com"
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <Label x:Name="BiometricLabel"
+                                   Text="Face ID / Touch ID"
+                                   TextColor="#333"
+                                   FontSize="15"
+                                   VerticalOptions="Center"/>
+                            <Switch x:Name="BiometricSwitch"
+                                    Grid.Column="1"
+                                    OnColor="#2196F3"
+                                    Toggled="OnBiometricToggled"/>
+                            <Label Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   x:Name="BiometricHintLabel"
+                                   Text="Schnelle und sichere Anmeldung mit Biometrie"
+                                   FontSize="12"
+                                   TextColor="#888"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- App Info -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="10">
+                        <Label x:Name="AppInfoLabel"
+                               Text="App Info"
+                               FontSize="16"
+                               FontAttributes="Bold"
                                TextColor="#333"/>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
 
-            <!-- Logout Section -->
-            <BoxView HeightRequest="1"
-                     Color="#e0e0e0"
-                     Margin="0,10"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label x:Name="VersionLabel"
+                                   Text="Version"
+                                   TextColor="#666"/>
+                            <Label x:Name="VersionValueLabel"
+                                   Grid.Column="1"
+                                   Text="1.08"
+                                   TextColor="#333"/>
+                        </Grid>
 
-            <Button x:Name="LogoutButton"
-                    Text="Abmelden"
-                    BackgroundColor="#ffebee"
-                    TextColor="#c62828"
-                    FontSize="16"
-                    CornerRadius="15"
-                    Padding="20,15"
-                    Clicked="OnLogoutClicked"/>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label x:Name="ServerLabel"
+                                   Text="Server"
+                                   TextColor="#666"/>
+                            <Label Grid.Column="1"
+                                   Text="cleanorga.com"
+                                   TextColor="#333"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-            <!-- Exit App Button -->
-            <Button x:Name="ExitButton"
-                    Text="App beenden"
-                    BackgroundColor="#e0e0e0"
-                    TextColor="#333"
-                    FontSize="16"
-                    CornerRadius="15"
-                    Padding="20,15"
-                    Clicked="OnExitClicked"/>
+                <!-- Exit App Button -->
+                <Button x:Name="ExitButton"
+                        Text="App beenden"
+                        BackgroundColor="#e0e0e0"
+                        TextColor="#333"
+                        FontSize="16"
+                        CornerRadius="15"
+                        Padding="20,15"
+                        Clicked="OnExitClicked"/>
 
-        </VerticalStackLayout>
-    </ScrollView>
-
-        <!-- Dropdown Menu Overlay -->
-        <Grid x:Name="MenuOverlayGrid"
-              Grid.RowSpan="3"
-              IsVisible="False"
-              ZIndex="1000">
-
-            <!-- Background tap to close -->
-            <BoxView Color="Transparent">
-                <BoxView.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnOverlayTapped"/>
-                </BoxView.GestureRecognizers>
-            </BoxView>
-
-            <!-- Menu dropdown -->
-            <Border StrokeShape="RoundRectangle 12"
-                    Stroke="Transparent"
-                    Padding="0"
-                    Margin="60,95,60,0"
-                    VerticalOptions="Start"
-                    BackgroundColor="#1a3a5c">
-                <Border.Shadow>
-                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
-                </Border.Shadow>
-                <VerticalStackLayout Spacing="0">
-                    <Button x:Name="MenuTodayButton" Text="Heute"
-                            BackgroundColor="#1a3a5c"
-                            TextColor="White"
-                            FontSize="16"
-                            Padding="20,15"
-                            HorizontalOptions="Fill"
-                            Clicked="OnMenuTodayClicked"/>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Button x:Name="MenuChatButton" Text="Chat"
-                            BackgroundColor="#1a3a5c"
-                            TextColor="White"
-                            FontSize="16"
-                            Padding="20,15"
-                            HorizontalOptions="Fill"
-                            Clicked="OnMenuChatClicked"/>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Button x:Name="MenuAuftragButton" Text="Auftrag"
-                            BackgroundColor="#1a3a5c"
-                            TextColor="White"
-                            FontSize="16"
-                            Padding="20,15"
-                            HorizontalOptions="Fill"
-                            Clicked="OnMenuAuftragClicked"/>
-                    <BoxView HeightRequest="1" Color="#ffffff33"/>
-                    <Button x:Name="MenuSettingsButton" Text="Einstellungen"
-                            BackgroundColor="#1a3a5c"
-                            TextColor="White"
-                            FontSize="16"
-                            Padding="20,15"
-                            HorizontalOptions="Fill"
-                            Clicked="OnMenuSettingsClicked"/>
-                </VerticalStackLayout>
-            </Border>
-        </Grid>
+            </VerticalStackLayout>
+        </ScrollView>
 
     </Grid>
 </ContentPage>

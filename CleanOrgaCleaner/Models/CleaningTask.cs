@@ -52,6 +52,12 @@ public class CleaningTask
     [JsonPropertyName("probleme")]
     public List<Problem>? Probleme { get; set; }
 
+    [JsonPropertyName("owner_id")]
+    public int? OwnerId { get; set; }
+
+    [JsonPropertyName("is_own_task")]
+    public bool IsOwnTask { get; set; }
+
     #region Computed Properties for UI
 
     /// <summary>

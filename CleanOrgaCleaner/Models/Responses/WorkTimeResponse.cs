@@ -25,6 +25,9 @@ public class WorkTimeResponse
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 
+    [JsonPropertyName("is_working")]
+    public bool IsWorking { get; set; }
+
     // UI helpers
     public string DisplayTotalHours => TotalHours.HasValue
         ? TotalHours.Value.ToString("F2").Replace(".", ",")

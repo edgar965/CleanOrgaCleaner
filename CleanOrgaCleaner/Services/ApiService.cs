@@ -339,6 +339,33 @@ public class ApiService
         }
     }
 
+    public async Task<WorkTimeResponse?> GetWorkStatusAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/mobile/api/cleaner/work-status/");
+            var responseText = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"GetWorkStatus: {response.StatusCode} - {responseText}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText);
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetWorkStatus error: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<bool> StopWorkAsync()
+    {
+        var result = await EndWorkAsync();
+        return result.Success;
+    }
+
     public async Task<TaskStateResponse> UpdateTaskStateAsync(int taskId, string state)
     {
         try
@@ -837,6 +864,26 @@ public class ApiService
         }
     }
 
+    public async Task<ApiResponse> SetAvatarAsync(string avatar)
+    {
+        try
+        {
+            var data = new { avatar = avatar };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/mobile/api/cleaner/avatar/", content);
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
     #region Cleaners List
@@ -847,7 +894,7 @@ public class ApiService
         {
             var response = await _httpClient.GetAsync("/mobile/api/cleaners/");
             var responseText = await response.Content.ReadAsStringAsync();
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var result = JsonSerializer.Deserialize<CleanersListResponse>(responseText);
@@ -861,7 +908,27 @@ public class ApiService
             return new List<CleanerInfo>();
         }
     }
-    
+
+    public async Task<CleanersListResponse?> GetCleanersListAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/mobile/api/cleaners/");
+            var responseText = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                return JsonSerializer.Deserialize<CleanersListResponse>(responseText);
+            }
+            return null;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetCleanersList error: {ex.Message}");
+            return null;
+        }
+    }
+
     #endregion
 
     #region My Tasks

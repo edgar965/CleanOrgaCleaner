@@ -35,8 +35,12 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         base.OnAppearing();
 
-        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
-        UpdateOfflineBanner(!_webSocketService.IsOnline);
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("chat");
+
+        // Update partner header
+        UpdatePartnerHeader();
 
         ApplyTranslations();
 
@@ -66,43 +70,52 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         base.OnDisappearing();
         _webSocketService.OnChatMessageReceived -= OnNewMessageReceived;
-        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
-    }
-
-    private void OnConnectionStatusChanged(bool isConnected)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateOfflineBanner(!isConnected);
-        });
-    }
-
-    private void UpdateOfflineBanner(bool showOffline)
-    {
-        OfflineBanner.IsVisible = showOffline;
-        OfflineSpinner.IsRunning = showOffline;
     }
 
     private void ApplyTranslations()
     {
         var t = Translations.Get;
         Title = t("chat");
-        // Header
-        LogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("chat");
-        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
         MessageEntry.Placeholder = t("message_placeholder");
-
-        // Menu items - no emojis
-        MenuTodayLabel.Text = t("today");
-        MenuChatLabel.Text = t("chat");
-        MenuAuftragLabel.Text = t("task");
-        MenuSettingsLabel.Text = t("settings");
 
         TranslationPreviewTitle.Text = t("translation_preview");
         YourTextLabel.Text = t("your_text") + ":";
         TranslationForAdminLabel.Text = t("translation_for_admin") + ":";
         BackTranslationLabel.Text = t("back_translation") + ":";
+    }
+
+    private void UpdatePartnerHeader()
+    {
+        PartnerNameLabel.Text = _partnerName;
+        PartnerInitial.Text = _partnerName.Length > 0 ? _partnerName.Substring(0, 1).ToUpper() : "?";
+
+        // Set avatar color based on partner type
+        if (_partnerId == "admin")
+        {
+            // Purple gradient for admin
+            PartnerAvatar.Background = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromArgb("#667eea"), 0),
+                    new GradientStop(Color.FromArgb("#764ba2"), 1)
+                },
+                new Point(0, 0),
+                new Point(1, 1));
+            PartnerStatusLabel.Text = Translations.Get("admin_contact");
+        }
+        else
+        {
+            // Green gradient for colleagues
+            PartnerAvatar.Background = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromArgb("#4CAF50"), 0),
+                    new GradientStop(Color.FromArgb("#45a049"), 1)
+                },
+                new Point(0, 0),
+                new Point(1, 1));
+            PartnerStatusLabel.Text = Translations.Get("colleague");
+        }
     }
 
     private void OnNewMessageReceived(ChatMessage message)
@@ -250,79 +263,5 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     private async void OnBackClicked(object sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    // Menu handling
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//TodayPage");
-    }
-
-    private void OnMenuChatsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//SettingsPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-        }
-
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        SecureStorage.Remove("password");
-
-        WebSocketService.Instance.Dispose();
-
-        await Shell.Current.GoToAsync("//LoginPage");
     }
 }

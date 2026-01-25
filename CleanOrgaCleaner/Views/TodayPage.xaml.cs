@@ -13,7 +13,6 @@ public partial class TodayPage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
-    private bool _isWorking = false;
     private List<CleaningTask> _tasks = new();
 
     public TodayPage()
@@ -27,34 +26,24 @@ public partial class TodayPage : ContentPage
     {
         base.OnAppearing();
 
-        // Subscribe to connection status
-        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        // Subscribe to task updates
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
-        UpdateOfflineBanner(!_webSocketService.IsOnline);
 
-        // Apply translations
-        ApplyTranslations();
+        // Initialize header (handles translations, user info, work status, offline banner)
+        await Header.InitializeAsync();
+        Header.SetPageTitle("today");
 
         // Ensure WebSocket is connected (for auto-login case)
         _ = App.InitializeWebSocketAsync();
 
-        // Load data
-        await LoadDataAsync();
+        // Load tasks
+        await LoadTasksAsync();
     }
 
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
-        _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
         _webSocketService.OnTaskUpdate -= OnTaskUpdate;
-    }
-
-    private void OnConnectionStatusChanged(bool isConnected)
-    {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateOfflineBanner(!isConnected);
-        });
     }
 
     private void OnTaskUpdate(string updateType)
@@ -63,58 +52,31 @@ public partial class TodayPage : ContentPage
 
         // Reload tasks when task changes or assignment changes
         if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
-            || updateType == "assignment_update")
+            || updateType == "assignment_update" || updateType == "aufgabe_update")
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
-                await LoadDataAsync();
+                await LoadTasksAsync();
             });
         }
     }
 
-    private void UpdateOfflineBanner(bool showOffline)
-    {
-        OfflineBanner.IsVisible = showOffline;
-        OfflineSpinner.IsRunning = showOffline;
-    }
-
-    private void ApplyTranslations()
-    {
-        var t = Translations.Get;
-
-        // Header
-        MenuButton.Text = "≡";
-        LogoutButton.Text = t("logout");
-        PageTitleLabel.Text = t("today");
-
-        // Empty state
-        NoTasksLabel.Text = t("no_tasks");
-
-        // Menu items
-        MenuTodayLabel.Text = t("today");
-        MenuChatLabel.Text = t("chat");
-        MenuAuftragLabel.Text = t("task");
-        MenuSettingsLabel.Text = t("settings");
-
-        System.Diagnostics.Debug.WriteLine($"[TodayPage] Language: {Translations.CurrentLanguage}");
-    }
-
-    private async Task LoadDataAsync()
+    private async Task LoadTasksAsync()
     {
         try
         {
             var data = await _apiService.GetTodayDataAsync();
             _tasks = data.Tasks;
 
-            // Update user info
-            UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
+            // Apply translations for page-specific elements
+            NoTasksLabel.Text = Translations.Get("no_tasks");
 
             // Build task grid
             BuildTaskGrid();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadData error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"LoadTasks error: {ex.Message}");
             await DisplayAlert(Translations.Get("error"),
                 Translations.Get("connection_error"), Translations.Get("ok"));
         }
@@ -182,7 +144,17 @@ public partial class TodayPage : ContentPage
     private async Task OnTaskTapped(CleaningTask task)
     {
         // Close menu if open
-        MenuOverlayGrid.IsVisible = false;
+        Header.CloseMenu();
+
+        // Check if work is started
+        if (!Header.IsWorking)
+        {
+            await DisplayAlert(
+                Translations.Get("attention"),
+                Translations.Get("start_work_first"),
+                Translations.Get("ok"));
+            return;
+        }
 
         // Navigate to task detail using Shell navigation
         await Shell.Current.GoToAsync($"AufgabePage?taskId={task.Id}");
@@ -190,93 +162,8 @@ public partial class TodayPage : ContentPage
 
     private async void OnRefreshing(object sender, EventArgs e)
     {
-        await LoadDataAsync();
+        await LoadTasksAsync();
+        await Header.LoadWorkStatusAsync();
         TaskRefreshView.IsRefreshing = false;
     }
-
-    #region Menu Handlers
-
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        // Already on TodayPage, just refresh
-        await LoadDataAsync();
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        // Already on TodayPage, just refresh
-        _ = LoadDataAsync();
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            // Call logout API
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        // Clear secure storage
-        SecureStorage.Remove("password");
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
-    #endregion
 }
