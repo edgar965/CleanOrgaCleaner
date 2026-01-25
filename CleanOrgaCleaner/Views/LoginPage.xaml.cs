@@ -148,11 +148,18 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                // Initialize WebSocket and wait for connection
-                await App.InitializeWebSocketAsync();
-
-                // Small delay to ensure WebSocket is fully connected
-                await Task.Delay(500);
+                // Initialize WebSocket with timeout to prevent blocking
+                try
+                {
+                    await Task.WhenAny(
+                        App.InitializeWebSocketAsync(),
+                        Task.Delay(2000) // 2 second timeout
+                    );
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LoginPage] WebSocket init error (non-blocking): {ex.Message}");
+                }
 
                 // Navigate to main
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
@@ -249,11 +256,18 @@ public partial class LoginPage : ContentPage
                 // Check if we should prompt for Face ID / biometric login
                 await PromptForBiometricLoginAsync();
 
-                // Initialize WebSocket for chat notifications and wait for connection
-                await App.InitializeWebSocketAsync();
-
-                // Small delay to ensure WebSocket is fully connected
-                await Task.Delay(500);
+                // Initialize WebSocket for chat notifications with timeout
+                try
+                {
+                    await Task.WhenAny(
+                        App.InitializeWebSocketAsync(),
+                        Task.Delay(2000) // 2 second timeout
+                    );
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[LoginPage] WebSocket init error (non-blocking): {ex.Message}");
+                }
 
                 // Navigate to main tabs (TodayPage)
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
