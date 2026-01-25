@@ -148,8 +148,11 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                // Initialize WebSocket
-                _ = App.InitializeWebSocketAsync();
+                // Initialize WebSocket and wait for connection
+                await App.InitializeWebSocketAsync();
+
+                // Small delay to ensure WebSocket is fully connected
+                await Task.Delay(500);
 
                 // Navigate to main
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
@@ -246,8 +249,11 @@ public partial class LoginPage : ContentPage
                 // Check if we should prompt for Face ID / biometric login
                 await PromptForBiometricLoginAsync();
 
-                // Initialize WebSocket for chat notifications
-                _ = App.InitializeWebSocketAsync();
+                // Initialize WebSocket for chat notifications and wait for connection
+                await App.InitializeWebSocketAsync();
+
+                // Small delay to ensure WebSocket is fully connected
+                await Task.Delay(500);
 
                 // Navigate to main tabs (TodayPage)
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
