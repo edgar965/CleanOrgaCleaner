@@ -53,8 +53,18 @@
                                    BackgroundColor="#dcf8c6" Stroke="#25D366"
                                    HorizontalOptions="End" MaximumWidthRequest="280"
                                    IsVisible="{Binding FromCurrentUser}">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
+                                <VerticalStackLayout Spacing="3">
+                                    <!-- Original text (was ich geschrieben habe) -->
+                                    <Label Text="{Binding Text}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
+                                    <!-- Translation with globe icon (nur wenn übersetzt) -->
+                                    <Label FontSize="12" TextColor="#666" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="🌐 "/>
+                                                <Span Text="{Binding DisplayText}"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
                                     <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
                                 </VerticalStackLayout>
                             </Border>
@@ -63,11 +73,18 @@
                                    BackgroundColor="White" Stroke="#ccc"
                                    HorizontalOptions="Start" MaximumWidthRequest="280"
                                    IsVisible="{Binding IsFromOther}">
-                                <VerticalStackLayout Spacing="2">
+                                <VerticalStackLayout Spacing="3">
+                                    <!-- Übersetzung in meiner Sprache -->
                                     <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
-                                    <Label Text="{Binding OriginalText, StringFormat='(Original: {0})'}"
-                                           FontSize="9" TextColor="#888" FontAttributes="Italic"
-                                           IsVisible="{Binding HasTranslation}"/>
+                                    <!-- Original mit Globe Icon (nur wenn übersetzt) -->
+                                    <Label FontSize="12" TextColor="#888" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
+                                        <Label.FormattedText>
+                                            <FormattedString>
+                                                <Span Text="🌐 " FontAttributes="None"/>
+                                                <Span Text="{Binding Text}" FontAttributes="Italic"/>
+                                            </FormattedString>
+                                        </Label.FormattedText>
+                                    </Label>
                                     <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
                                 </VerticalStackLayout>
                             </Border>
