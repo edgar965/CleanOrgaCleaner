@@ -77,8 +77,10 @@ public partial class TodayPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadTasks error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"),
-                Translations.Get("connection_error"), Translations.Get("ok"));
+            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+            NoTasksLabel.Text = Translations.Get("connection_error");
+            EmptyStateView.IsVisible = true;
+            TaskRefreshView.IsVisible = false;
         }
     }
 

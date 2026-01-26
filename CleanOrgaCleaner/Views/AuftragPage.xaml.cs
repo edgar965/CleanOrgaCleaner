@@ -117,13 +117,18 @@ public partial class AuftragPage : ContentPage
             }
             else
             {
-                await DisplayAlert(Translations.Get("error"), data.Error ?? Translations.Get("connection_error"), Translations.Get("ok"));
+                System.Diagnostics.Debug.WriteLine($"LoadData failed: {data.Error}");
+                // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+                EmptyStateView.IsVisible = true;
+                TaskRefreshView.IsVisible = false;
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadData error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("connection_error"), Translations.Get("ok"));
+            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+            EmptyStateView.IsVisible = true;
+            TaskRefreshView.IsVisible = false;
         }
     }
 

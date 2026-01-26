@@ -171,8 +171,12 @@ public partial class AufgabePage : ContentPage
             _task = await _apiService.GetAufgabeDetailAsync(_taskId);
             if (_task == null)
             {
-                await DisplayAlert("Fehler", "Aufgabe nicht gefunden", "OK");
-                await Shell.Current.GoToAsync("..");
+                // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+                System.Diagnostics.Debug.WriteLine($"LoadTask: Task {_taskId} not found");
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try { await Shell.Current.GoToAsync(".."); } catch { }
+                });
                 return;
             }
 
@@ -202,7 +206,7 @@ public partial class AufgabePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadTask error: {ex.Message}");
-            await DisplayAlert("Fehler", "Aufgabe konnte nicht geladen werden", "OK");
+            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
         }
     }
 
