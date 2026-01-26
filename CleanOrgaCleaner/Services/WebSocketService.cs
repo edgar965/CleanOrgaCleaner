@@ -73,7 +73,11 @@ public class WebSocketService : IDisposable
             var uri = new Uri($"{WsBaseUrl}/ws/chat/");
             System.Diagnostics.Debug.WriteLine($"Connecting to chat WebSocket: {uri}");
 
-            await _chatSocket.ConnectAsync(uri, _chatCts.Token);
+            // Add timeout for iOS - prevent hanging forever
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_chatCts.Token, timeoutCts.Token);
+
+            await _chatSocket.ConnectAsync(uri, linkedCts.Token);
 
             if (_chatSocket.State == WebSocketState.Open)
             {
@@ -130,7 +134,11 @@ public class WebSocketService : IDisposable
             var uri = new Uri($"{WsBaseUrl}/ws/tasks/");
             System.Diagnostics.Debug.WriteLine($"Connecting to tasks WebSocket: {uri}");
 
-            await _taskSocket.ConnectAsync(uri, _taskCts.Token);
+            // Add timeout for iOS - prevent hanging forever
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_taskCts.Token, timeoutCts.Token);
+
+            await _taskSocket.ConnectAsync(uri, linkedCts.Token);
 
             if (_taskSocket.State == WebSocketState.Open)
             {
