@@ -243,14 +243,14 @@ public partial class LoginPage : ContentPage
 
                 System.Diagnostics.Debug.WriteLine($"[Login] Language set to: {language}");
 
-                // Check if we should prompt for Face ID / biometric login
-                await PromptForBiometricLoginAsync();
+                // Navigate to main tabs (TodayPage) FIRST - don't block on biometric prompt
+                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
 
                 // Initialize WebSocket (fire-and-forget, don't block UI)
                 _ = App.InitializeWebSocketAsync();
 
-                // Navigate to main tabs (TodayPage)
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                // Check if we should prompt for Face ID / biometric login (after navigation)
+                _ = PromptForBiometricLoginAsync();
             }
             else
             {
