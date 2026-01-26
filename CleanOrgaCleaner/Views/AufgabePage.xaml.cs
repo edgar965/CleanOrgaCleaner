@@ -40,11 +40,11 @@ public partial class AufgabePage : ContentPage
         base.OnAppearing();
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("task");
 
         ApplyTranslations();
-        await LoadTaskAsync();
+        _ = LoadTaskAsync();
     }
 
     private void ApplyTranslations()

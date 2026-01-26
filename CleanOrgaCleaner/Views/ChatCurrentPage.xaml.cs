@@ -36,7 +36,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         base.OnAppearing();
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("chat");
 
         // Update partner header
