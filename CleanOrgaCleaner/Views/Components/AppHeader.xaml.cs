@@ -26,7 +26,7 @@ public partial class AppHeader : ContentView
     {
         ApplyTranslations();
         UpdateUserInfo();
-        await LoadWorkStatusAsync();
+        _ = LoadWorkStatusAsync();
     }
 
     public void ApplyTranslations()
