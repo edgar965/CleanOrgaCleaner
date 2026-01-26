@@ -40,11 +40,11 @@ public partial class AuftragPage : ContentPage
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("task");
 
         ApplyTranslations();
-        await LoadDataAsync();
+        _ = LoadDataAsync();
     }
 
     protected override void OnDisappearing()

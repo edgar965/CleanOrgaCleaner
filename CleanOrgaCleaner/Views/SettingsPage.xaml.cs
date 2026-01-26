@@ -55,7 +55,7 @@ public partial class SettingsPage : ContentPage
         base.OnAppearing();
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("settings");
 
         ApplyTranslations();

@@ -24,12 +24,12 @@ public partial class ChatListPage : ContentPage
         base.OnAppearing();
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("chat");
 
         ApplyTranslations();
         System.Diagnostics.Debug.WriteLine("[ChatListPage] OnAppearing called");
-        await LoadCleanersAsync();
+        _ = LoadCleanersAsync();
     }
 
     private void ApplyTranslations()

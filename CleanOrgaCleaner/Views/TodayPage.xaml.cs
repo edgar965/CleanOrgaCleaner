@@ -30,14 +30,14 @@ public partial class TodayPage : ContentPage
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
         // Initialize header (handles translations, user info, work status, offline banner)
-        await Header.InitializeAsync();
+        _ = Header.InitializeAsync();
         Header.SetPageTitle("today");
 
         // Ensure WebSocket is connected (for auto-login case)
         _ = App.InitializeWebSocketAsync();
 
-        // Load tasks
-        await LoadTasksAsync();
+        // Load tasks (fire-and-forget to not block UI)
+        _ = LoadTasksAsync();
     }
 
     protected override void OnDisappearing()
