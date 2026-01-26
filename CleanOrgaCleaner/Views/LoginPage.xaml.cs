@@ -148,7 +148,7 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                // Initialize WebSocket (fire-and-forget, don't block UI)
+                // Initialize WebSocket
                 _ = App.InitializeWebSocketAsync();
 
                 // Navigate to main
@@ -243,14 +243,14 @@ public partial class LoginPage : ContentPage
 
                 System.Diagnostics.Debug.WriteLine($"[Login] Language set to: {language}");
 
-                // Navigate to main tabs (TodayPage) FIRST - don't block on biometric prompt
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                // Check if we should prompt for Face ID / biometric login
+                await PromptForBiometricLoginAsync();
 
-                // Initialize WebSocket (fire-and-forget, don't block UI)
+                // Initialize WebSocket for chat notifications
                 _ = App.InitializeWebSocketAsync();
 
-                // Check if we should prompt for Face ID / biometric login (after navigation)
-                _ = PromptForBiometricLoginAsync();
+                // Navigate to main tabs (TodayPage)
+                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
             }
             else
             {
