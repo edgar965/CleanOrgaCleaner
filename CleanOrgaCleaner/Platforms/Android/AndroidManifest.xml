@@ -31,22 +31,10 @@
 	<uses-feature android:name="android.hardware.camera" android:required="false" />
 	<uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-	<!-- Speicher für Android 12 und älter -->
-	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
-
-	<!-- Medien für Android 13+ -->
-	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-	<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-
 	<!-- Queries für Kamera/Galerie -->
 	<queries>
 		<intent>
 			<action android:name="android.media.action.IMAGE_CAPTURE" />
-		</intent>
-		<intent>
-			<action android:name="android.intent.action.PICK" />
-			<data android:mimeType="image/*" />
 		</intent>
 		<intent>
 			<action android:name="android.intent.action.GET_CONTENT" />

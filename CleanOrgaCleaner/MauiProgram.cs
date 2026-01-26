@@ -23,6 +23,18 @@ public static class MauiProgram
 		builder.Logging.AddDebug();
 #endif
 
+		// Catch unhandled exceptions to prevent crashes
+		AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+		{
+			System.Diagnostics.Debug.WriteLine($"[FATAL] Unhandled: {e.ExceptionObject}");
+		};
+
+		TaskScheduler.UnobservedTaskException += (s, e) =>
+		{
+			System.Diagnostics.Debug.WriteLine($"[FATAL] Unobserved task: {e.Exception}");
+			e.SetObserved();
+		};
+
 		return builder.Build();
 	}
 }

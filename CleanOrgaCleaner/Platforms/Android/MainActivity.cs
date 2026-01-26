@@ -10,4 +10,16 @@ namespace CleanOrgaCleaner;
     ConfigurationChanges = ConfigChanges.ScreenSize | ConfigChanges.Orientation | ConfigChanges.UiMode | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.Density)]
 public class MainActivity : MauiAppCompatActivity
 {
+    protected override void OnDestroy()
+    {
+        try
+        {
+            base.OnDestroy();
+        }
+        catch (System.ObjectDisposedException)
+        {
+            // Known MAUI bug: Entry fields fire focus change during destroy
+            // when ServiceProvider is already disposed. Safe to ignore.
+        }
+    }
 }
