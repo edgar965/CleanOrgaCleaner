@@ -48,6 +48,12 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
         ApplyTranslations();
 
+        // Load messages (fire-and-forget to not block UI)
+        _ = LoadMessagesWithPendingAsync();
+    }
+
+    private async Task LoadMessagesWithPendingAsync()
+    {
         // Check for pending message from notification
         if (App.PendingChatMessage != null)
         {
@@ -73,7 +79,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
         // Connect WebSocket for real-time updates
         _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
-        await _webSocketService.ConnectChatAsync();
+        _ = _webSocketService.ConnectChatAsync();
     }
 
     protected override void OnDisappearing()

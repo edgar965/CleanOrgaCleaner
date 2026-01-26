@@ -62,7 +62,7 @@ public partial class SettingsPage : ContentPage
         LoadUserInfo();
         LoadCurrentAvatar();
         LoadCurrentLanguage();
-        await LoadBiometricSettingsAsync();
+        _ = LoadBiometricSettingsAsync();
     }
 
     private void LoadCurrentAvatar()
