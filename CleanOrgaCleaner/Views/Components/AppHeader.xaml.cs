@@ -18,8 +18,9 @@ public partial class AppHeader : ContentView
         // Subscribe to connection status
         _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
 
-        // Initial state
-        UpdateOfflineBanner(!_webSocketService.IsOnline);
+        // Don't show offline banner on initial load - wait for connection attempt
+        // The banner will be shown/hidden by OnConnectionStatusChanged event
+        UpdateOfflineBanner(false);
     }
 
     public async Task InitializeAsync()
