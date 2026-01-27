@@ -135,7 +135,19 @@ public partial class LoginPage : ContentPage
 
         // Show auto-login state
         LoginButton.IsEnabled = false;
-        LoginButton.Text = "Auto-Login [1]...";
+
+        // Diagnostic: test network connectivity with a fresh HttpClient
+        LoginButton.Text = "Net-Test...";
+        try
+        {
+            using var testClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var testResponse = await testClient.GetAsync("https://cleanorga.com/mobile/api/login/");
+            LoginButton.Text = $"Net OK ({(int)testResponse.StatusCode}) [1]...";
+        }
+        catch (Exception netEx)
+        {
+            LoginButton.Text = $"Net FAIL: {netEx.GetType().Name} [1]...";
+        }
 
         try
         {
