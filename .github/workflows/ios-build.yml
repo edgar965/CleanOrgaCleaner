@@ -8,6 +8,10 @@ on:
       - '.github/workflows/ios-build.yml'
   workflow_dispatch:  # Manueller Trigger
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DOTNET_VERSION: '10.0.x'
   PROJECT_PATH: 'CleanOrgaCleaner/CleanOrgaCleaner.csproj'
@@ -128,11 +132,19 @@ jobs:
         mkdir -p ~/.appstoreconnect/private_keys
         echo "$APP_STORE_CONNECT_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_$APP_STORE_CONNECT_KEY_ID.p8
 
+        echo "Uploading IPA to App Store Connect..."
         xcrun altool --upload-app \
           --type ios \
           --file "$IPA_PATH" \
           --apiKey "$APP_STORE_CONNECT_KEY_ID" \
-          --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+          --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" 2>&1 | tee /tmp/upload_output.txt
+
+        # Fail explicitly if altool reported an error
+        if grep -q "ERROR" /tmp/upload_output.txt; then
+          echo "::error::App Store Connect upload FAILED! Check logs above."
+          exit 1
+        fi
+        echo "Upload successful!"
 
     - name: Cleanup
       if: always()
