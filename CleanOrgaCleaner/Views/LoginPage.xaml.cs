@@ -133,39 +133,58 @@ public partial class LoginPage : ContentPage
             }
         }
 
-        // Show auto-login state
+        // Show auto-login state with diagnostics
         LoginButton.IsEnabled = false;
-        LoginButton.Text = Translations.Get("loading");
+#if IOS
+        LoginButton.Text = "[iOS-native] Auto...";
+        System.Diagnostics.Debug.WriteLine("[Login] iOS native handler path");
+#else
+        LoginButton.Text = "[managed] Auto...";
+        System.Diagnostics.Debug.WriteLine("[Login] Managed handler path");
+#endif
 
         try
         {
-            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
+            LoginButton.Text = "[1] API call...";
+            System.Diagnostics.Debug.WriteLine("[Login] [1] Calling LoginAsync...");
+
+            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword));
+
+            LoginButton.Text = $"[2] result={result.Success}";
+            System.Diagnostics.Debug.WriteLine($"[Login] [2] LoginAsync returned: Success={result.Success}");
 
             if (result.Success)
             {
+                LoginButton.Text = "[3] lang...";
                 // Apply language
                 var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
+                LoginButton.Text = "[4] nav...";
+                System.Diagnostics.Debug.WriteLine("[Login] [4] Navigating to TodayPage...");
                 // Navigate to main page
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                System.Diagnostics.Debug.WriteLine("[Login] [5] Navigation complete");
                 _ = App.InitializeWebSocketAsync();
                 return;
             }
             else
             {
+                LoginButton.Text = "[2] FAIL";
+                System.Diagnostics.Debug.WriteLine($"[Login] [2] Login failed: {result.ErrorMessage}");
                 // Auto-login failed, clear saved password
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
                 PasswordEntry.Text = "";
-                ShowError(Translations.Get("connection_error"));
+                ShowError(result.ErrorMessage ?? Translations.Get("connection_error"));
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex.Message}");
+            LoginButton.Text = $"[ERR] {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             ShowError($"Auto-login: {ex.Message}");
         }
         finally
@@ -197,17 +216,26 @@ public partial class LoginPage : ContentPage
             return;
         }
 
-        // Show loading state
+        // Show loading state with diagnostics
         LoginButton.IsEnabled = false;
-        LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
+#if IOS
+        LoginButton.Text = "[iOS] Login...";
+#else
+        LoginButton.Text = "[managed] Login...";
+#endif
 
         try
         {
-            var result = await _apiService.LoginAsync(
-                propertyId,
-                UsernameEntry.Text,
-                PasswordEntry.Text);
+            LoginButton.Text = "[1] API call...";
+            System.Diagnostics.Debug.WriteLine("[Login] [1] Manual LoginAsync...");
+
+            var uname = UsernameEntry.Text;
+            var pwd = PasswordEntry.Text;
+            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, uname, pwd));
+
+            LoginButton.Text = $"[2] result={result.Success}";
+            System.Diagnostics.Debug.WriteLine($"[Login] [2] Manual LoginAsync returned: Success={result.Success}");
 
             if (result.Success)
             {
