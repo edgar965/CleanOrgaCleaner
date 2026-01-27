@@ -251,11 +251,15 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            var result = await _apiService.LoginAsync(
-                propertyId,
-                UsernameEntry.Text,
-                PasswordEntry.Text);
-            Log($"LoginAsync DONE: success={result?.Success}");
+            Log("Vor await ");
+            var result = _apiService.LoginSync(propertyId, UsernameEntry.Text, PasswordEntry.Text);
+
+            //var result = await _apiService.LoginAsync(
+            //    propertyId,
+            //    UsernameEntry.Text,
+            //    PasswordEntry.Text);
+            if(result != null)
+                Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)
             {
