@@ -325,30 +325,58 @@ public partial class AufgabePage : ContentPage
 
     private View CreateProblemView(Problem problem)
     {
-        var border = new Border { BackgroundColor = Color.FromArgb("#ffebee"), Stroke = Color.FromArgb("#f44336"), StrokeShape = new RoundRectangle { CornerRadius = 15 }, Padding = 15 };
-        border.Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(2, 2), Radius = 5, Opacity = 0.1f };
-        var stack = new VerticalStackLayout { Spacing = 8 };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) } };
-        var nameLabel = new Label { Text = problem.Name, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#c62828") };
-        header.Children.Add(nameLabel); Grid.SetColumn(nameLabel, 0);
-        var deleteButton = new Button { Text = "X", BackgroundColor = Colors.Transparent, TextColor = Color.FromArgb("#c62828"), FontSize = 14, FontAttributes = FontAttributes.Bold, Padding = 0, WidthRequest = 30, HeightRequest = 30 };
-        deleteButton.Clicked += async (s, e) => await OnDeleteProblem(problem.Id);
-        header.Children.Add(deleteButton); Grid.SetColumn(deleteButton, 1);
-        stack.Children.Add(header);
-        if (!string.IsNullOrEmpty(problem.Beschreibung))
-            stack.Children.Add(new Label { Text = problem.Beschreibung, FontSize = 14, TextColor = Color.FromArgb("#666666") });
+        var border = new Border { BackgroundColor = Colors.White, Stroke = Color.FromArgb("#e0e0e0"), StrokeShape = new RoundRectangle { CornerRadius = 12 }, Padding = 12 };
+        border.Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(0, 2), Radius = 8, Opacity = 0.1f };
+
+        // Horizontal layout: [Thumbnail] [Text] [X Button]
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        // First photo thumbnail on the left
+        int colOffset = 0;
         if (problem.Fotos != null && problem.Fotos.Count > 0)
         {
-            var photosLayout = new HorizontalStackLayout { Spacing = 8 };
-            foreach (var foto in problem.Fotos)
-            {
-                var imageContainer = new Border { StrokeShape = new RoundRectangle { CornerRadius = 8 }, Stroke = Colors.Transparent };
-                imageContainer.Content = new Image { Source = foto, WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
-                photosLayout.Children.Add(imageContainer);
-            }
-            stack.Children.Add(photosLayout);
+            var imgBorder = new Border { StrokeShape = new RoundRectangle { CornerRadius = 10 }, Stroke = Color.FromArgb("#e0e0e0"), WidthRequest = 70, HeightRequest = 70 };
+            imgBorder.Content = new Image { Source = problem.Fotos[0], WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
+            grid.Children.Add(imgBorder);
+            Grid.SetColumn(imgBorder, 0);
         }
-        border.Content = stack;
+
+        // Problem name + description in the middle
+        var textStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+        textStack.Children.Add(new Label { Text = problem.Name, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333333") });
+        if (!string.IsNullOrEmpty(problem.Beschreibung))
+            textStack.Children.Add(new Label { Text = problem.Beschreibung, FontSize = 13, TextColor = Color.FromArgb("#666666"), LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 1 });
+        grid.Children.Add(textStack);
+        Grid.SetColumn(textStack, 1);
+
+        // Big round X delete button on the right
+        var deleteButton = new Button
+        {
+            Text = "\u2715",
+            BackgroundColor = Color.FromArgb("#f44336"),
+            TextColor = Colors.White,
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            CornerRadius = 22,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        deleteButton.Clicked += async (s, e) => await OnDeleteProblem(problem.Id);
+        grid.Children.Add(deleteButton);
+        Grid.SetColumn(deleteButton, 2);
+
+        border.Content = grid;
         return border;
     }
 

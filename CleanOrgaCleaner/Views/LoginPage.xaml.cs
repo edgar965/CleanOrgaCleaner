@@ -163,12 +163,13 @@ public partial class LoginPage : ContentPage
         // Show auto-login state
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
-        Log("LoginAsync START (v1.06 direct await)");
+        Log("LoginAsync START (Task.Run to avoid iOS main-thread deadlock)");
 
         try
         {
-            // v1.06: direkter await OHNE .WaitAsync() und OHNE CancellationToken
-            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
+            // Task.Run: HTTP-Call vom Main Thread entkoppeln, damit iOS NSUrlSession
+            // den Main Thread nicht blockiert. Continuation kehrt per await zurueck.
+            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword));
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)
@@ -242,15 +243,14 @@ public partial class LoginPage : ContentPage
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
-        Log("LoginAsync START (v1.06 direct await)");
+        Log("LoginAsync START (Task.Run to avoid iOS main-thread deadlock)");
 
         try
         {
-            // v1.06: direkter await OHNE .WaitAsync() und OHNE CancellationToken
-            var result = await _apiService.LoginAsync(
-                propertyId,
-                UsernameEntry.Text,
-                PasswordEntry.Text);
+            // Task.Run: HTTP-Call vom Main Thread entkoppeln
+            var user = UsernameEntry.Text;
+            var pass = PasswordEntry.Text;
+            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, user, pass));
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)

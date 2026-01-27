@@ -64,8 +64,8 @@
                 <Border x:Name="TabProblemeContent" IsVisible="False" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
                     <Border.Shadow><Shadow Brush="Black" Offset="0,4" Radius="15" Opacity="0.08"/></Border.Shadow>
                     <VerticalStackLayout Spacing="15">
-                        <Button x:Name="AddProblemButton" Text="Problem melden" BackgroundColor="#FF9800" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddProblemClicked">
-                            <Button.Shadow><Shadow Brush="#FF9800" Offset="0,3" Radius="10" Opacity="0.3"/></Button.Shadow>
+                        <Button x:Name="AddProblemButton" Text="Problem melden" BackgroundColor="#4CAF50" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnAddProblemClicked">
+                            <Button.Shadow><Shadow Brush="#4CAF50" Offset="0,3" Radius="10" Opacity="0.3"/></Button.Shadow>
                         </Button>
                         <VerticalStackLayout x:Name="ProblemsStack" Spacing="15"/>
                         <Label x:Name="NoProblemsLabel" Text="Keine Probleme gemeldet" FontSize="14" TextColor="#999" FontAttributes="Italic" HorizontalTextAlignment="Center"/>
