@@ -148,11 +148,13 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                // Initialize WebSocket
-                _ = App.InitializeWebSocketAsync();
-
-                // Navigate to main
+                // Navigate to main FIRST, then init WebSocket
+                // WebSocket events during navigation cause iOS UIKit deadlock
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+
+                // Initialize WebSocket AFTER navigation completes
+                // (TodayPage.OnAppearing also calls this as backup)
+                _ = App.InitializeWebSocketAsync();
                 return;
             }
             else
@@ -246,11 +248,13 @@ public partial class LoginPage : ContentPage
                 // Check if we should prompt for Face ID / biometric login
                 await PromptForBiometricLoginAsync();
 
-                // Initialize WebSocket for chat notifications
-                _ = App.InitializeWebSocketAsync();
-
-                // Navigate to main tabs (TodayPage)
+                // Navigate to main tabs FIRST, then init WebSocket
+                // WebSocket events during navigation cause iOS UIKit deadlock
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+
+                // Initialize WebSocket AFTER navigation completes
+                // (TodayPage.OnAppearing also calls this as backup)
+                _ = App.InitializeWebSocketAsync();
             }
             else
             {
