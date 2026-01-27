@@ -87,6 +87,8 @@ public partial class LoginPage : ContentPage
         }
     }
 
+    private const int LoginTimeoutSeconds = 15;
+
     private async Task TryAutoLoginAsync()
     {
         var rememberMe = Preferences.Get("remember_me", false);
@@ -138,10 +140,25 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword));
+            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login starting for {savedUsername}@property{propertyId}");
 
-            if (result.Success)
+            // Use timeout: if login hangs, navigate to TodayPage anyway
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
+            var loginTask = Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword));
+
+            LoginResult? result = null;
+            try
             {
+                result = await loginTask.WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Login] Auto-login TIMEOUT after {LoginTimeoutSeconds}s - navigating to TodayPage anyway");
+            }
+
+            if (result?.Success == true)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Login] Auto-login SUCCESS");
                 var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
@@ -150,8 +167,16 @@ public partial class LoginPage : ContentPage
                 _ = App.InitializeWebSocketAsync();
                 return;
             }
+            else if (result == null)
+            {
+                // Timeout - still go to TodayPage so the app is usable
+                System.Diagnostics.Debug.WriteLine($"[Login] Timeout fallback: navigating to TodayPage without login");
+                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                return;
+            }
             else
             {
+                System.Diagnostics.Debug.WriteLine($"[Login] Auto-login FAILED: {result.ErrorMessage}");
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
@@ -161,8 +186,11 @@ public partial class LoginPage : ContentPage
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex.Message}");
-            ShowError($"Auto-login: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex.GetType().Name}: {ex.Message}");
+            // On any error, still navigate to TodayPage so the app doesn't get stuck
+            System.Diagnostics.Debug.WriteLine($"[Login] Error fallback: navigating to TodayPage");
+            await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+            return;
         }
         finally
         {
@@ -201,10 +229,28 @@ public partial class LoginPage : ContentPage
         {
             var uname = UsernameEntry.Text;
             var pwd = PasswordEntry.Text;
-            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, uname, pwd));
+            System.Diagnostics.Debug.WriteLine($"[Login] Manual login starting for {uname}@property{propertyId}");
+
+            // Use timeout: if login hangs, show error but don't freeze
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
+            var loginTask = Task.Run(() => _apiService.LoginAsync(propertyId, uname, pwd));
+
+            LoginResult? result = null;
+            try
+            {
+                result = await loginTask.WaitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Login] Manual login TIMEOUT after {LoginTimeoutSeconds}s");
+                ShowError($"Login-Timeout nach {LoginTimeoutSeconds}s. Server antwortet nicht.");
+                return;
+            }
 
             if (result.Success)
             {
+                System.Diagnostics.Debug.WriteLine($"[Login] Manual login SUCCESS");
+
                 // Save credentials
                 Preferences.Set("property_id", PropertyIdEntry.Text);
                 Preferences.Set("username", UsernameEntry.Text);
@@ -243,11 +289,13 @@ public partial class LoginPage : ContentPage
             }
             else
             {
+                System.Diagnostics.Debug.WriteLine($"[Login] Manual login FAILED: {result.ErrorMessage}");
                 ShowError(result.ErrorMessage ?? Translations.Get("error"));
             }
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[Login] Manual login error: {ex.GetType().Name}: {ex.Message}");
             ShowError($"{Translations.Get("error")}: {ex.Message}");
         }
         finally

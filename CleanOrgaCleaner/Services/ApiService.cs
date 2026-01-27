@@ -77,8 +77,12 @@ public class ApiService
 
     public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var step = "INIT";
         try
         {
+            step = "SERIALIZE";
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 1: Serializing login data...");
             var loginData = new
             {
                 property_id = propertyId,
@@ -88,25 +92,44 @@ public class ApiService
 
             var json = JsonSerializer.Serialize(loginData);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 1 done ({sw.ElapsedMilliseconds}ms): JSON={json.Length} bytes");
 
-            System.Diagnostics.Debug.WriteLine($"Login: {BaseUrl}/mobile/api/login/");
+            step = "PRE-REQUEST";
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 2: Preparing request to {BaseUrl}/mobile/api/login/");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   HttpClient.BaseAddress={_httpClient.BaseAddress}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   HttpClient.Timeout={_httpClient.Timeout}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Handler type: {_handler.GetType().FullName}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Thread: {Environment.CurrentManagedThreadId}, IsThreadPoolThread: {Thread.CurrentThread.IsThreadPoolThread}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 2 done ({sw.ElapsedMilliseconds}ms)");
+
+            step = "HTTP-POST";
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 3: Sending POST request...");
+            var postStart = sw.ElapsedMilliseconds;
 
             // Use ConfigureAwait(false) to avoid iOS main thread deadlock.
-            // The managed HttpClientHandler can deadlock on iOS when the TLS
-            // handshake continuation is posted to the main thread SynchronizationContext
-            // while the main thread is waiting for PostAsync to complete.
             var response = await _httpClient.PostAsync("/mobile/api/login/", content).ConfigureAwait(false);
 
-            var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"Login response: {response.StatusCode} - {responseJson}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 3 done ({sw.ElapsedMilliseconds}ms, POST took {sw.ElapsedMilliseconds - postStart}ms): StatusCode={response.StatusCode}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Response headers: {response.Headers}");
 
+            step = "READ-RESPONSE";
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 4: Reading response body...");
+            var readStart = sw.ElapsedMilliseconds;
+            var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 4 done ({sw.ElapsedMilliseconds}ms, read took {sw.ElapsedMilliseconds - readStart}ms): {responseJson.Length} chars");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Response body: {responseJson}");
+
+            step = "DESERIALIZE";
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 5: Deserializing response...");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 5 done ({sw.ElapsedMilliseconds}ms): success={result?.Success}");
 
             if (result?.Success == true)
             {
                 CleanerName = result.Cleaner?.Name;
                 CleanerLanguage = result.Cleaner?.Language ?? "de";
                 CleanerId = result.Cleaner?.Id;
+                System.Diagnostics.Debug.WriteLine($"[LOGIN] SUCCESS: Cleaner={CleanerName}, Language={CleanerLanguage}, Id={CleanerId}");
 
                 // Start heartbeat to maintain online status
                 StartHeartbeat();
@@ -119,16 +142,39 @@ public class ApiService
                 };
             }
 
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] FAILED: {result?.Error ?? "unknown error"}");
             return new LoginResult
             {
                 Success = false,
                 ErrorMessage = result?.Error ?? "Login fehlgeschlagen"
             };
         }
+        catch (TaskCanceledException tcex)
+        {
+            sw.Stop();
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] TIMEOUT/CANCELLED at step '{step}' after {sw.ElapsedMilliseconds}ms: {tcex.Message}");
+            return new LoginResult { Success = false, ErrorMessage = $"Timeout bei '{step}' nach {sw.ElapsedMilliseconds}ms" };
+        }
+        catch (HttpRequestException hrex)
+        {
+            sw.Stop();
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] HTTP ERROR at step '{step}' after {sw.ElapsedMilliseconds}ms: {hrex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   InnerException: {hrex.InnerException?.GetType().Name}: {hrex.InnerException?.Message}");
+            return new LoginResult { Success = false, ErrorMessage = $"HTTP-Fehler bei '{step}': {hrex.Message}" };
+        }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Login error: {ex.Message}");
-            return new LoginResult { Success = false, ErrorMessage = ex.Message };
+            sw.Stop();
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] EXCEPTION at step '{step}' after {sw.ElapsedMilliseconds}ms: {ex.GetType().Name}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[LOGIN]   StackTrace: {ex.StackTrace}");
+            if (ex.InnerException != null)
+                System.Diagnostics.Debug.WriteLine($"[LOGIN]   Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+            return new LoginResult { Success = false, ErrorMessage = $"Fehler bei '{step}': {ex.Message}" };
+        }
+        finally
+        {
+            sw.Stop();
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] TOTAL TIME: {sw.ElapsedMilliseconds}ms, final step: {step}");
         }
     }
 
