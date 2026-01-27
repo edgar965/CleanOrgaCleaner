@@ -88,13 +88,16 @@ public partial class LoginPage : ContentPage
         }
     }
 
-    private const int LoginTimeoutSeconds = 15;
+    private const int LoginTimeoutSeconds = 10;
 
+    /// <summary>
+    /// Zeigt Fortschritt NUR im StatusLabel an.
+    /// Button-Text wird NICHT geändert (iOS-Bug: disabled Button rendert Text unsichtbar).
+    /// </summary>
     private void UpdateStatus(string msg)
     {
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            LoginButton.Text = msg;
             StatusLabel.Text = msg;
             StatusLabel.IsVisible = true;
         });
@@ -134,6 +137,7 @@ public partial class LoginPage : ContentPage
         {
             var biometricType = await _biometricService.GetBiometricTypeAsync();
             LoginButton.IsEnabled = false;
+            LoginButton.Text = "⏳";
             UpdateStatus($"{biometricType}...");
 
             var authenticated = await _biometricService.AuthenticateAsync($"Anmelden als {savedUsername}");
@@ -148,14 +152,15 @@ public partial class LoginPage : ContentPage
         }
 
         LoginButton.IsEnabled = false;
+        LoginButton.Text = "⏳";
         UpdateStatus("Auto-Login...");
 
         try
         {
-            // Use timeout: if login hangs, navigate to TodayPage anyway
+            // Direct async call (kein Task.Run - vermeidet iOS Threading-Probleme)
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
-            var loginTask = Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword,
-                step => UpdateStatus(step)));
+            var loginTask = _apiService.LoginAsync(propertyId, savedUsername, savedPassword,
+                step => UpdateStatus(step));
 
             LoginResult? result = null;
             try
@@ -231,6 +236,7 @@ public partial class LoginPage : ContentPage
         }
 
         LoginButton.IsEnabled = false;
+        LoginButton.Text = "⏳";
         ErrorLabel.IsVisible = false;
         UpdateStatus("Login...");
 
@@ -239,10 +245,10 @@ public partial class LoginPage : ContentPage
             var uname = UsernameEntry.Text;
             var pwd = PasswordEntry.Text;
 
-            // Use timeout: if login hangs, show error but don't freeze
+            // Direct async call (kein Task.Run - vermeidet iOS Threading-Probleme)
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
-            var loginTask = Task.Run(() => _apiService.LoginAsync(propertyId, uname, pwd,
-                step => UpdateStatus(step)));
+            var loginTask = _apiService.LoginAsync(propertyId, uname, pwd,
+                step => UpdateStatus(step));
 
             LoginResult? result = null;
             try

@@ -170,8 +170,8 @@ public partial class AppHeader : ContentView
 
     private void OnWorkStopNoClicked(object sender, EventArgs e)
     {
-        _isWorking = false;
-        UpdateWorkButton();
+        // "No" = Reinigung wurde NICHT vollständig beendet → Arbeit läuft weiter
+        // _isWorking bleibt true, Server wird nicht angerufen
         WorkStopPopup.IsVisible = false;
     }
 
