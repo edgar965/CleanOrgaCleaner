@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.15</ApplicationDisplayVersion>
-		<ApplicationVersion>70</ApplicationVersion>
+		<ApplicationVersion>71</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -75,6 +75,10 @@
 
 		<!-- Raw Assets -->
 		<MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Remove="Views\OldLoginPage.xaml.cs" />
 	</ItemGroup>
 
 	<ItemGroup>

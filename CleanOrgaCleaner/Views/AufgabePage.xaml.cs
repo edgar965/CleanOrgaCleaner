@@ -171,7 +171,7 @@ public partial class AufgabePage : ContentPage
             _task = await _apiService.GetAufgabeDetailAsync(_taskId);
             if (_task == null)
             {
-                // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+                // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
                 System.Diagnostics.Debug.WriteLine($"LoadTask: Task {_taskId} not found");
                 MainThread.BeginInvokeOnMainThread(async () =>
                 {
@@ -206,7 +206,7 @@ public partial class AufgabePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadTask error: {ex.Message}");
-            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+            // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
         }
     }
 
@@ -276,7 +276,7 @@ public partial class AufgabePage : ContentPage
                     newState = "started";
                     break;
                 case "started":
-                    var confirmComplete = await DisplayAlert(
+                    var confirmComplete = await DisplayAlertAsync(
                         Translations.Get("task_completed"),
                         Translations.Get("task_completed_question"),
                         Translations.Get("yes"),
@@ -299,13 +299,13 @@ public partial class AufgabePage : ContentPage
             }
             else
             {
-                await DisplayAlert("Fehler", response.Error ?? "Status konnte nicht geaendert werden", "OK");
+                await DisplayAlertAsync("Fehler", response.Error ?? "Status konnte nicht geaendert werden", "OK");
                 StartStopButton.IsEnabled = true;
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
             StartStopButton.IsEnabled = true;
         }
     }
@@ -341,7 +341,7 @@ public partial class AufgabePage : ContentPage
         };
 
         // First photo thumbnail on the left
-        int colOffset = 0;
+        
         if (problem.Fotos != null && problem.Fotos.Count > 0)
         {
             var imgBorder = new Border { StrokeShape = new RoundRectangle { CornerRadius = 10 }, Stroke = Color.FromArgb("#e0e0e0"), WidthRequest = 70, HeightRequest = 70 };
@@ -382,12 +382,12 @@ public partial class AufgabePage : ContentPage
 
     private async Task OnDeleteProblem(int problemId)
     {
-        var confirm = await DisplayAlert("Problem loeschen", "Moechtest du dieses Problem wirklich loeschen?", "Ja", "Nein");
+        var confirm = await DisplayAlertAsync("Problem loeschen", "Moechtest du dieses Problem wirklich loeschen?", "Ja", "Nein");
         if (confirm)
         {
             var response = await _apiService.DeleteProblemAsync(problemId);
             if (response.Success) await LoadTaskAsync();
-            else await DisplayAlert("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
+            else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
         }
     }
 
@@ -411,7 +411,7 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlert("Fehler", "Kamera nicht verfügbar", "OK"); return; }
+            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK"); return; }
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
@@ -424,7 +424,7 @@ public partial class AufgabePage : ContentPage
                 UpdatePhotoPreview();
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}"); await DisplayAlert("Fehler", "Kamera konnte nicht geöffnet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Kamera konnte nicht geöffnet werden", "OK"); }
     }
 
     private async void OnPickPhotoClicked(object sender, EventArgs e)
@@ -450,7 +450,7 @@ public partial class AufgabePage : ContentPage
                 UpdatePhotoPreview();
             }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}"); await DisplayAlert("Fehler", "Galerie konnte nicht geöffnet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Galerie konnte nicht geöffnet werden", "OK"); }
     }
 
     private void UpdatePhotoPreview()
@@ -476,16 +476,16 @@ public partial class AufgabePage : ContentPage
     private async void OnSaveProblemClicked(object sender, EventArgs e)
     {
         var name = ProblemNameEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(name)) { await DisplayAlert("Fehler", "Bitte gib einen Namen für das Problem ein", "OK"); return; }
+        if (string.IsNullOrEmpty(name)) { await DisplayAlertAsync("Fehler", "Bitte gib einen Namen für das Problem ein", "OK"); return; }
         var beschreibung = ProblemDescriptionEditor.Text?.Trim();
         ProblemPopupOverlay.IsVisible = false;
         try
         {
             var response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
-            if (response.Success) { await DisplayAlert("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
-            else await DisplayAlert("Fehler", response.Error ?? "Fehler beim Melden", "OK");
+            if (response.Success) { await DisplayAlertAsync("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
+            else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Melden", "OK");
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Report problem error: {ex.Message}"); await DisplayAlert("Fehler", "Problem konnte nicht gemeldet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Report problem error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Problem konnte nicht gemeldet werden", "OK"); }
     }
 
     private void OnCancelProblemClicked(object sender, EventArgs e) { ProblemPopupOverlay.IsVisible = false; }
@@ -690,18 +690,18 @@ public partial class AufgabePage : ContentPage
             {
                 BildDetailPopupOverlay.IsVisible = false;
                 _currentBildDetail = null;
-                await DisplayAlert("Gespeichert", "Notiz wurde aktualisiert", "OK");
+                await DisplayAlertAsync("Gespeichert", "Notiz wurde aktualisiert", "OK");
                 await LoadTaskAsync();
             }
             else
             {
-                await DisplayAlert("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
+                await DisplayAlertAsync("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SaveBildDetail error: {ex.Message}");
-            await DisplayAlert("Fehler", "Notiz konnte nicht gespeichert werden", "OK");
+            await DisplayAlertAsync("Fehler", "Notiz konnte nicht gespeichert werden", "OK");
         }
         finally
         {
@@ -714,7 +714,7 @@ public partial class AufgabePage : ContentPage
     {
         if (_currentBildDetail == null) return;
 
-        var confirm = await DisplayAlert("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
+        var confirm = await DisplayAlertAsync("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
         if (!confirm) return;
 
         try
@@ -724,24 +724,24 @@ public partial class AufgabePage : ContentPage
             {
                 BildDetailPopupOverlay.IsVisible = false;
                 _currentBildDetail = null;
-                await DisplayAlert("Gelöscht", "Bild wurde gelöscht", "OK");
+                await DisplayAlertAsync("Gelöscht", "Bild wurde gelöscht", "OK");
                 await LoadTaskAsync();
             }
             else
             {
-                await DisplayAlert("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
+                await DisplayAlertAsync("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"DeleteBildDetail error: {ex.Message}");
-            await DisplayAlert("Fehler", "Bild konnte nicht gelöscht werden", "OK");
+            await DisplayAlertAsync("Fehler", "Bild konnte nicht gelöscht werden", "OK");
         }
     }
 
     private async Task DeleteBild(int bildId)
     {
-        var confirm = await DisplayAlert("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
+        var confirm = await DisplayAlertAsync("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
         if (!confirm) return;
 
         try
@@ -749,18 +749,18 @@ public partial class AufgabePage : ContentPage
             var response = await _apiService.DeleteBildStatusAsync(bildId);
             if (response.Success)
             {
-                await DisplayAlert("Gelöscht", "Bild wurde gelöscht", "OK");
+                await DisplayAlertAsync("Gelöscht", "Bild wurde gelöscht", "OK");
                 await LoadTaskAsync(); // Refresh
             }
             else
             {
-                await DisplayAlert("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
+                await DisplayAlertAsync("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"DeleteBild error: {ex.Message}");
-            await DisplayAlert("Fehler", "Bild konnte nicht gelöscht werden", "OK");
+            await DisplayAlertAsync("Fehler", "Bild konnte nicht gelöscht werden", "OK");
         }
     }
 
@@ -782,7 +782,7 @@ public partial class AufgabePage : ContentPage
         {
             if (!MediaPicker.Default.IsCaptureSupported)
             {
-                await DisplayAlert("Fehler", "Kamera nicht verfügbar", "OK");
+                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
                 return;
             }
 
@@ -809,12 +809,12 @@ public partial class AufgabePage : ContentPage
         }
         catch (PermissionException)
         {
-            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+            await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Anmerkung Camera error: {ex.Message}");
-            await DisplayAlert("Kamera-Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Kamera-Fehler", ex.Message, "OK");
         }
     }
 
@@ -846,12 +846,12 @@ public partial class AufgabePage : ContentPage
         }
         catch (PermissionException)
         {
-            await DisplayAlert("Berechtigung erforderlich", "Bitte erlaube den Foto-Zugriff in den App-Einstellungen", "OK");
+            await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Foto-Zugriff in den App-Einstellungen", "OK");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Anmerkung Gallery error: {ex.Message}");
-            await DisplayAlert("Galerie-Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Galerie-Fehler", ex.Message, "OK");
         }
     }
 
@@ -862,7 +862,7 @@ public partial class AufgabePage : ContentPage
         // Mindestens Notiz oder Bild erforderlich
         if (string.IsNullOrEmpty(notiz) && (_selectedBildBytes == null || _selectedBildBytes.Length == 0))
         {
-            await DisplayAlert("Fehler", "Bitte gib eine Notiz ein oder wähle ein Bild aus", "OK");
+            await DisplayAlertAsync("Fehler", "Bitte gib eine Notiz ein oder wähle ein Bild aus", "OK");
             return;
         }
 
@@ -881,19 +881,19 @@ public partial class AufgabePage : ContentPage
                 AnmerkungPopupOverlay.IsVisible = false;
                 _selectedBildBytes = null;
                 _selectedBildPath = null;
-                await DisplayAlert("Gespeichert", "Anmerkung wurde gespeichert", "OK");
+                await DisplayAlertAsync("Gespeichert", "Anmerkung wurde gespeichert", "OK");
                 await LoadTaskAsync();
             }
             else
             {
                 System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Upload fehlgeschlagen - {response.Error}");
-                await DisplayAlert("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
+                await DisplayAlertAsync("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Upload Anmerkung error: {ex.Message}\n{ex.StackTrace}");
-            await DisplayAlert("Fehler", $"Fehler: {ex.Message}", "OK");
+            await DisplayAlertAsync("Fehler", $"Fehler: {ex.Message}", "OK");
         }
         finally
         {

@@ -77,7 +77,7 @@ public partial class TodayPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadTasks error: {ex.Message}");
-            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+            // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
             NoTasksLabel.Text = Translations.Get("connection_error");
             EmptyStateView.IsVisible = true;
             TaskRefreshView.IsVisible = false;
@@ -151,7 +151,7 @@ public partial class TodayPage : ContentPage
         // Check if work is started
         if (!Header.IsWorking)
         {
-            await DisplayAlert(
+            await DisplayAlertAsync(
                 Translations.Get("attention"),
                 Translations.Get("start_work_first"),
                 Translations.Get("ok"));

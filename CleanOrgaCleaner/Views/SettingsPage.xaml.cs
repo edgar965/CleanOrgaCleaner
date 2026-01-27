@@ -134,13 +134,13 @@ public partial class SettingsPage : ContentPage
                 // Store locally
                 Preferences.Set("language", selectedLang);
 
-                await DisplayAlert("Gespeichert",
+                await DisplayAlertAsync("Gespeichert",
                     "Sprache wurde geaendert",
                     "OK");
             }
             else
             {
-                await DisplayAlert("Fehler",
+                await DisplayAlertAsync("Fehler",
                     response.Error ?? "Sprache konnte nicht geaendert werden",
                     "OK");
             }
@@ -148,13 +148,13 @@ public partial class SettingsPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SetLanguage error: {ex.Message}");
-            await DisplayAlert("Fehler", "Verbindungsfehler", "OK");
+            await DisplayAlertAsync("Fehler", "Verbindungsfehler", "OK");
         }
     }
 
     private async void OnExitClicked(object? sender, EventArgs e)
     {
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             "App beenden",
             "Moechtest du die App wirklich beenden?",
             "Ja", "Nein");
@@ -202,11 +202,11 @@ public partial class SettingsPage : ContentPage
                 // Update display
                 CurrentAvatarLabel.Text = string.IsNullOrEmpty(selectedAvatar) ? "🏠" : selectedAvatar;
 
-                await DisplayAlert("Gespeichert", "Avatar wurde geaendert", "OK");
+                await DisplayAlertAsync("Gespeichert", "Avatar wurde geaendert", "OK");
             }
             else
             {
-                await DisplayAlert("Fehler",
+                await DisplayAlertAsync("Fehler",
                     response.Error ?? "Avatar konnte nicht geaendert werden",
                     "OK");
             }
@@ -214,7 +214,7 @@ public partial class SettingsPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SetAvatar error: {ex.Message}");
-            await DisplayAlert("Fehler", "Verbindungsfehler", "OK");
+            await DisplayAlertAsync("Fehler", "Verbindungsfehler", "OK");
         }
     }
 

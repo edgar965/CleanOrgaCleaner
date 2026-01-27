@@ -118,7 +118,7 @@ public partial class AuftragPage : ContentPage
             else
             {
                 System.Diagnostics.Debug.WriteLine($"LoadData failed: {data.Error}");
-                // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+                // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
                 EmptyStateView.IsVisible = true;
                 TaskRefreshView.IsVisible = false;
             }
@@ -126,7 +126,7 @@ public partial class AuftragPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"LoadData error: {ex.Message}");
-            // Don't use DisplayAlert in fire-and-forget - it deadlocks iOS Shell navigation
+            // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
             EmptyStateView.IsVisible = true;
             TaskRefreshView.IsVisible = false;
         }
@@ -389,7 +389,7 @@ public partial class AuftragPage : ContentPage
         var name = TaskNameEntry.Text?.Trim();
         if (string.IsNullOrEmpty(name))
         {
-            await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
             return;
         }
 
@@ -420,7 +420,7 @@ public partial class AuftragPage : ContentPage
             }
 
             TaskPopupOverlay.IsVisible = false;
-            await DisplayAlert("Offline", Translations.Get("saved"), Translations.Get("ok"));
+            await DisplayAlertAsync("Offline", Translations.Get("saved"), Translations.Get("ok"));
             return;
         }
 
@@ -457,11 +457,11 @@ public partial class AuftragPage : ContentPage
                 }
 
                 TaskPopupOverlay.IsVisible = false;
-                await DisplayAlert("Offline", Translations.Get("saved"), Translations.Get("ok"));
+                await DisplayAlertAsync("Offline", Translations.Get("saved"), Translations.Get("ok"));
             }
             else
             {
-                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_update_error"), Translations.Get("ok"));
+                await DisplayAlertAsync(Translations.Get("error"), result.Error ?? Translations.Get("task_update_error"), Translations.Get("ok"));
             }
         }
     }
@@ -487,7 +487,7 @@ public partial class AuftragPage : ContentPage
     {
         if (_currentTask == null) return;
 
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             Translations.Get("delete_task"),
             Translations.Get("confirm_delete_task"),
             Translations.Get("yes"),
@@ -503,7 +503,7 @@ public partial class AuftragPage : ContentPage
         }
         else
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_delete_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), result.Error ?? Translations.Get("task_delete_error"), Translations.Get("ok"));
         }
     }
 
@@ -573,7 +573,7 @@ public partial class AuftragPage : ContentPage
     {
         if (_isNewTask)
         {
-            DisplayAlert(Translations.Get("info"), Translations.Get("save_task_first"), Translations.Get("ok"));
+            DisplayAlertAsync(Translations.Get("info"), Translations.Get("save_task_first"), Translations.Get("ok"));
             return;
         }
 
@@ -600,7 +600,7 @@ public partial class AuftragPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("camera_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), Translations.Get("camera_error"), Translations.Get("ok"));
         }
     }
 
@@ -620,7 +620,7 @@ public partial class AuftragPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("gallery_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), Translations.Get("gallery_error"), Translations.Get("ok"));
         }
     }
 
@@ -650,13 +650,13 @@ public partial class AuftragPage : ContentPage
             }
             else
             {
-                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("upload_error"), Translations.Get("ok"));
+                await DisplayAlertAsync(Translations.Get("error"), result.Error ?? Translations.Get("upload_error"), Translations.Get("ok"));
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Upload error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("upload_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), Translations.Get("upload_error"), Translations.Get("ok"));
         }
     }
 
@@ -691,7 +691,7 @@ public partial class AuftragPage : ContentPage
         }
         else
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
         }
     }
 
@@ -699,7 +699,7 @@ public partial class AuftragPage : ContentPage
     {
         if (_selectedDetailImage == null || _currentTask == null) return;
 
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             Translations.Get("delete_image"),
             Translations.Get("confirm_delete_image"),
             Translations.Get("yes"),
@@ -715,7 +715,7 @@ public partial class AuftragPage : ContentPage
         }
         else
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+            await DisplayAlertAsync(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
         }
     }
 

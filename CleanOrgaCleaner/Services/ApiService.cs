@@ -83,10 +83,10 @@ public class ApiService
     }
 
     /// <summary>
-    /// Komplett synchroner Login - kein async/await, kein SynchronizationContext.
-    /// Muss von Task.Run() aufgerufen werden um UI nicht zu blockieren.
+    /// Async Login mit Debug-Logs nach jeder Zeile.
+    /// MUSS via Task.Run aufgerufen werden (sonst Deadlock auf iOS Main Thread).
     /// </summary>
-    public LoginResult LoginSync(int propertyId, string username, string password)
+    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
     {
         try
         {
@@ -103,21 +103,16 @@ public class ApiService
             var json = JsonSerializer.Serialize(loginData);
             DbgLog($"JSON done: {json.Length} chars");
 
-            var request = new HttpRequestMessage(HttpMethod.Post, "/mobile/api/login/")
-            {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
-            };
-            DbgLog("HttpRequestMessage created");
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            DbgLog("StringContent created");
 
-            DbgLog($"Send START -> {BaseUrl}/mobile/api/login/");
-            var response = _httpClient.Send(request);
-            DbgLog($"Send DONE -> {response.StatusCode}");
+            DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
+            var response = await _httpClient.PostAsync("/mobile/api/login/", content);
+            DbgLog($"PostAsync DONE -> {response.StatusCode}");
 
-            DbgLog("ReadAsStream START");
-            using var stream = response.Content.ReadAsStream();
-            using var reader = new System.IO.StreamReader(stream);
-            var responseJson = reader.ReadToEnd();
-            DbgLog($"ReadToEnd DONE -> {responseJson.Length} chars");
+            DbgLog("ReadAsStringAsync START");
+            var responseJson = await response.Content.ReadAsStringAsync();
+            DbgLog($"ReadAsStringAsync DONE -> {responseJson.Length} chars");
 
             DbgLog("Deserialize START");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
@@ -156,14 +151,6 @@ public class ApiService
             DbgLog($"Stack: {ex.StackTrace}");
             return new LoginResult { Success = false, ErrorMessage = ex.Message };
         }
-    }
-
-    /// <summary>
-    /// Async wrapper - ruft LoginSync via Task.Run auf.
-    /// </summary>
-    public Task<LoginResult> LoginAsync(int propertyId, string username, string password)
-    {
-        return Task.Run(() => LoginSync(propertyId, username, password));
     }
 
     public void Logout()

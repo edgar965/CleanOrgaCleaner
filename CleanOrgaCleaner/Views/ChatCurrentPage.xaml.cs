@@ -173,7 +173,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
+            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
 
@@ -203,14 +203,14 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             }
             else
             {
-                await DisplayAlert("Fehler",
+                await DisplayAlertAsync("Fehler",
                     response.Error ?? "Nachricht konnte nicht gesendet werden",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
         finally
         {
@@ -223,7 +223,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
+            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
 
@@ -246,14 +246,14 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             }
             else
             {
-                await DisplayAlert("Info",
+                await DisplayAlertAsync("Info",
                     response.Message ?? "Keine Uebersetzung noetig",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
         finally
         {

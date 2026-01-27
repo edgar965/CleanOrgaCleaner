@@ -210,7 +210,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
+            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
 
@@ -243,14 +243,14 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             }
             else
             {
-                await DisplayAlert("Fehler",
+                await DisplayAlertAsync("Fehler",
                     response.Error ?? "Nachricht konnte nicht gesendet werden",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
         finally
         {
@@ -263,7 +263,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
         var text = MessageEntry.Text?.Trim();
         if (string.IsNullOrEmpty(text))
         {
-            await DisplayAlert("Hinweis", "Bitte Nachricht eingeben", "OK");
+            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben", "OK");
             return;
         }
 
@@ -288,14 +288,14 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             }
             else
             {
-                await DisplayAlert("Info",
+                await DisplayAlertAsync("Info",
                     response.Message ?? "Keine Uebersetzung noetig",
                     "OK");
             }
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
         finally
         {
@@ -344,7 +344,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
 
     private async void OnLogoutClicked(object sender, EventArgs e)
     {
-        var confirm = await DisplayAlert(
+        var confirm = await DisplayAlertAsync(
             Translations.Get("logout"),
             Translations.Get("really_logout"),
             Translations.Get("yes"),

@@ -139,7 +139,7 @@ public partial class AppHeader : ContentView
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[AppHeader] Work toggle error: {ex.Message}");
-            await Application.Current.MainPage.DisplayAlert(
+            await Application.Current.MainPage.DisplayAlertAsync(
                 Translations.Get("error"),
                 ex.Message,
                 Translations.Get("ok"));
@@ -159,7 +159,7 @@ public partial class AppHeader : ContentView
         }
         catch (Exception ex)
         {
-            await Application.Current.MainPage.DisplayAlert(
+            await Application.Current.MainPage.DisplayAlertAsync(
                 Translations.Get("error"),
                 ex.Message,
                 Translations.Get("ok"));
@@ -235,7 +235,7 @@ public partial class AppHeader : ContentView
     {
         MenuOverlayGrid.IsVisible = false;
 
-        var confirm = await Application.Current.MainPage.DisplayAlert(
+        var confirm = await Application.Current.MainPage.DisplayAlertAsync(
             Translations.Get("logout"),
             Translations.Get("really_logout"),
             Translations.Get("yes"),

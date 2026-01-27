@@ -149,7 +149,7 @@ public partial class App : Application
                 }
 
                 // Show notification popup
-                var result = await Shell.Current.CurrentPage.DisplayAlert(
+                var result = await Shell.Current.CurrentPage.DisplayAlertAsync(
                     $"Neue Nachricht von {message.Sender}",
                     message.Text,
                     "Zum Chat",

@@ -173,35 +173,39 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
-            Log($"LoginAsync DONE: success={result?.Success}");
-
-            if (result.Success)
+            //var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
+            var result = _apiService.LoginSync(propertyId, UsernameEntry.Text, PasswordEntry.Text);
+            if (result != null)
             {
-                Log("Login SUCCESS - applying language");
-                var language = result.CleanerLanguage ?? "de";
-                Preferences.Set("language", language);
-                Translations.CurrentLanguage = language;
-                Log($"language set to: {language}");
+                Log($"LoginAsync DONE: success={result?.Success}");
+                if (result.Success)
+                {
+                    Log("Login SUCCESS - applying language");
+                    var language = result.CleanerLanguage ?? "de";
+                    Preferences.Set("language", language);
+                    Translations.CurrentLanguage = language;
+                    Log($"language set to: {language}");
 
-                Log("InitializeWebSocketAsync");
-                _ = App.InitializeWebSocketAsync();
-                Log("WebSocket fire-and-forget done");
+                    Log("InitializeWebSocketAsync");
+                    _ = App.InitializeWebSocketAsync();
+                    Log("WebSocket fire-and-forget done");
 
-                Log("GoToAsync START");
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-                Log("GoToAsync DONE");
-                return;
+                    Log("GoToAsync START");
+                    await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                    Log("GoToAsync DONE");
+                    return;
+                }
+                else
+                {
+                    Log($"Login FAILED: {result?.ErrorMessage}");
+                    SecureStorage.Remove("password");
+                    Preferences.Set("remember_me", false);
+                    RememberMeCheckbox.IsChecked = false;
+                    PasswordEntry.Text = "";
+                    ShowError(result?.ErrorMessage ?? Translations.Get("connection_error"));
+                }
             }
-            else
-            {
-                Log($"Login FAILED: {result?.ErrorMessage}");
-                SecureStorage.Remove("password");
-                Preferences.Set("remember_me", false);
-                RememberMeCheckbox.IsChecked = false;
-                PasswordEntry.Text = "";
-                ShowError(result?.ErrorMessage ?? Translations.Get("connection_error"));
-            }
+           
         }
         catch (Exception ex)
         {
@@ -251,63 +255,69 @@ public partial class LoginPage : ContentPage
 
         try
         {
-            var result = await Task.Run(() => _apiService.LoginAsync(
-                propertyId,
-                UsernameEntry.Text,
-                PasswordEntry.Text));
-            Log($"LoginAsync DONE: success={result?.Success}");
+            Log("Vor await ");
+            var result = _apiService.LoginSync(propertyId, UsernameEntry.Text, PasswordEntry.Text);
 
-            if (result.Success)
+            //var result = await _apiService.LoginAsync(
+            //    propertyId,
+            //    UsernameEntry.Text,
+            //    PasswordEntry.Text);
+            if (result != null)
             {
-                Log("Login SUCCESS - saving credentials");
-                Preferences.Set("property_id", PropertyIdEntry.Text);
-                Log("property_id saved");
-                Preferences.Set("username", UsernameEntry.Text);
-                Log("username saved");
-                Preferences.Set("is_logged_in", true);
-                Log("is_logged_in saved");
+                Log($"LoginAsync DONE: success={result?.Success}");
 
-                if (RememberMeCheckbox.IsChecked)
+                if (result.Success)
                 {
-                    Preferences.Set("remember_me", true);
-                    try
+                    Log("Login SUCCESS - saving credentials");
+                    Preferences.Set("property_id", PropertyIdEntry.Text);
+                    Log("property_id saved");
+                    Preferences.Set("username", UsernameEntry.Text);
+                    Log("username saved");
+                    Preferences.Set("is_logged_in", true);
+                    Log("is_logged_in saved");
+
+                    if (RememberMeCheckbox.IsChecked)
                     {
-                        Log("SecureStorage.SetAsync START");
-                        await SecureStorage.SetAsync("password", PasswordEntry.Text);
-                        Log("SecureStorage.SetAsync DONE");
+                        Preferences.Set("remember_me", true);
+                        try
+                        {
+                            Log("SecureStorage.SetAsync START");
+                            await SecureStorage.SetAsync("password", PasswordEntry.Text);
+                            Log("SecureStorage.SetAsync DONE");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log($"SecureStorage save error: {ex.Message}");
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log($"SecureStorage save error: {ex.Message}");
+                        Preferences.Set("remember_me", false);
+                        SecureStorage.Remove("password");
                     }
+
+                    var language = result.CleanerLanguage ?? "de";
+                    Preferences.Set("language", language);
+                    Translations.CurrentLanguage = language;
+                    Log($"language set to: {language}");
+
+                    Log("PromptBiometric START");
+                    await PromptForBiometricLoginAsync();
+                    Log("PromptBiometric DONE");
+
+                    Log("InitializeWebSocketAsync");
+                    _ = App.InitializeWebSocketAsync();
+                    Log("WebSocket fire-and-forget done");
+
+                    Log("GoToAsync START");
+                    await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                    Log("GoToAsync DONE");
                 }
                 else
                 {
-                    Preferences.Set("remember_me", false);
-                    SecureStorage.Remove("password");
+                    Log($"Login FAILED: {result?.ErrorMessage}");
+                    ShowError(result.ErrorMessage ?? Translations.Get("error"));
                 }
-
-                var language = result.CleanerLanguage ?? "de";
-                Preferences.Set("language", language);
-                Translations.CurrentLanguage = language;
-                Log($"language set to: {language}");
-
-                Log("PromptBiometric START");
-                await PromptForBiometricLoginAsync();
-                Log("PromptBiometric DONE");
-
-                Log("InitializeWebSocketAsync");
-                _ = App.InitializeWebSocketAsync();
-                Log("WebSocket fire-and-forget done");
-
-                Log("GoToAsync START");
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-                Log("GoToAsync DONE");
-            }
-            else
-            {
-                Log($"Login FAILED: {result?.ErrorMessage}");
-                ShowError(result.ErrorMessage ?? Translations.Get("error"));
             }
         }
         catch (Exception ex)
@@ -342,12 +352,18 @@ public partial class LoginPage : ContentPage
             return;
 
         var biometricType = await _biometricService.GetBiometricTypeAsync();
-
-        var enableBiometric = await DisplayAlert(
+        
+        var enableBiometric = await DisplayAlertAsyncAsync(
             biometricType,
             $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
             "Ja",
             "Nein");
+        //var enableBiometric = await DisplayAlertAsync(
+        //  biometricType,
+        //  $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
+        //  "Ja",
+        //  "Nein");
+
 
         if (enableBiometric)
         {
