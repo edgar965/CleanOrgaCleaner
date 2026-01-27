@@ -75,63 +75,46 @@ public class ApiService
 
     #region Authentication
 
-    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password, Action<string>? onProgress = null)
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var step = "INIT";
+
+        void Report(string msg)
+        {
+            step = msg;
+            System.Diagnostics.Debug.WriteLine($"[LOGIN] [{sw.ElapsedMilliseconds}ms] {msg}");
+            onProgress?.Invoke(msg);
+        }
+
         try
         {
-            step = "SERIALIZE";
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 1: Serializing login data...");
-            var loginData = new
-            {
-                property_id = propertyId,
-                username = username,
-                password = password
-            };
-
+            Report("Daten vorbereiten...");
+            var loginData = new { property_id = propertyId, username, password };
             var json = JsonSerializer.Serialize(loginData);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 1 done ({sw.ElapsedMilliseconds}ms): JSON={json.Length} bytes");
 
-            step = "PRE-REQUEST";
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 2: Preparing request to {BaseUrl}/mobile/api/login/");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   HttpClient.BaseAddress={_httpClient.BaseAddress}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   HttpClient.Timeout={_httpClient.Timeout}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Handler type: {_handler.GetType().FullName}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Thread: {Environment.CurrentManagedThreadId}, IsThreadPoolThread: {Thread.CurrentThread.IsThreadPoolThread}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 2 done ({sw.ElapsedMilliseconds}ms)");
+            Report("Verbinde mit Server...");
 
-            step = "HTTP-POST";
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 3: Sending POST request...");
-            var postStart = sw.ElapsedMilliseconds;
+            // Per-step timeout: 10s for HTTP POST
+            using var postCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var response = await _httpClient.PostAsync("/mobile/api/login/", content, postCts.Token).ConfigureAwait(false);
 
-            // Use ConfigureAwait(false) to avoid iOS main thread deadlock.
-            var response = await _httpClient.PostAsync("/mobile/api/login/", content).ConfigureAwait(false);
+            Report($"Server antwortet ({response.StatusCode})...");
 
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 3 done ({sw.ElapsedMilliseconds}ms, POST took {sw.ElapsedMilliseconds - postStart}ms): StatusCode={response.StatusCode}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Response headers: {response.Headers}");
+            // Per-step timeout: 5s for reading body
+            using var readCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            var responseJson = await response.Content.ReadAsStringAsync(readCts.Token).ConfigureAwait(false);
 
-            step = "READ-RESPONSE";
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 4: Reading response body...");
-            var readStart = sw.ElapsedMilliseconds;
-            var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 4 done ({sw.ElapsedMilliseconds}ms, read took {sw.ElapsedMilliseconds - readStart}ms): {responseJson.Length} chars");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   Response body: {responseJson}");
-
-            step = "DESERIALIZE";
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 5: Deserializing response...");
+            Report("Verarbeite Antwort...");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] Step 5 done ({sw.ElapsedMilliseconds}ms): success={result?.Success}");
 
             if (result?.Success == true)
             {
                 CleanerName = result.Cleaner?.Name;
                 CleanerLanguage = result.Cleaner?.Language ?? "de";
                 CleanerId = result.Cleaner?.Id;
-                System.Diagnostics.Debug.WriteLine($"[LOGIN] SUCCESS: Cleaner={CleanerName}, Language={CleanerLanguage}, Id={CleanerId}");
-
-                // Start heartbeat to maintain online status
+                Report($"OK - {CleanerName}");
                 StartHeartbeat();
 
                 return new LoginResult
@@ -142,39 +125,27 @@ public class ApiService
                 };
             }
 
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] FAILED: {result?.Error ?? "unknown error"}");
-            return new LoginResult
-            {
-                Success = false,
-                ErrorMessage = result?.Error ?? "Login fehlgeschlagen"
-            };
+            var errMsg = result?.Error ?? "Login fehlgeschlagen";
+            Report($"Fehler: {errMsg}");
+            return new LoginResult { Success = false, ErrorMessage = errMsg };
         }
-        catch (TaskCanceledException tcex)
+        catch (TaskCanceledException)
         {
-            sw.Stop();
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] TIMEOUT/CANCELLED at step '{step}' after {sw.ElapsedMilliseconds}ms: {tcex.Message}");
-            return new LoginResult { Success = false, ErrorMessage = $"Timeout bei '{step}' nach {sw.ElapsedMilliseconds}ms" };
+            var msg = $"Timeout bei '{step}' ({sw.ElapsedMilliseconds}ms)";
+            Report(msg);
+            return new LoginResult { Success = false, ErrorMessage = msg };
         }
         catch (HttpRequestException hrex)
         {
-            sw.Stop();
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] HTTP ERROR at step '{step}' after {sw.ElapsedMilliseconds}ms: {hrex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   InnerException: {hrex.InnerException?.GetType().Name}: {hrex.InnerException?.Message}");
-            return new LoginResult { Success = false, ErrorMessage = $"HTTP-Fehler bei '{step}': {hrex.Message}" };
+            var msg = $"Netzwerk-Fehler: {hrex.Message}";
+            Report(msg);
+            return new LoginResult { Success = false, ErrorMessage = msg };
         }
         catch (Exception ex)
         {
-            sw.Stop();
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] EXCEPTION at step '{step}' after {sw.ElapsedMilliseconds}ms: {ex.GetType().Name}: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[LOGIN]   StackTrace: {ex.StackTrace}");
-            if (ex.InnerException != null)
-                System.Diagnostics.Debug.WriteLine($"[LOGIN]   Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
-            return new LoginResult { Success = false, ErrorMessage = $"Fehler bei '{step}': {ex.Message}" };
-        }
-        finally
-        {
-            sw.Stop();
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] TOTAL TIME: {sw.ElapsedMilliseconds}ms, final step: {step}");
+            var msg = $"{ex.GetType().Name}: {ex.Message}";
+            Report(msg);
+            return new LoginResult { Success = false, ErrorMessage = msg };
         }
     }
 
