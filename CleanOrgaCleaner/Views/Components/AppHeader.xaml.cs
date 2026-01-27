@@ -9,18 +9,14 @@ public partial class AppHeader : ContentView
     private readonly WebSocketService _webSocketService;
     private bool _isWorking = false;
 
-    private bool _wsSubscribed = false;
-
     public AppHeader()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
 
-        // Don't subscribe to WebSocket events here - do it in InitializeAsync()
-        // Subscribing in constructor causes iOS deadlock: WebSocket events fire
-        // during Shell.GoToAsync navigation transition, updating UI on a page
-        // that isn't fully visible yet, which blocks iOS UIKit navigation.
+        // Subscribe to connection status
+        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
 
         // Don't show offline banner on initial load
         UpdateOfflineBanner(false);
@@ -28,14 +24,6 @@ public partial class AppHeader : ContentView
 
     public async Task InitializeAsync()
     {
-        // Subscribe to connection status AFTER navigation is complete
-        // (this is called from OnAppearing, which runs after GoToAsync finishes)
-        if (!_wsSubscribed)
-        {
-            _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
-            _wsSubscribed = true;
-        }
-
         ApplyTranslations();
         UpdateUserInfo();
         _ = LoadWorkStatusAsync();
