@@ -61,23 +61,13 @@ public class ApiService
             CookieContainer = new System.Net.CookieContainer()
         };
 
-#if IOS || MACCATALYST
-        // On iOS, do NOT use the managed HttpClientHandler - it uses managed TLS
-        // which can deadlock on the main thread SynchronizationContext.
-        // Instead, use the default handler (NSUrlSessionHandler) which uses Apple's
-        // native networking stack. Cookies are handled via NSHttpCookieStorage.
-        _httpClient = new HttpClient()
-        {
-            BaseAddress = new Uri(BaseUrl),
-            Timeout = TimeSpan.FromSeconds(30)
-        };
-#else
+        // On iOS, UseNativeHttpHandler=false in csproj forces HttpClientHandler to use
+        // the managed SocketsHttpHandler instead of NSUrlSessionHandler (which hangs).
         _httpClient = new HttpClient(_handler)
         {
             BaseAddress = new Uri(BaseUrl),
             Timeout = TimeSpan.FromSeconds(30)
         };
-#endif
         _httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
         _httpClient.DefaultRequestHeaders.Add("Cache-Control", "no-cache, no-store");
         _httpClient.DefaultRequestHeaders.Add("Pragma", "no-cache");
@@ -177,24 +167,7 @@ public class ApiService
 
     private void ClearCookies()
     {
-#if IOS || MACCATALYST
-        try
-        {
-            var storage = Foundation.NSHttpCookieStorage.SharedStorage;
-            var cookies = storage.CookiesForUrl(new Foundation.NSUrl(BaseUrl));
-            if (cookies != null)
-            {
-                foreach (var cookie in cookies)
-                    storage.DeleteCookie(cookie);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ClearCookies iOS error: {ex.Message}");
-        }
-#else
         _handler.CookieContainer = new System.Net.CookieContainer();
-#endif
     }
 
     /// <summary>
@@ -202,27 +175,6 @@ public class ApiService
     /// </summary>
     public string GetCookieHeader()
     {
-#if IOS || MACCATALYST
-        // On iOS, cookies are managed by NSHttpCookieStorage (native handler)
-        try
-        {
-            var nsUrl = new Foundation.NSUrl(BaseUrl);
-            var nsCookies = Foundation.NSHttpCookieStorage.SharedStorage.CookiesForUrl(nsUrl);
-            if (nsCookies == null || nsCookies.Length == 0) return "";
-
-            var cookieStrings = new List<string>();
-            foreach (var cookie in nsCookies)
-            {
-                cookieStrings.Add($"{cookie.Name}={cookie.Value}");
-            }
-            return string.Join("; ", cookieStrings);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"GetCookieHeader iOS error: {ex.Message}");
-            return "";
-        }
-#else
         var cookies = _handler.CookieContainer.GetCookies(new Uri(BaseUrl));
         if (cookies.Count == 0) return "";
 
@@ -232,7 +184,6 @@ public class ApiService
             cookieStrings.Add($"{cookie.Name}={cookie.Value}");
         }
         return string.Join("; ", cookieStrings);
-#endif
     }
 
     /// <summary>
