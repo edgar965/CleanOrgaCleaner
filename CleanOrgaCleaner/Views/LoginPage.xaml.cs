@@ -135,11 +135,12 @@ public partial class LoginPage : ContentPage
 
         // Show auto-login state
         LoginButton.IsEnabled = false;
-        LoginButton.Text = Translations.Get("loading");
+        LoginButton.Text = "Auto-Login [1]...";
 
         try
         {
             var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
+            LoginButton.Text = "Auto-Login [2]...";
 
             if (result.Success)
             {
@@ -148,13 +149,10 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                // Navigate to main FIRST, then init WebSocket
-                // WebSocket events during navigation cause iOS UIKit deadlock
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                LoginButton.Text = "Auto-Login [3]...";
 
-                // Initialize WebSocket AFTER navigation completes
-                // (TodayPage.OnAppearing also calls this as backup)
-                _ = App.InitializeWebSocketAsync();
+                // Navigate using Dispatcher to avoid iOS deadlock
+                await NavigateToMainAsync();
                 return;
             }
             else
@@ -170,6 +168,7 @@ public partial class LoginPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex.Message}");
+            ShowError($"Auto-login: {ex.Message}");
         }
         finally
         {
@@ -207,10 +206,13 @@ public partial class LoginPage : ContentPage
 
         try
         {
+            LoginButton.Text = "Login [1]...";
             var result = await _apiService.LoginAsync(
                 propertyId,
                 UsernameEntry.Text,
                 PasswordEntry.Text);
+
+            LoginButton.Text = "Login [2]...";
 
             if (result.Success)
             {
@@ -243,18 +245,18 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                System.Diagnostics.Debug.WriteLine($"[Login] Language set to: {language}");
+                LoginButton.Text = "Login [3]...";
 
-                // Check if we should prompt for Face ID / biometric login
+                // Skip biometric prompt on iOS - DisplayAlert during login flow can deadlock
+                // Biometric will be prompted on next manual login if needed
+                #if !IOS
                 await PromptForBiometricLoginAsync();
+                #endif
 
-                // Navigate to main tabs FIRST, then init WebSocket
-                // WebSocket events during navigation cause iOS UIKit deadlock
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                LoginButton.Text = "Login [4]...";
 
-                // Initialize WebSocket AFTER navigation completes
-                // (TodayPage.OnAppearing also calls this as backup)
-                _ = App.InitializeWebSocketAsync();
+                // Navigate using Dispatcher to avoid iOS deadlock
+                await NavigateToMainAsync();
             }
             else
             {
@@ -269,6 +271,80 @@ public partial class LoginPage : ContentPage
         {
             LoginButton.IsEnabled = true;
             LoginButton.Text = Translations.Get("login_title");
+        }
+    }
+
+    /// <summary>
+    /// Navigate to main page with timeout and fallback strategies.
+    /// Uses Dispatcher to avoid iOS UIKit deadlocks during Shell navigation.
+    /// </summary>
+    private async Task NavigateToMainAsync()
+    {
+        try
+        {
+            LoginButton.Text = "Navigate [5]...";
+
+            // Strategy: Use Dispatcher.DispatchAsync to ensure clean UI thread state
+            // This avoids deadlocks where GoToAsync blocks the main thread
+            // while other async continuations are pending
+            var navigated = false;
+            var tcs = new TaskCompletionSource<bool>();
+
+            // Timeout: if navigation doesn't complete in 10 seconds, try fallback
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            cts.Token.Register(() =>
+            {
+                if (!navigated)
+                    tcs.TrySetResult(false);
+            });
+
+            Dispatcher.Dispatch(async () =>
+            {
+                try
+                {
+                    await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                    navigated = true;
+                    tcs.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Login] GoToAsync error: {ex.Message}");
+                    tcs.TrySetResult(false);
+                }
+            });
+
+            var success = await tcs.Task;
+
+            if (success)
+            {
+                LoginButton.Text = "Navigate [6] OK";
+                // Initialize WebSocket AFTER navigation completes
+                _ = App.InitializeWebSocketAsync();
+            }
+            else
+            {
+                LoginButton.Text = "Navigate TIMEOUT - retry...";
+                System.Diagnostics.Debug.WriteLine("[Login] Navigation timeout - trying Application.Current.MainPage fallback");
+
+                // Fallback: replace entire MainPage (bypasses Shell navigation)
+                await Task.Delay(500);
+                try
+                {
+                    Application.Current!.MainPage = new AppShell();
+                    await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                    _ = App.InitializeWebSocketAsync();
+                }
+                catch (Exception ex2)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[Login] Fallback navigation error: {ex2.Message}");
+                    ShowError($"Navigation error: {ex2.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Login] NavigateToMainAsync error: {ex.Message}");
+            ShowError($"Navigate: {ex.Message}");
         }
     }
 
