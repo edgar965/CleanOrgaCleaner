@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.15</ApplicationDisplayVersion>
-		<ApplicationVersion>66</ApplicationVersion>
+		<ApplicationVersion>67</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -33,9 +33,6 @@
 	<!-- iOS specific settings -->
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<DefineConstants>$(DefineConstants);IOS</DefineConstants>
-		<!-- Use managed SocketsHttpHandler instead of native NSUrlSessionHandler.
-		     NSUrlSessionHandler hangs during HTTP requests on some server configurations. -->
-		<UseNativeHttpHandler>false</UseNativeHttpHandler>
 		<!-- Required for App Store icon to appear correctly -->
 		<IpaIncludeArtwork>true</IpaIncludeArtwork>
 	</PropertyGroup>

@@ -61,8 +61,6 @@ public class ApiService
             CookieContainer = new System.Net.CookieContainer()
         };
 
-        // On iOS, UseNativeHttpHandler=false in csproj forces HttpClientHandler to use
-        // the managed SocketsHttpHandler instead of NSUrlSessionHandler (which hangs).
         _httpClient = new HttpClient(_handler)
         {
             BaseAddress = new Uri(BaseUrl),
@@ -75,38 +73,26 @@ public class ApiService
 
     #region Authentication
 
-    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password, Action<string>? onProgress = null)
+    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
     {
-        var sw = System.Diagnostics.Stopwatch.StartNew();
-        var step = "INIT";
-
-        void Report(string msg)
-        {
-            step = msg;
-            System.Diagnostics.Debug.WriteLine($"[LOGIN] [{sw.ElapsedMilliseconds}ms] {msg}");
-            onProgress?.Invoke(msg);
-        }
-
         try
         {
-            Report("Daten vorbereiten...");
-            var loginData = new { property_id = propertyId, username, password };
+            var loginData = new
+            {
+                property_id = propertyId,
+                username = username,
+                password = password
+            };
+
             var json = JsonSerializer.Serialize(loginData);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            Report("Verbinde mit Server...");
+            System.Diagnostics.Debug.WriteLine($"Login: {BaseUrl}/mobile/api/login/");
+            var response = await _httpClient.PostAsync("/mobile/api/login/", content);
 
-            // Per-step timeout: 10s for HTTP POST
-            using var postCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            var response = await _httpClient.PostAsync("/mobile/api/login/", content, postCts.Token).ConfigureAwait(false);
+            var responseJson = await response.Content.ReadAsStringAsync();
+            System.Diagnostics.Debug.WriteLine($"Login response: {response.StatusCode} - {responseJson}");
 
-            Report($"Server antwortet ({response.StatusCode})...");
-
-            // Per-step timeout: 5s for reading body
-            using var readCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            var responseJson = await response.Content.ReadAsStringAsync(readCts.Token).ConfigureAwait(false);
-
-            Report("Verarbeite Antwort...");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
 
             if (result?.Success == true)
@@ -114,7 +100,8 @@ public class ApiService
                 CleanerName = result.Cleaner?.Name;
                 CleanerLanguage = result.Cleaner?.Language ?? "de";
                 CleanerId = result.Cleaner?.Id;
-                Report($"OK - {CleanerName}");
+
+                // Start heartbeat to maintain online status
                 StartHeartbeat();
 
                 return new LoginResult
@@ -125,27 +112,16 @@ public class ApiService
                 };
             }
 
-            var errMsg = result?.Error ?? "Login fehlgeschlagen";
-            Report($"Fehler: {errMsg}");
-            return new LoginResult { Success = false, ErrorMessage = errMsg };
-        }
-        catch (TaskCanceledException)
-        {
-            var msg = $"Timeout bei '{step}' ({sw.ElapsedMilliseconds}ms)";
-            Report(msg);
-            return new LoginResult { Success = false, ErrorMessage = msg };
-        }
-        catch (HttpRequestException hrex)
-        {
-            var msg = $"Netzwerk-Fehler: {hrex.Message}";
-            Report(msg);
-            return new LoginResult { Success = false, ErrorMessage = msg };
+            return new LoginResult
+            {
+                Success = false,
+                ErrorMessage = result?.Error ?? "Login fehlgeschlagen"
+            };
         }
         catch (Exception ex)
         {
-            var msg = $"{ex.GetType().Name}: {ex.Message}";
-            Report(msg);
-            return new LoginResult { Success = false, ErrorMessage = msg };
+            System.Diagnostics.Debug.WriteLine($"Login error: {ex.Message}");
+            return new LoginResult { Success = false, ErrorMessage = ex.Message };
         }
     }
 
@@ -168,7 +144,7 @@ public class ApiService
         try
         {
             // Server-Logout aufrufen (sendet Offline-Status via WebSocket)
-            await _httpClient.PostAsync("/mobile/api/logout/", null).ConfigureAwait(false);
+            await _httpClient.PostAsync("/mobile/api/logout/", null);
         }
         catch
         {
