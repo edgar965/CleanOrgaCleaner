@@ -6,16 +6,13 @@ using CleanOrgaCleaner.Models;
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// WebSocket service for real-time updates (chat, tasks)
+/// WebSocket service for real-time updates (chat + tasks over a single connection)
 /// </summary>
 public class WebSocketService : IDisposable
 {
-    private ClientWebSocket? _chatSocket;
-    private ClientWebSocket? _taskSocket;
-    private CancellationTokenSource? _chatCts;
-    private CancellationTokenSource? _taskCts;
-    private int _chatReconnectAttempts = 0;
-    private int _taskReconnectAttempts = 0;
+    private ClientWebSocket? _socket;
+    private CancellationTokenSource? _cts;
+    private int _reconnectAttempts = 0;
     private const int MaxReconnectDelay = 30000; // 30 seconds max
     private const int InitialReconnectDelay = 1000; // 1 second initial
     private const string WsBaseUrl = "wss://cleanorga.com";
@@ -28,67 +25,67 @@ public class WebSocketService : IDisposable
     public event Action<bool>? OnConnectionStatusChanged;
 
     /// <summary>
-    /// Indicates if the WebSocket connections are currently online
+    /// Indicates if the WebSocket connection is currently online
     /// </summary>
     public bool IsOnline => _isOnline;
 
     /// <summary>
-    /// Indicates if chat WebSocket is connected
+    /// Indicates if chat WebSocket is connected (backward-compatible property)
     /// </summary>
-    public bool IsChatConnected => _chatSocket?.State == WebSocketState.Open;
+    public bool IsChatConnected => _socket?.State == WebSocketState.Open;
 
     /// <summary>
-    /// Indicates if tasks WebSocket is connected
+    /// Indicates if tasks WebSocket is connected (backward-compatible property)
     /// </summary>
-    public bool IsTasksConnected => _taskSocket?.State == WebSocketState.Open;
+    public bool IsTasksConnected => _socket?.State == WebSocketState.Open;
 
     private static WebSocketService? _instance;
     public static WebSocketService Instance => _instance ??= new WebSocketService();
 
     /// <summary>
-    /// Connect to chat WebSocket
+    /// Connect to the unified WebSocket endpoint (/ws/main/)
     /// </summary>
-    public async Task ConnectChatAsync()
+    public async Task ConnectAsync()
     {
-        if (_chatSocket?.State == WebSocketState.Open)
+        if (_socket?.State == WebSocketState.Open)
             return;
 
         try
         {
-            _chatCts?.Cancel();
-            _chatCts = new CancellationTokenSource();
+            _cts?.Cancel();
+            _cts = new CancellationTokenSource();
 
-            _chatSocket?.Dispose();
-            _chatSocket = new ClientWebSocket();
+            _socket?.Dispose();
+            _socket = new ClientWebSocket();
 
             // Add session cookies for authentication
             var cookieHeader = ApiService.Instance.GetCookieHeader();
             if (!string.IsNullOrEmpty(cookieHeader))
             {
-                _chatSocket.Options.SetRequestHeader("Cookie", cookieHeader);
-                _chatSocket.Options.SetRequestHeader("Origin", "https://cleanorga.com");
+                _socket.Options.SetRequestHeader("Cookie", cookieHeader);
+                _socket.Options.SetRequestHeader("Origin", "https://cleanorga.com");
                 System.Diagnostics.Debug.WriteLine($"WebSocket using cookies: {cookieHeader}");
             }
 
-            var uri = new Uri($"{WsBaseUrl}/ws/chat/");
-            System.Diagnostics.Debug.WriteLine($"Connecting to chat WebSocket: {uri}");
+            var uri = new Uri($"{WsBaseUrl}/ws/main/");
+            System.Diagnostics.Debug.WriteLine($"Connecting to WebSocket: {uri}");
 
             // Add timeout for iOS - prevent hanging forever
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_chatCts.Token, timeoutCts.Token);
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCts.Token);
 
-            await _chatSocket.ConnectAsync(uri, linkedCts.Token);
+            await _socket.ConnectAsync(uri, linkedCts.Token);
 
-            if (_chatSocket.State == WebSocketState.Open)
+            if (_socket.State == WebSocketState.Open)
             {
-                _chatReconnectAttempts = 0;
+                _reconnectAttempts = 0;
                 var wasOffline = !_isOnline;
                 _isOnline = true;
                 OnConnectionStatusChanged?.Invoke(true);
-                System.Diagnostics.Debug.WriteLine("Chat WebSocket connected");
+                System.Diagnostics.Debug.WriteLine("WebSocket connected (unified)");
 
                 // Start listening for messages
-                _ = ListenForChatMessagesAsync();
+                _ = ListenForMessagesAsync();
 
                 // Process offline queue if we were offline
                 if (wasOffline)
@@ -99,77 +96,39 @@ public class WebSocketService : IDisposable
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Chat WebSocket error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"WebSocket error: {ex.Message}");
             _isOnline = false;
             OnConnectionStatusChanged?.Invoke(false);
             if (_shouldReconnect)
-                await TryReconnectChatAsync();
+                await TryReconnectAsync();
         }
     }
 
     /// <summary>
-    /// Connect to tasks WebSocket
+    /// Connect to chat WebSocket (backward-compatible - calls ConnectAsync)
     /// </summary>
-    public async Task ConnectTasksAsync()
-    {
-        if (_taskSocket?.State == WebSocketState.Open)
-            return;
+    public Task ConnectChatAsync() => ConnectAsync();
 
-        try
-        {
-            _taskCts?.Cancel();
-            _taskCts = new CancellationTokenSource();
+    /// <summary>
+    /// Connect to tasks WebSocket (backward-compatible - calls ConnectAsync)
+    /// </summary>
+    public Task ConnectTasksAsync() => ConnectAsync();
 
-            _taskSocket?.Dispose();
-            _taskSocket = new ClientWebSocket();
-
-            // Add session cookies for authentication
-            var cookieHeader = ApiService.Instance.GetCookieHeader();
-            if (!string.IsNullOrEmpty(cookieHeader))
-            {
-                _taskSocket.Options.SetRequestHeader("Cookie", cookieHeader);
-                _taskSocket.Options.SetRequestHeader("Origin", "https://cleanorga.com");
-            }
-
-            var uri = new Uri($"{WsBaseUrl}/ws/tasks/");
-            System.Diagnostics.Debug.WriteLine($"Connecting to tasks WebSocket: {uri}");
-
-            // Add timeout for iOS - prevent hanging forever
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_taskCts.Token, timeoutCts.Token);
-
-            await _taskSocket.ConnectAsync(uri, linkedCts.Token);
-
-            if (_taskSocket.State == WebSocketState.Open)
-            {
-                _taskReconnectAttempts = 0;
-                System.Diagnostics.Debug.WriteLine("Tasks WebSocket connected");
-                _ = ListenForTaskUpdatesAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Tasks WebSocket error: {ex.Message}");
-            if (_shouldReconnect)
-                await TryReconnectTasksAsync();
-        }
-    }
-
-    private async Task ListenForChatMessagesAsync()
+    private async Task ListenForMessagesAsync()
     {
         var buffer = new byte[4096];
         var messageBuilder = new StringBuilder();
 
         try
         {
-            while (_chatSocket?.State == WebSocketState.Open && !_chatCts!.Token.IsCancellationRequested)
+            while (_socket?.State == WebSocketState.Open && !_cts!.Token.IsCancellationRequested)
             {
-                var result = await _chatSocket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), _chatCts.Token);
+                var result = await _socket.ReceiveAsync(
+                    new ArraySegment<byte>(buffer), _cts.Token);
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    System.Diagnostics.Debug.WriteLine("Chat WebSocket closed by server");
+                    System.Diagnostics.Debug.WriteLine("WebSocket closed by server");
                     break;
                 }
 
@@ -180,97 +139,47 @@ public class WebSocketService : IDisposable
                 {
                     var fullMessage = messageBuilder.ToString();
                     messageBuilder.Clear();
-                    ProcessChatMessage(fullMessage);
+                    ProcessMessage(fullMessage);
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            System.Diagnostics.Debug.WriteLine("Chat listening cancelled");
+            System.Diagnostics.Debug.WriteLine("WebSocket listening cancelled");
             return; // Don't try to reconnect on cancellation
         }
         catch (WebSocketException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Chat WebSocket exception: {ex.Message}");
-            // Check if app is going to background - if so, don't reconnect
+            System.Diagnostics.Debug.WriteLine($"WebSocket exception: {ex.Message}");
             if (App.IsInBackground) return;
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Chat listen error: {ex.Message}");
-            // Check if app is going to background - if so, don't reconnect
+            System.Diagnostics.Debug.WriteLine($"WebSocket listen error: {ex.Message}");
             if (App.IsInBackground) return;
         }
 
         _isOnline = false;
         OnConnectionStatusChanged?.Invoke(false);
         if (_shouldReconnect && !App.IsInBackground)
-            await TryReconnectChatAsync();
+            await TryReconnectAsync();
     }
 
-    private async Task ListenForTaskUpdatesAsync()
-    {
-        var buffer = new byte[4096];
-        var messageBuilder = new StringBuilder();
-
-        try
-        {
-            while (_taskSocket?.State == WebSocketState.Open && !_taskCts!.Token.IsCancellationRequested)
-            {
-                var result = await _taskSocket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), _taskCts.Token);
-
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    break;
-                }
-
-                var text = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                messageBuilder.Append(text);
-
-                if (result.EndOfMessage)
-                {
-                    var fullMessage = messageBuilder.ToString();
-                    messageBuilder.Clear();
-                    ProcessTaskUpdate(fullMessage);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            System.Diagnostics.Debug.WriteLine("Task listening cancelled");
-            return; // Don't try to reconnect on cancellation
-        }
-        catch (WebSocketException ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Task WebSocket exception: {ex.Message}");
-            // Check if app is going to background - if so, don't reconnect
-            if (App.IsInBackground) return;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Task listen error: {ex.Message}");
-            // Check if app is going to background - if so, don't reconnect
-            if (App.IsInBackground) return;
-        }
-
-        if (_shouldReconnect && !App.IsInBackground)
-            await TryReconnectTasksAsync();
-    }
-
-    private void ProcessChatMessage(string json)
+    private void ProcessMessage(string json)
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"Chat WS received: {json}");
+            System.Diagnostics.Debug.WriteLine($"WS received: {json}");
             var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
             if (root.TryGetProperty("type", out var typeElement))
             {
                 var type = typeElement.GetString();
+
                 if (type == "chat_message" && root.TryGetProperty("message", out var msgElement))
                 {
+                    // Chat message
                     var message = JsonSerializer.Deserialize<ChatMessage>(msgElement.GetRawText());
                     if (message != null)
                     {
@@ -280,78 +189,48 @@ public class WebSocketService : IDisposable
                         });
                     }
                 }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"ProcessChatMessage error: {ex.Message}");
-        }
-    }
-
-    private void ProcessTaskUpdate(string json)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"Task WS received: {json}");
-            var doc = JsonDocument.Parse(json);
-            var root = doc.RootElement;
-
-            if (root.TryGetProperty("type", out var typeElement))
-            {
-                var type = typeElement.GetString();
-                MainThread.BeginInvokeOnMainThread(() =>
+                else if (type == "pong")
                 {
-                    OnTaskUpdate?.Invoke(type ?? "update");
-                });
+                    // Ping/Pong - ignore
+                }
+                else
+                {
+                    // Task update or any other type
+                    MainThread.BeginInvokeOnMainThread(() =>
+                    {
+                        OnTaskUpdate?.Invoke(type ?? "update");
+                    });
+                }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"ProcessTaskUpdate error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"ProcessMessage error: {ex.Message}");
         }
     }
 
-    private async Task TryReconnectChatAsync()
+    private async Task TryReconnectAsync()
     {
-        // Don't reconnect if in background or shouldReconnect is false
         if (!_shouldReconnect || App.IsInBackground) return;
 
-        _chatReconnectAttempts++;
-        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _chatReconnectAttempts - 1), MaxReconnectDelay);
-        System.Diagnostics.Debug.WriteLine($"Chat reconnecting in {delay}ms (attempt {_chatReconnectAttempts})");
+        _reconnectAttempts++;
+        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _reconnectAttempts - 1), MaxReconnectDelay);
+        System.Diagnostics.Debug.WriteLine($"WebSocket reconnecting in {delay}ms (attempt {_reconnectAttempts})");
 
         await Task.Delay((int)delay);
 
-        // Check again after delay
         if (_shouldReconnect && !App.IsInBackground)
-            await ConnectChatAsync();
-    }
-
-    private async Task TryReconnectTasksAsync()
-    {
-        // Don't reconnect if in background or shouldReconnect is false
-        if (!_shouldReconnect || App.IsInBackground) return;
-
-        _taskReconnectAttempts++;
-        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _taskReconnectAttempts - 1), MaxReconnectDelay);
-        System.Diagnostics.Debug.WriteLine($"Tasks reconnecting in {delay}ms (attempt {_taskReconnectAttempts})");
-
-        await Task.Delay((int)delay);
-
-        // Check again after delay
-        if (_shouldReconnect && !App.IsInBackground)
-            await ConnectTasksAsync();
+            await ConnectAsync();
     }
 
     /// <summary>
-    /// Force reconnect both WebSockets (e.g., when coming back online)
+    /// Force reconnect WebSocket (e.g., when coming back online)
     /// </summary>
     public async Task ReconnectAsync()
     {
         _shouldReconnect = true;
-        _chatReconnectAttempts = 0;
-        _taskReconnectAttempts = 0;
-        await Task.WhenAll(ConnectChatAsync(), ConnectTasksAsync());
+        _reconnectAttempts = 0;
+        await ConnectAsync();
     }
 
     /// <summary>
@@ -371,28 +250,18 @@ public class WebSocketService : IDisposable
     }
 
     /// <summary>
-    /// Disconnect all WebSockets
+    /// Disconnect WebSocket
     /// </summary>
     public async Task DisconnectAsync()
     {
         _shouldReconnect = false;
-        _chatCts?.Cancel();
-        _taskCts?.Cancel();
+        _cts?.Cancel();
 
-        if (_chatSocket?.State == WebSocketState.Open)
+        if (_socket?.State == WebSocketState.Open)
         {
             try
             {
-                await _chatSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
-            }
-            catch { }
-        }
-
-        if (_taskSocket?.State == WebSocketState.Open)
-        {
-            try
-            {
-                await _taskSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
             }
             catch { }
         }
@@ -403,9 +272,7 @@ public class WebSocketService : IDisposable
 
     public void Dispose()
     {
-        _chatCts?.Cancel();
-        _taskCts?.Cancel();
-        _chatSocket?.Dispose();
-        _taskSocket?.Dispose();
+        _cts?.Cancel();
+        _socket?.Dispose();
     }
 }

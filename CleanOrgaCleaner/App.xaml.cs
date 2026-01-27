@@ -95,8 +95,7 @@ public partial class App : Application
     {
         try
         {
-            await WebSocketService.Instance.ConnectChatAsync();
-            await WebSocketService.Instance.ConnectTasksAsync();
+            await WebSocketService.Instance.ConnectAsync();
             System.Diagnostics.Debug.WriteLine("[App] WebSocket connected");
         }
         catch (Exception ex)
