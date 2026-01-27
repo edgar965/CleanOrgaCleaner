@@ -159,7 +159,7 @@
             </Border>
 
             <!-- Version -->
-            <Label Text="v1.15 (Build 64)"
+            <Label Text="v1.15 (Build 65)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

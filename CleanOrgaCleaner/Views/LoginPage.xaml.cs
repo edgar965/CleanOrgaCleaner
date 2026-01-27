@@ -235,18 +235,28 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
 
-                Log("GoToAsync START (MainThread)");
-                await MainThread.InvokeOnMainThreadAsync(
-                    () => Shell.Current.GoToAsync("//MainTabs/TodayPage"));
-                Log("GoToAsync DONE");
+                Log("GoToAsync START (MainThread, fire-and-forget)");
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try
+                    {
+                        await Task.Delay(50);
+                        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                        Log("GoToAsync DONE");
+                    }
+                    catch (Exception navEx) { Log($"Navigation ERROR: {navEx.Message}"); }
+                });
                 _ = App.InitializeWebSocketAsync();
                 return;
             }
             else if (result == null)
             {
                 Log("result=null (timeout) → navigate anyway");
-                await MainThread.InvokeOnMainThreadAsync(
-                    () => Shell.Current.GoToAsync("//MainTabs/TodayPage"));
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    try { await Task.Delay(50); await Shell.Current.GoToAsync("//MainTabs/TodayPage"); }
+                    catch (Exception navEx) { Log($"Navigation ERROR: {navEx.Message}"); }
+                });
                 return;
             }
             else
@@ -267,16 +277,22 @@ public partial class LoginPage : ContentPage
         {
             Log("TIMEOUT → navigate anyway");
             UpdateStatus("Timeout - lade App...");
-            await MainThread.InvokeOnMainThreadAsync(
-                () => Shell.Current.GoToAsync("//MainTabs/TodayPage"));
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try { await Task.Delay(50); await Shell.Current.GoToAsync("//MainTabs/TodayPage"); }
+                catch (Exception navEx) { Log($"Navigation ERROR: {navEx.Message}"); }
+            });
             return;
         }
         catch (Exception ex)
         {
             Log($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
             UpdateStatus($"Fehler: {ex.Message}");
-            await MainThread.InvokeOnMainThreadAsync(
-                () => Shell.Current.GoToAsync("//MainTabs/TodayPage"));
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                try { await Task.Delay(50); await Shell.Current.GoToAsync("//MainTabs/TodayPage"); }
+                catch (Exception navEx) { Log($"Navigation ERROR: {navEx.Message}"); }
+            });
             return;
         }
         finally
@@ -318,6 +334,11 @@ public partial class LoginPage : ContentPage
             ShowError(Translations.Get("error"));
             return;
         }
+
+        // Tastatur sofort schließen (iOS: RunLoop muss frei sein)
+        PropertyIdEntry.Unfocus();
+        UsernameEntry.Unfocus();
+        PasswordEntry.Unfocus();
 
         // UI-Werte lesen (auf UI-Thread)
         var uname = UsernameEntry.Text;
@@ -384,17 +405,25 @@ public partial class LoginPage : ContentPage
                     Translations.CurrentLanguage = language;
                     Log($"language set: {language}");
 
-                    // Biometric-Prompt + Navigation auf MainThread
-                    Log("BiometricPrompt + GoToAsync START (MainThread)");
-                    await MainThread.InvokeOnMainThreadAsync(async () =>
+                    // Navigation auf MainThread (fire-and-forget, blockiert nicht)
+                    Log("Navigate START (MainThread, fire-and-forget)");
+                    MainThread.BeginInvokeOnMainThread(async () =>
                     {
-                        Log("BiometricPrompt START");
-                        await PromptForBiometricLoginAsync();
-                        Log("BiometricPrompt DONE, GoToAsync START");
-                        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-                        Log("GoToAsync DONE");
+                        try
+                        {
+                            // RunLoop kurz atmen lassen (Tastatur-Dismiss, Status-Updates)
+                            await Task.Delay(50);
+                            Log("GoToAsync START");
+                            await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+                            Log("GoToAsync DONE");
+                            // Biometric-Prompt NACH Navigation (nicht blockierend)
+                            _ = PromptForBiometricLoginAsync();
+                        }
+                        catch (Exception navEx)
+                        {
+                            Log($"Navigation ERROR: {navEx.Message}");
+                        }
                     });
-                    Log("Navigation complete");
                     _ = App.InitializeWebSocketAsync();
                 }
                 else
