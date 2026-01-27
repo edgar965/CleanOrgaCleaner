@@ -46,28 +46,6 @@ public partial class LoginPage : ContentPage
         TestCredentialsLabel.Text = Translations.Get("login_test_credentials");
     }
 
-    // ================================================================
-    // v1.06 THREADING MODEL: Alles auf Main Thread mit async/await.
-    // Jeder await gibt dem iOS RunLoop Luft → UI bleibt responsive.
-    // KEIN Task.Run, KEIN ConfigureAwait(false), KEIN InvokeOnMainThreadAsync.
-    // ================================================================
-
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-
-        // Attempt auto-login only once per app session
-        if (!_autoLoginAttempted)
-        {
-            _autoLoginAttempted = true;
-            await TryAutoLoginAsync();
-        }
-    }
-
-    /// <summary>
-    /// Debug-Log auf dem Login-Screen anzeigen.
-    /// Läuft auf Main Thread → direkter UI-Zugriff.
-    /// </summary>
     private void Log(string msg)
     {
         var ms = _sw.ElapsedMilliseconds;
@@ -79,6 +57,18 @@ public partial class LoginPage : ContentPage
         if (_logLines.Count > 30)
             _logLines.RemoveAt(0);
         DebugLogLabel.Text = string.Join("\n", _logLines);
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+
+        // Attempt auto-login only once per app session
+        if (!_autoLoginAttempted)
+        {
+            _autoLoginAttempted = true;
+            await TryAutoLoginAsync();
+        }
     }
 
     private async void LoadSavedCredentials()
@@ -112,24 +102,21 @@ public partial class LoginPage : ContentPage
         }
     }
 
-    private const int LoginTimeoutSeconds = 10;
-
     /// <summary>
-    /// Auto-Login: Läuft auf Main Thread (v1.06 Modell).
-    /// Jeder await gibt dem RunLoop Luft.
+    /// Auto-Login: v1.06 Modell — direkter await, kein .WaitAsync(), kein CancellationToken.
     /// </summary>
     private async Task TryAutoLoginAsync()
     {
         Log("TryAutoLogin START");
 
         var rememberMe = Preferences.Get("remember_me", false);
-        if (!rememberMe) { Log("remember_me=false → skip"); return; }
+        if (!rememberMe) { Log("remember_me=false -> skip"); return; }
 
         var savedPropertyId = Preferences.Get("property_id", "");
         var savedUsername = Preferences.Get("username", "");
 
         if (string.IsNullOrEmpty(savedPropertyId) || string.IsNullOrEmpty(savedUsername))
-        { Log("no saved credentials → skip"); return; }
+        { Log("no saved credentials -> skip"); return; }
 
         Log($"credentials: prop={savedPropertyId} user={savedUsername}");
 
@@ -143,12 +130,12 @@ public partial class LoginPage : ContentPage
         catch (Exception ex) { Log($"SecureStorage ERROR: {ex.Message}"); }
 
         if (string.IsNullOrEmpty(savedPassword))
-        { Log("no saved password → skip"); return; }
+        { Log("no saved password -> skip"); return; }
 
         if (!int.TryParse(savedPropertyId, out int propertyId))
-        { Log("invalid property_id → skip"); return; }
+        { Log("invalid property_id -> skip"); return; }
 
-        // Check biometric
+        // Check if biometric login is enabled and available
         Log("check biometric");
         bool useBiometric = _biometricService.IsBiometricLoginEnabled();
         bool biometricAvailable = await _biometricService.IsBiometricAvailableAsync();
@@ -168,30 +155,33 @@ public partial class LoginPage : ContentPage
             {
                 LoginButton.IsEnabled = true;
                 LoginButton.Text = Translations.Get("login_title");
-                Log("biometric failed → abort");
+                Log("biometric failed -> abort");
                 return;
             }
         }
 
-        // Auto-login
+        // Show auto-login state
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
-        Log("LoginAsync START");
+        Log("LoginAsync START (v1.06 direct await)");
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
-            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword)
-                .WaitAsync(cts.Token);
+            // v1.06: direkter await OHNE .WaitAsync() und OHNE CancellationToken
+            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
-            if (result?.Success == true)
+            if (result.Success)
             {
+                Log("Login SUCCESS - applying language");
                 var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
+                Log($"language set to: {language}");
 
+                Log("InitializeWebSocketAsync");
                 _ = App.InitializeWebSocketAsync();
+                Log("WebSocket fire-and-forget done");
 
                 Log("GoToAsync START");
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
@@ -200,7 +190,7 @@ public partial class LoginPage : ContentPage
             }
             else
             {
-                Log($"login failed: {result?.ErrorMessage}");
+                Log($"Login FAILED: {result?.ErrorMessage}");
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
@@ -208,13 +198,10 @@ public partial class LoginPage : ContentPage
                 ShowError(result?.ErrorMessage ?? Translations.Get("connection_error"));
             }
         }
-        catch (OperationCanceledException)
-        {
-            Log($"TIMEOUT after {LoginTimeoutSeconds}s");
-        }
         catch (Exception ex)
         {
             Log($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex}");
         }
         finally
         {
@@ -230,7 +217,7 @@ public partial class LoginPage : ContentPage
     }
 
     /// <summary>
-    /// Manueller Login: v1.06 Modell — alles auf Main Thread mit async/await.
+    /// Manueller Login: v1.06 Modell — direkter await, kein .WaitAsync(), kein CancellationToken.
     /// </summary>
     private async void OnLoginClicked(object sender, EventArgs e)
     {
@@ -255,31 +242,35 @@ public partial class LoginPage : ContentPage
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
-        Log("LoginAsync START");
+        Log("LoginAsync START (v1.06 direct await)");
 
         try
         {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(LoginTimeoutSeconds));
+            // v1.06: direkter await OHNE .WaitAsync() und OHNE CancellationToken
             var result = await _apiService.LoginAsync(
                 propertyId,
                 UsernameEntry.Text,
-                PasswordEntry.Text)
-                .WaitAsync(cts.Token);
+                PasswordEntry.Text);
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)
             {
-                // Save credentials
+                Log("Login SUCCESS - saving credentials");
                 Preferences.Set("property_id", PropertyIdEntry.Text);
+                Log("property_id saved");
                 Preferences.Set("username", UsernameEntry.Text);
+                Log("username saved");
                 Preferences.Set("is_logged_in", true);
+                Log("is_logged_in saved");
 
                 if (RememberMeCheckbox.IsChecked)
                 {
                     Preferences.Set("remember_me", true);
                     try
                     {
+                        Log("SecureStorage.SetAsync START");
                         await SecureStorage.SetAsync("password", PasswordEntry.Text);
+                        Log("SecureStorage.SetAsync DONE");
                     }
                     catch (Exception ex)
                     {
@@ -295,31 +286,25 @@ public partial class LoginPage : ContentPage
                 var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
-                Log($"language: {language}");
+                Log($"language set to: {language}");
 
-                // Biometric prompt (v1.06 Modell)
                 Log("PromptBiometric START");
                 await PromptForBiometricLoginAsync();
                 Log("PromptBiometric DONE");
 
-                // WebSocket
+                Log("InitializeWebSocketAsync");
                 _ = App.InitializeWebSocketAsync();
+                Log("WebSocket fire-and-forget done");
 
-                // Navigate
                 Log("GoToAsync START");
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
                 Log("GoToAsync DONE");
             }
             else
             {
-                Log($"login failed: {result.ErrorMessage}");
+                Log($"Login FAILED: {result?.ErrorMessage}");
                 ShowError(result.ErrorMessage ?? Translations.Get("error"));
             }
-        }
-        catch (OperationCanceledException)
-        {
-            Log($"TIMEOUT after {LoginTimeoutSeconds}s");
-            ShowError($"Login-Timeout nach {LoginTimeoutSeconds}s. Server antwortet nicht.");
         }
         catch (Exception ex)
         {

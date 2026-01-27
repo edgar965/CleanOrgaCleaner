@@ -18,7 +18,7 @@
                 <Label Grid.Column="0"
                        Text="CleanOrga"
                        FontSize="28"
-                       FontAttributes="Bold"
+                       FontAttributes="Bold,Italic"
                        TextColor="#2196F3"
                        VerticalOptions="Center">
                     <Label.GestureRecognizers>
@@ -42,8 +42,8 @@
                 <!-- Start/Stop Work Button -->
                 <Button Grid.Column="2"
                         x:Name="WorkToggleButton"
-                        Text="▶️ Start"
-                        BackgroundColor="#2196F3"
+                        Text="Start"
+                        BackgroundColor="#4CAF50"
                         TextColor="White"
                         FontSize="16"
                         FontAttributes="Bold"

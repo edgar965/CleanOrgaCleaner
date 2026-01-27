@@ -88,12 +88,6 @@
                            HorizontalOptions="Center"
                            IsVisible="False"/>
 
-                    <Label x:Name="StatusLabel"
-                           TextColor="#666"
-                           FontSize="12"
-                           HorizontalOptions="Center"
-                           IsVisible="False"/>
-
                 </VerticalStackLayout>
             </Border>
 
@@ -159,7 +153,7 @@
             </Border>
 
             <!-- Version -->
-            <Label Text="v1.15 (Build 67)"
+            <Label Text="v1.15 (Build 68)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

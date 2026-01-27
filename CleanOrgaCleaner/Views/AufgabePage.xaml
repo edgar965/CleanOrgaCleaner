@@ -50,11 +50,10 @@
                 </Grid>
 
                 <!-- Tab Content: Aufgabe -->
-                <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
-                    <Border.Shadow><Shadow Brush="Black" Offset="0,4" Radius="15" Opacity="0.08"/></Border.Shadow>
+                <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="#f0f0f0" StrokeShape="RoundRectangle 15" Stroke="#e0e0e0" Padding="20">
                     <VerticalStackLayout Spacing="15">
-                        <Label x:Name="NoticeLabel" Text="" FontSize="15" TextColor="#666" LineHeight="1.5"
-                               Padding="15" BackgroundColor="#f5f5f5" IsVisible="False"/>
+                        <Label x:Name="NoticeLabel" Text="" FontSize="16" TextColor="#1a3a5c" LineHeight="1.5"
+                               IsVisible="False"/>
                         <Label x:Name="NoTaskDescriptionLabel" Text="Keine Aufgabenbeschreibung vorhanden"
                                FontSize="14" TextColor="#999" FontAttributes="Italic"
                                HorizontalTextAlignment="Center" IsVisible="True"/>

@@ -40,6 +40,9 @@ public partial class AppHeader : ContentView
         MenuSettingsButton.Text = "⚙️ " + t("settings");
         MenuLogoutButton.Text = "🚪 " + t("logout");
 
+        // Update work button text
+        UpdateWorkButton();
+
         // Work stop popup
         WorkStopQuestion.Text = t("cleaning_finished");
         WorkStopYesButton.Text = "✓ " + t("yes");
@@ -62,9 +65,8 @@ public partial class AppHeader : ContentView
 
     public void UpdateUserInfo()
     {
-        // Show only property ID number
-        var propertyId = Preferences.Get("property_id", "");
-        UserInfoLabel.Text = propertyId;
+        var username = _apiService.CleanerName ?? Preferences.Get("username", "");
+        UserInfoLabel.Text = username;
     }
 
     private void OnConnectionStatusChanged(bool isConnected)
@@ -104,13 +106,13 @@ public partial class AppHeader : ContentView
     {
         if (_isWorking)
         {
-            WorkToggleButton.Text = "⏹️ Stop";
-            WorkToggleButton.BackgroundColor = Color.FromArgb("#4CAF50");
+            WorkToggleButton.Text = "Stop";
+            WorkToggleButton.BackgroundColor = Color.FromArgb("#E91E63");
         }
         else
         {
-            WorkToggleButton.Text = "▶️ Start";
-            WorkToggleButton.BackgroundColor = Color.FromArgb("#2196F3");
+            WorkToggleButton.Text = "Start";
+            WorkToggleButton.BackgroundColor = Color.FromArgb("#4CAF50");
         }
     }
 
