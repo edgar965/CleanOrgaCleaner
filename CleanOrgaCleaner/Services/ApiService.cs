@@ -83,10 +83,10 @@ public class ApiService
     }
 
     /// <summary>
-    /// Async Login mit Debug-Logs nach jeder Zeile.
-    /// MUSS via Task.Run aufgerufen werden (sonst Deadlock auf iOS Main Thread).
+    /// Komplett synchroner Login - kein async/await, kein SynchronizationContext.
+    /// Muss von Task.Run() aufgerufen werden um UI nicht zu blockieren.
     /// </summary>
-    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    public LoginResult LoginSync(int propertyId, string username, string password)
     {
         try
         {
@@ -103,16 +103,42 @@ public class ApiService
             var json = JsonSerializer.Serialize(loginData);
             DbgLog($"JSON done: {json.Length} chars");
 
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            DbgLog("StringContent created");
+            var jsonBytes = Encoding.UTF8.GetBytes(json);
+            DbgLog($"HttpWebRequest START -> {BaseUrl}/mobile/api/login/");
 
-            DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
-            var response = await _httpClient.PostAsync("/mobile/api/login/", content);
-            DbgLog($"PostAsync DONE -> {response.StatusCode}");
+            var webReq = System.Net.HttpWebRequest.CreateHttp($"{BaseUrl}/mobile/api/login/");
+            webReq.Method = "POST";
+            webReq.ContentType = "application/json; charset=utf-8";
+            webReq.Accept = "application/json";
+            webReq.CookieContainer = _handler.CookieContainer;
+            webReq.Timeout = 30000;
+            webReq.ContentLength = jsonBytes.Length;
 
-            DbgLog("ReadAsStringAsync START");
-            var responseJson = await response.Content.ReadAsStringAsync();
-            DbgLog($"ReadAsStringAsync DONE -> {responseJson.Length} chars");
+            DbgLog("Writing request body");
+            using (var reqStream = webReq.GetRequestStream())
+            {
+                reqStream.Write(jsonBytes, 0, jsonBytes.Length);
+            }
+            DbgLog("GetResponse START");
+
+            string responseJson;
+            try
+            {
+                using var webResp = (System.Net.HttpWebResponse)webReq.GetResponse();
+                DbgLog($"GetResponse DONE -> {webResp.StatusCode}");
+                using var respStream = webResp.GetResponseStream();
+                using var reader = new System.IO.StreamReader(respStream);
+                responseJson = reader.ReadToEnd();
+            }
+            catch (System.Net.WebException wex) when (wex.Response is System.Net.HttpWebResponse errResp)
+            {
+                DbgLog($"HTTP Error -> {errResp.StatusCode}");
+                using var errStream = errResp.GetResponseStream();
+                using var errReader = new System.IO.StreamReader(errStream);
+                responseJson = errReader.ReadToEnd();
+            }
+            DbgLog($"Response -> {responseJson.Length} chars");
+            DbgLog($"JSON: {responseJson}");
 
             DbgLog("Deserialize START");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
@@ -151,6 +177,14 @@ public class ApiService
             DbgLog($"Stack: {ex.StackTrace}");
             return new LoginResult { Success = false, ErrorMessage = ex.Message };
         }
+    }
+
+    /// <summary>
+    /// Async wrapper - ruft LoginSync via Task.Run auf.
+    /// </summary>
+    public Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    {
+        return Task.Run(() => LoginSync(propertyId, username, password));
     }
 
     public void Logout()
