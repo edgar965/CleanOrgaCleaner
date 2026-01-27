@@ -63,6 +63,12 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
+        // Register debug callback so ApiService logs show on-screen
+        ApiService.DebugLog = (msg) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() => Log($"[API] {msg}"));
+        };
+
         // Attempt auto-login only once per app session
         if (!_autoLoginAttempted)
         {
@@ -163,13 +169,11 @@ public partial class LoginPage : ContentPage
         // Show auto-login state
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
-        Log("LoginAsync START (Task.Run to avoid iOS main-thread deadlock)");
+        Log("LoginAsync START (sync via Task.Run)");
 
         try
         {
-            // Task.Run: HTTP-Call vom Main Thread entkoppeln, damit iOS NSUrlSession
-            // den Main Thread nicht blockiert. Continuation kehrt per await zurueck.
-            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, savedUsername, savedPassword));
+            var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)
@@ -243,14 +247,14 @@ public partial class LoginPage : ContentPage
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
-        Log("LoginAsync START (Task.Run to avoid iOS main-thread deadlock)");
+        Log("LoginAsync START (sync via Task.Run)");
 
         try
         {
-            // Task.Run: HTTP-Call vom Main Thread entkoppeln
-            var user = UsernameEntry.Text;
-            var pass = PasswordEntry.Text;
-            var result = await Task.Run(() => _apiService.LoginAsync(propertyId, user, pass));
+            var result = await _apiService.LoginAsync(
+                propertyId,
+                UsernameEntry.Text,
+                PasswordEntry.Text);
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result.Success)

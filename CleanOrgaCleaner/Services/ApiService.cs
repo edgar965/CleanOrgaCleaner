@@ -32,6 +32,9 @@ public class ApiService
     public string? CleanerLanguage { get; private set; }
     public int? CleanerId { get; private set; }
 
+    // Debug callback for LoginPage to show logs on-screen
+    public static Action<string>? DebugLog { get; set; }
+
     // Offline support
     public bool IsOnline => WebSocketService.Instance.IsOnline;
 
@@ -73,10 +76,22 @@ public class ApiService
 
     #region Authentication
 
-    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    private static void DbgLog(string msg)
+    {
+        System.Diagnostics.Debug.WriteLine($"[LOGIN-DBG] {msg}");
+        DebugLog?.Invoke(msg);
+    }
+
+    /// <summary>
+    /// Komplett synchroner Login - kein async/await, kein SynchronizationContext.
+    /// Muss von Task.Run() aufgerufen werden um UI nicht zu blockieren.
+    /// </summary>
+    public LoginResult LoginSync(int propertyId, string username, string password)
     {
         try
         {
+            DbgLog($"ENTER prop={propertyId} user={username}");
+
             var loginData = new
             {
                 property_id = propertyId,
@@ -84,26 +99,42 @@ public class ApiService
                 password = password
             };
 
+            DbgLog("JSON serialize");
             var json = JsonSerializer.Serialize(loginData);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            DbgLog($"JSON done: {json.Length} chars");
 
-            System.Diagnostics.Debug.WriteLine($"Login: {BaseUrl}/mobile/api/login/");
-            var response = await _httpClient.PostAsync("/mobile/api/login/", content);
+            var request = new HttpRequestMessage(HttpMethod.Post, "/mobile/api/login/")
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+            DbgLog("HttpRequestMessage created");
 
-            var responseJson = await response.Content.ReadAsStringAsync();
-            System.Diagnostics.Debug.WriteLine($"Login response: {response.StatusCode} - {responseJson}");
+            DbgLog($"Send START -> {BaseUrl}/mobile/api/login/");
+            var response = _httpClient.Send(request);
+            DbgLog($"Send DONE -> {response.StatusCode}");
 
+            DbgLog("ReadAsStream START");
+            using var stream = response.Content.ReadAsStream();
+            using var reader = new System.IO.StreamReader(stream);
+            var responseJson = reader.ReadToEnd();
+            DbgLog($"ReadToEnd DONE -> {responseJson.Length} chars");
+
+            DbgLog("Deserialize START");
             var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
+            DbgLog($"Deserialize DONE -> success={result?.Success}");
 
             if (result?.Success == true)
             {
                 CleanerName = result.Cleaner?.Name;
                 CleanerLanguage = result.Cleaner?.Language ?? "de";
                 CleanerId = result.Cleaner?.Id;
+                DbgLog($"Cleaner: {CleanerName}, lang={CleanerLanguage}");
 
-                // Start heartbeat to maintain online status
+                DbgLog("StartHeartbeat");
                 StartHeartbeat();
+                DbgLog("StartHeartbeat DONE");
 
+                DbgLog("returning SUCCESS");
                 return new LoginResult
                 {
                     Success = true,
@@ -112,6 +143,7 @@ public class ApiService
                 };
             }
 
+            DbgLog($"returning FAILED: {result?.Error}");
             return new LoginResult
             {
                 Success = false,
@@ -120,9 +152,18 @@ public class ApiService
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Login error: {ex.Message}");
+            DbgLog($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            DbgLog($"Stack: {ex.StackTrace}");
             return new LoginResult { Success = false, ErrorMessage = ex.Message };
         }
+    }
+
+    /// <summary>
+    /// Async wrapper - ruft LoginSync via Task.Run auf.
+    /// </summary>
+    public Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    {
+        return Task.Run(() => LoginSync(propertyId, username, password));
     }
 
     public void Logout()
