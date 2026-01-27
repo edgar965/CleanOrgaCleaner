@@ -174,7 +174,7 @@ public partial class SettingsPage : ContentPage
         // Build display list for action sheet (show emoji or "Logo" for empty)
         var displayOptions = _avatarOptions.Select(a => string.IsNullOrEmpty(a) ? "🏠 Logo" : a).ToArray();
 
-        var result = await DisplayActionSheet(
+        var result = await DisplayActionSheetAsync(
             "Avatar waehlen",
             "Abbrechen",
             null,

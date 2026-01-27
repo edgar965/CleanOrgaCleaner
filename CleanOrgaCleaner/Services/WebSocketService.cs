@@ -2,6 +2,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 using CleanOrgaCleaner.Models;
+using CleanOrgaCleaner.Json;
 
 namespace CleanOrgaCleaner.Services;
 
@@ -180,7 +181,7 @@ public class WebSocketService : IDisposable
                 if (type == "chat_message" && root.TryGetProperty("message", out var msgElement))
                 {
                     // Chat message
-                    var message = JsonSerializer.Deserialize<ChatMessage>(msgElement.GetRawText());
+                    var message = JsonSerializer.Deserialize(msgElement.GetRawText(), AppJsonContext.Default.ChatMessage);
                     if (message != null)
                     {
                         MainThread.BeginInvokeOnMainThread(() =>

@@ -176,7 +176,7 @@ public partial class LoginPage : ContentPage
             var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
-            if (result.Success)
+            if (result?.Success == true)
             {
                 Log("Login SUCCESS - applying language");
                 var language = result.CleanerLanguage ?? "de";
@@ -257,7 +257,7 @@ public partial class LoginPage : ContentPage
                 PasswordEntry.Text));
             Log($"LoginAsync DONE: success={result?.Success}");
 
-            if (result.Success)
+            if (result?.Success == true)
             {
                 Log("Login SUCCESS - saving credentials");
                 Preferences.Set("property_id", PropertyIdEntry.Text);
@@ -307,7 +307,7 @@ public partial class LoginPage : ContentPage
             else
             {
                 Log($"Login FAILED: {result?.ErrorMessage}");
-                ShowError(result.ErrorMessage ?? Translations.Get("error"));
+                ShowError(result?.ErrorMessage ?? Translations.Get("error"));
             }
         }
         catch (Exception ex)

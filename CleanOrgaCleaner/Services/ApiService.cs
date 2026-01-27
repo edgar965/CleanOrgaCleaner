@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Models.Responses;
+using CleanOrgaCleaner.Json;
 
 namespace CleanOrgaCleaner.Services;
 
@@ -20,12 +21,8 @@ public class ApiService
     private static ApiService? _instance;
     private static readonly object _lock = new();
 
-    // JSON Serializer Options - wichtig für korrekte Deserialisierung
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+    // Source-generated JSON options (no reflection, iOS AOT compatible)
+    private static readonly JsonSerializerOptions _jsonOptions = AppJsonContext.Default.Options;
 
     // Store cleaner info after login
     public string? CleanerName { get; private set; }
@@ -106,7 +103,9 @@ public class ApiService
             var jsonBytes = Encoding.UTF8.GetBytes(json);
             DbgLog($"HttpWebRequest START -> {BaseUrl}/mobile/api/login/");
 
+#pragma warning disable SYSLIB0014 // HttpWebRequest is obsolete - intentional: HttpClient.Send() throws PlatformNotSupportedException on iOS
             var webReq = System.Net.HttpWebRequest.CreateHttp($"{BaseUrl}/mobile/api/login/");
+#pragma warning restore SYSLIB0014
             webReq.Method = "POST";
             webReq.ContentType = "application/json; charset=utf-8";
             webReq.Accept = "application/json";
@@ -140,16 +139,29 @@ public class ApiService
             DbgLog($"Response -> {responseJson.Length} chars");
             DbgLog($"JSON: {responseJson}");
 
-            DbgLog("Deserialize START");
-            var result = JsonSerializer.Deserialize<LoginResponse>(responseJson, _jsonOptions);
-            DbgLog($"Deserialize DONE -> success={result?.Success}");
+            // Manual JSON parsing - JsonSerializer.Deserialize hangs on iOS (AOT/reflection issue)
+            DbgLog("JsonDocument.Parse START");
+            using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+            var root = doc.RootElement;
+            DbgLog("JsonDocument.Parse DONE");
 
-            if (result?.Success == true)
+            var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
+
+            if (success)
             {
-                CleanerName = result.Cleaner?.Name;
-                CleanerLanguage = result.Cleaner?.Language ?? "de";
-                CleanerId = result.Cleaner?.Id;
-                DbgLog($"Cleaner: {CleanerName}, lang={CleanerLanguage}");
+                string? cleanerName = null;
+                int? cleanerId = null;
+
+                if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+                {
+                    cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                    cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+                }
+
+                CleanerName = cleanerName;
+                CleanerLanguage = null; // Language comes from client preferences
+                CleanerId = cleanerId;
+                DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
 
                 DbgLog("StartHeartbeat");
                 StartHeartbeat();
@@ -159,16 +171,17 @@ public class ApiService
                 return new LoginResult
                 {
                     Success = true,
-                    CleanerName = result.Cleaner?.Name,
-                    CleanerLanguage = result.Cleaner?.Language
+                    CleanerName = cleanerName,
+                    CleanerLanguage = null
                 };
             }
 
-            DbgLog($"returning FAILED: {result?.Error}");
+            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+            DbgLog($"returning FAILED: {error}");
             return new LoginResult
             {
                 Success = false,
-                ErrorMessage = result?.Error ?? "Login fehlgeschlagen"
+                ErrorMessage = error ?? "Login fehlgeschlagen"
             };
         }
         catch (Exception ex)
@@ -371,7 +384,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText)
+                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText, _jsonOptions)
                     ?? new WorkTimeResponse { Success = true };
             }
             return new WorkTimeResponse { Success = false, Error = responseText };
@@ -396,7 +409,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText)
+                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText, _jsonOptions)
                     ?? new WorkTimeResponse { Success = true };
             }
             return new WorkTimeResponse { Success = false, Error = responseText };
@@ -417,7 +430,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText);
+                return JsonSerializer.Deserialize<WorkTimeResponse>(responseText, _jsonOptions);
             }
             return null;
         }
@@ -446,7 +459,7 @@ public class ApiService
             var responseText = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"UpdateTaskState: {response.StatusCode} - {responseText}");
 
-            return JsonSerializer.Deserialize<TaskStateResponse>(responseText)
+            return JsonSerializer.Deserialize<TaskStateResponse>(responseText, _jsonOptions)
                 ?? new TaskStateResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -473,7 +486,7 @@ public class ApiService
                 $"/mobile/api/task/{taskId}/checklist/{itemIndex}/toggle/", null);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ChecklistToggleResponse>(responseText)
+            return JsonSerializer.Deserialize<ChecklistToggleResponse>(responseText, _jsonOptions)
                 ?? new ChecklistToggleResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -527,7 +540,7 @@ public class ApiService
             var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/notiz/", content);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -559,7 +572,7 @@ public class ApiService
             var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ProblemResponse>(responseText)
+            return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
                 ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -590,7 +603,7 @@ public class ApiService
             var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ProblemResponse>(responseText)
+            return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
                 ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -606,7 +619,7 @@ public class ApiService
             var response = await _httpClient.PostAsync($"/api/problem/{problemId}/delete/", null);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -667,7 +680,7 @@ public class ApiService
                 return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
             }
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -716,7 +729,7 @@ public class ApiService
                 return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
             }
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -740,7 +753,7 @@ public class ApiService
                 return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
             }
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -768,7 +781,7 @@ public class ApiService
                 return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
             }
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -851,7 +864,7 @@ public class ApiService
             {
                 var json = await response.Content.ReadAsStringAsync();
                 System.Diagnostics.Debug.WriteLine($"ChatMessages ({partnerId}): {json}");
-                var result = JsonSerializer.Deserialize<ChatMessagesResponse>(json);
+                var result = JsonSerializer.Deserialize<ChatMessagesResponse>(json, _jsonOptions);
                 return result?.Messages ?? new List<ChatMessage>();
             }
         }
@@ -874,7 +887,7 @@ public class ApiService
             var responseText = await response.Content.ReadAsStringAsync();
             System.Diagnostics.Debug.WriteLine($"SendChat: {response.StatusCode} - {responseText}");
 
-            return JsonSerializer.Deserialize<ChatSendResponse>(responseText)
+            return JsonSerializer.Deserialize<ChatSendResponse>(responseText, _jsonOptions)
                 ?? new ChatSendResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -894,7 +907,7 @@ public class ApiService
             var response = await _httpClient.PostAsync("/mobile/api/chat/preview-translation/", content);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<TranslationPreviewResponse>(responseText)
+            return JsonSerializer.Deserialize<TranslationPreviewResponse>(responseText, _jsonOptions)
                 ?? new TranslationPreviewResponse { Success = false };
         }
         catch (Exception ex)
@@ -923,7 +936,7 @@ public class ApiService
                 CleanerLanguage = language;
             }
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -943,7 +956,7 @@ public class ApiService
             var response = await _httpClient.PostAsync("/mobile/api/cleaner/avatar/", content);
             var responseText = await response.Content.ReadAsStringAsync();
 
-            return JsonSerializer.Deserialize<ApiResponse>(responseText)
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
@@ -965,7 +978,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                var result = JsonSerializer.Deserialize<CleanersListResponse>(responseText);
+                var result = JsonSerializer.Deserialize<CleanersListResponse>(responseText, _jsonOptions);
                 return result?.Cleaners ?? new List<CleanerInfo>();
             }
             return new List<CleanerInfo>();
@@ -986,7 +999,7 @@ public class ApiService
 
             if (response.IsSuccessStatusCode)
             {
-                return JsonSerializer.Deserialize<CleanersListResponse>(responseText);
+                return JsonSerializer.Deserialize<CleanersListResponse>(responseText, _jsonOptions);
             }
             return null;
         }

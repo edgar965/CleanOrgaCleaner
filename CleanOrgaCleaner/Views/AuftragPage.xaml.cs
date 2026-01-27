@@ -608,7 +608,8 @@ public partial class AuftragPage : ContentPage
     {
         try
         {
-            var photo = await MediaPicker.PickPhotoAsync();
+            var photos = await MediaPicker.Default.PickPhotosAsync();
+            var photo = photos?.FirstOrDefault();
             if (photo != null)
             {
                 _selectedImageFile = photo;

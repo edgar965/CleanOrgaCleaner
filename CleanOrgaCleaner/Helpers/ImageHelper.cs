@@ -42,7 +42,10 @@ public static class ImageHelper
     {
         return Task.Run(() =>
         {
-            using var uiImage = UIKit.UIImage.LoadFromData(Foundation.NSData.FromStream(inputStream));
+            var nsData = Foundation.NSData.FromStream(inputStream);
+            if (nsData == null)
+                throw new Exception("Could not read image data");
+            using var uiImage = UIKit.UIImage.LoadFromData(nsData);
             if (uiImage == null)
                 throw new Exception("Could not load image");
 
@@ -57,10 +60,11 @@ public static class ImageHelper
             if (newWidth != (int)originalWidth || newHeight != (int)originalHeight)
             {
                 var newSize = new CoreGraphics.CGSize(newWidth, newHeight);
-                UIKit.UIGraphics.BeginImageContextWithOptions(newSize, false, 1.0f);
-                uiImage.Draw(new CoreGraphics.CGRect(0, 0, newWidth, newHeight));
-                resizedImage = UIKit.UIGraphics.GetImageFromCurrentImageContext();
-                UIKit.UIGraphics.EndImageContext();
+                var renderer = new UIKit.UIGraphicsImageRenderer(newSize);
+                resizedImage = renderer.CreateImage((context) =>
+                {
+                    uiImage.Draw(new CoreGraphics.CGRect(0, 0, newWidth, newHeight));
+                });
             }
             else
             {
@@ -110,7 +114,7 @@ public static class ImageHelper
 
             // Compress to JPEG
             using var outputStream = new MemoryStream();
-            resizedBitmap.Compress(Android.Graphics.Bitmap.CompressFormat.Jpeg, (int)(JpegQuality * 100), outputStream);
+            resizedBitmap.Compress(Android.Graphics.Bitmap.CompressFormat.Jpeg!, (int)(JpegQuality * 100), outputStream);
 
             var bytes = outputStream.ToArray();
 

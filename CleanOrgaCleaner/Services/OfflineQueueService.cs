@@ -1,6 +1,7 @@
 using SQLite;
 using System.Text.Json;
 using CleanOrgaCleaner.Models;
+using CleanOrgaCleaner.Json;
 
 namespace CleanOrgaCleaner.Services;
 
@@ -50,7 +51,6 @@ public class OfflineQueueService : IDisposable
 {
     private SQLiteAsyncConnection? _database;
     private readonly string _dbPath;
-    private bool _isProcessing = false;
     private readonly SemaphoreSlim _processingLock = new(1, 1);
 
     private static OfflineQueueService? _instance;
@@ -250,7 +250,7 @@ public class OfflineQueueService : IDisposable
 
         try
         {
-            _isProcessing = true;
+            // processing started
             await InitializeAsync();
 
             var items = await GetPendingItemsAsync();
@@ -291,7 +291,7 @@ public class OfflineQueueService : IDisposable
         }
         finally
         {
-            _isProcessing = false;
+            // processing finished
             _processingLock.Release();
         }
     }
@@ -423,7 +423,7 @@ public class OfflineQueueService : IDisposable
         TaskAssignments? assignments = null;
         if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
         {
-            assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
+            assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
         }
 
         var response = await api.CreateAuftragAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
@@ -444,7 +444,7 @@ public class OfflineQueueService : IDisposable
         TaskAssignments? assignments = null;
         if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
         {
-            assignments = JsonSerializer.Deserialize<TaskAssignments>(assEl.GetRawText());
+            assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
         }
 
         var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);

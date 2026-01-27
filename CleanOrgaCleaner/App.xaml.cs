@@ -149,7 +149,9 @@ public partial class App : Application
                 }
 
                 // Show notification popup
-                var result = await Shell.Current.CurrentPage.DisplayAlertAsync(
+                currentPage = Shell.Current?.CurrentPage;
+                if (currentPage == null) return;
+                var result = await currentPage.DisplayAlertAsync(
                     $"Neue Nachricht von {message.Sender}",
                     message.Text,
                     "Zum Chat",
@@ -158,7 +160,8 @@ public partial class App : Application
                 if (result)
                 {
                     // Navigate to chat page
-                    await Shell.Current.GoToAsync("//MainTabs/ChatPage");
+                    if (Shell.Current != null)
+                        await Shell.Current.GoToAsync("//MainTabs/ChatPage");
                 }
             }
             catch (Exception ex)

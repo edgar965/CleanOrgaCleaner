@@ -823,10 +823,11 @@ public partial class AufgabePage : ContentPage
         try
         {
             // MediaPicker für iOS Fotos-App Zugriff
-            var photo = await MediaPicker.Default.PickPhotoAsync(new MediaPickerOptions
+            var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
             {
                 Title = "Bild auswählen"
             });
+            var photo = photos?.FirstOrDefault();
 
             if (photo != null)
             {

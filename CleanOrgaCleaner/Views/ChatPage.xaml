@@ -64,12 +64,13 @@
         <Grid Grid.Row="1" RowDefinitions="Auto,*,Auto">
 
             <!-- Offline Banner -->
-            <Frame Grid.Row="0" x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0">
+            <Border Grid.Row="0" x:Name="OfflineBanner" BackgroundColor="#ff9800" Padding="10" IsVisible="False" Margin="0"
+                    Stroke="Transparent" StrokeShape="RoundRectangle 0">
                 <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
                     <Label Text="Offline" TextColor="White" FontSize="13"/>
                     <ActivityIndicator x:Name="OfflineSpinner" IsRunning="True" Color="White" WidthRequest="16" HeightRequest="16"/>
                 </HorizontalStackLayout>
-            </Frame>
+            </Border>
 
             <!-- Messages -->
             <CollectionView Grid.Row="1" x:Name="MessagesCollection"
@@ -79,18 +80,18 @@
                     <DataTemplate>
                         <Grid Margin="3,2">
                             <!-- Eigene Nachrichten rechts -->
-                            <Frame Padding="10" CornerRadius="12" MaximumWidthRequest="280"
-                                   BackgroundColor="#dcf8c6" BorderColor="#25D366"
+                            <Border Padding="10" StrokeShape="RoundRectangle 12" MaximumWidthRequest="280"
+                                   BackgroundColor="#dcf8c6" Stroke="#25D366"
                                    HorizontalOptions="End"
                                    IsVisible="{Binding FromCurrentUser}">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
                                     <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
                                 </VerticalStackLayout>
-                            </Frame>
+                            </Border>
                             <!-- Nachrichten von anderen links -->
-                            <Frame Padding="10" CornerRadius="12" MaximumWidthRequest="280"
-                                   BackgroundColor="White" BorderColor="#ccc"
+                            <Border Padding="10" StrokeShape="RoundRectangle 12" MaximumWidthRequest="280"
+                                   BackgroundColor="White" Stroke="#ccc"
                                    HorizontalOptions="Start"
                                    IsVisible="{Binding IsFromOther}">
                                 <VerticalStackLayout Spacing="2">
@@ -100,7 +101,7 @@
                                            IsVisible="{Binding HasTranslation}"/>
                                     <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
                                 </VerticalStackLayout>
-                            </Frame>
+                            </Border>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -136,7 +137,7 @@
                 <TapGestureRecognizer Tapped="OnClosePreviewClicked"/>
             </Grid.GestureRecognizers>
 
-            <Frame BackgroundColor="#fff3e0" BorderColor="#e65100" CornerRadius="15"
+            <Border BackgroundColor="#fff3e0" Stroke="#e65100" StrokeShape="RoundRectangle 15"
                    Padding="15" Margin="20" VerticalOptions="Center" HorizontalOptions="Fill">
                 <VerticalStackLayout Spacing="10">
                     <Grid ColumnDefinitions="*,Auto">
@@ -149,21 +150,21 @@
                     </Grid>
 
                     <Label x:Name="YourTextLabel" Text="Dein Text:" FontSize="12" TextColor="#666"/>
-                    <Frame BackgroundColor="White" Padding="8" CornerRadius="6">
+                    <Border BackgroundColor="White" Padding="8" StrokeShape="RoundRectangle 6" Stroke="Transparent">
                         <Label x:Name="PreviewOriginalLabel" FontSize="13" TextColor="#333"/>
-                    </Frame>
+                    </Border>
 
                     <Label x:Name="TranslationForAdminLabel" Text="Uebersetzung:" FontSize="12" TextColor="#666"/>
-                    <Frame BackgroundColor="White" Padding="8" CornerRadius="6">
+                    <Border BackgroundColor="White" Padding="8" StrokeShape="RoundRectangle 6" Stroke="Transparent">
                         <Label x:Name="PreviewTranslatedLabel" FontSize="13" TextColor="#333" FontAttributes="Bold"/>
-                    </Frame>
+                    </Border>
 
                     <Label x:Name="BackTranslationLabel" Text="Rueckuebersetzung:" FontSize="12" TextColor="#666"/>
-                    <Frame BackgroundColor="White" Padding="8" CornerRadius="6">
+                    <Border BackgroundColor="White" Padding="8" StrokeShape="RoundRectangle 6" Stroke="Transparent">
                         <Label x:Name="PreviewBackLabel" FontSize="13" TextColor="#333" FontAttributes="Italic"/>
-                    </Frame>
+                    </Border>
                 </VerticalStackLayout>
-            </Frame>
+            </Border>
         </Grid>
 
         <!-- MENU OVERLAY -->
