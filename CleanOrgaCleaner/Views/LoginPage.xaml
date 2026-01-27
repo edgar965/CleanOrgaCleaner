@@ -138,8 +138,28 @@
 
             </VerticalStackLayout>
 
+            <!-- Debug Log -->
+            <Border BackgroundColor="#1a1a2e"
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="10"
+                    Margin="0,10,0,0">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Debug Log"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#00ff88"/>
+                    <Label x:Name="DebugLogLabel"
+                           Text=""
+                           FontSize="10"
+                           TextColor="#cccccc"
+                           FontFamily="Courier New"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Border>
+
             <!-- Version -->
-            <Label Text="v1.13 (Build 60)"
+            <Label Text="v1.15 (Build 63)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"
