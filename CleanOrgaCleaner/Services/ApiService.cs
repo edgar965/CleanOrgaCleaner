@@ -213,39 +213,7 @@ public class ApiService
                 var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content).ConfigureAwait(false);
                 DbgLog($"PostAsync DONE -> {response.StatusCode}");
 
-                var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                DbgLog($"Response -> {responseJson.Length} chars");
-
-                DbgLog("JsonDocument.Parse START");
-                using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
-                var root = doc.RootElement;
-                DbgLog("JsonDocument.Parse DONE");
-
-                var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
-                DbgLog($"success={success}");
-
-                if (success)
-                {
-                    string? cleanerName = null;
-                    int? cleanerId = null;
-
-                    if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
-                    {
-                        cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-                        cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
-                    }
-
-                    CleanerName = cleanerName;
-                    CleanerLanguage = null;
-                    CleanerId = cleanerId;
-                    DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
-                    DbgLog("returning SUCCESS");
-                    return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
-                }
-
-                var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-                DbgLog($"returning FAILED: {error}");
-                return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
+                return ParseLoginResponse(response);
             }
             catch (Exception ex)
             {
@@ -253,6 +221,49 @@ public class ApiService
                 return new LoginResult { Success = false, ErrorMessage = ex.Message };
             }
         });
+    }
+
+    /// <summary>
+    /// Synchron: Response lesen, JSON parsen, LoginResult bauen.
+    /// Wird auf Thread-Pool-Thread aufgerufen, kein async noetig.
+    /// </summary>
+    private LoginResult ParseLoginResponse(HttpResponseMessage response)
+    {
+        using var stream = response.Content.ReadAsStream();
+        using var reader = new System.IO.StreamReader(stream);
+        var responseJson = reader.ReadToEnd();
+        DbgLog($"Response -> {responseJson.Length} chars");
+
+        DbgLog("JsonDocument.Parse START");
+        using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+        var root = doc.RootElement;
+        DbgLog("JsonDocument.Parse DONE");
+
+        var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
+        DbgLog($"success={success}");
+
+        if (success)
+        {
+            string? cleanerName = null;
+            int? cleanerId = null;
+
+            if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+            {
+                cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+            }
+
+            CleanerName = cleanerName;
+            CleanerLanguage = null;
+            CleanerId = cleanerId;
+            DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
+            DbgLog("returning SUCCESS");
+            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
+        }
+
+        var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+        DbgLog($"returning FAILED: {error}");
+        return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
     }
 
     public void Logout()
