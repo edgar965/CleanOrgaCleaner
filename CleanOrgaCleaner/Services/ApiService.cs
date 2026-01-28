@@ -217,6 +217,10 @@ public class ApiService
                 var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 DbgLog($"ReadAsStringAsync DONE -> {responseJson.Length} chars");
 
+                // Log ersten 200 Zeichen des JSON zur Diagnose
+                var preview = responseJson.Length > 200 ? responseJson.Substring(0, 200) + "..." : responseJson;
+                DbgLog($"JSON: {preview}");
+
                 return ParseLoginResponse(responseJson);
             }
             catch (Exception ex)
@@ -232,44 +236,52 @@ public class ApiService
     /// </summary>
     private LoginResult ParseLoginResponse(string responseJson)
     {
-        DbgLog("JsonDocument.Parse START");
-        using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
-        DbgLog("JsonDocument.Parse DONE");
-
-        var root = doc.RootElement;
-        DbgLog("root.RootElement OK");
-
-        var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
-        DbgLog($"success={success}");
-
-        if (!success)
+        try
         {
-            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-            DbgLog($"returning FAILED: {error}");
-            return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
+            DbgLog("JsonDocument.Parse START");
+            using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+            DbgLog("JsonDocument.Parse DONE");
+
+            var root = doc.RootElement;
+            DbgLog("root.RootElement OK");
+
+            var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
+            DbgLog($"success={success}");
+
+            if (!success)
+            {
+                var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+                DbgLog($"returning FAILED: {error}");
+                return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
+            }
+
+            string? cleanerName = null;
+            int? cleanerId = null;
+            DbgLog("reading cleaner object");
+
+            if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+            {
+                DbgLog("cleaner object found");
+                cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                DbgLog($"cleanerName={cleanerName}");
+                cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+                DbgLog($"cleanerId={cleanerId}");
+            }
+
+            CleanerName = cleanerName;
+            DbgLog("CleanerName set");
+            CleanerLanguage = null;
+            CleanerId = cleanerId;
+            DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
+
+            DbgLog("returning SUCCESS");
+            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
         }
-
-        string? cleanerName = null;
-        int? cleanerId = null;
-        DbgLog("reading cleaner object");
-
-        if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+        catch (Exception ex)
         {
-            DbgLog("cleaner object found");
-            cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-            DbgLog($"cleanerName={cleanerName}");
-            cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
-            DbgLog($"cleanerId={cleanerId}");
+            DbgLog($"ParseLoginResponse EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+            return new LoginResult { Success = false, ErrorMessage = $"JSON Parse Error: {ex.Message}" };
         }
-
-        CleanerName = cleanerName;
-        DbgLog("CleanerName set");
-        CleanerLanguage = null;
-        CleanerId = cleanerId;
-        DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
-
-        DbgLog("returning SUCCESS");
-        return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
     }
 
     public void Logout()
