@@ -247,14 +247,14 @@ public partial class LoginPage : ContentPage
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
-        Log("LoginAsync START (sync via Task.Run)");
+        Log("LoginAsync START");
 
         try
         {
-            var result = await Task.Run(() => _apiService.LoginAsync(
+            var result = await _apiService.LoginAsync(
                 propertyId,
                 UsernameEntry.Text,
-                PasswordEntry.Text));
+                PasswordEntry.Text);
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result?.Success == true)
