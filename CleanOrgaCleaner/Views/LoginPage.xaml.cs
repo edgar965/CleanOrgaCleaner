@@ -48,17 +48,9 @@ public partial class LoginPage : ContentPage
 
     private void Log(string msg)
     {
-        var ms = _sw.ElapsedMilliseconds;
-        var line = $"[{ms,5}ms] {msg}";
-
-        // In Datei schreiben (für nächsten Start)
-        ApiService.WriteLog(line);
-
-        // Auch auf Screen anzeigen (für aktuelle Session)
-        _logLines.Add(line);
-        if (_logLines.Count > 30)
-            _logLines.RemoveAt(0);
-        DebugLogLabel.Text = string.Join("\n", _logLines);
+        // NUR Debug-Output, KEIN File-I/O, KEIN Screen-Update
+        // File-Logging passiert nur in ApiService (Background-Thread)
+        System.Diagnostics.Debug.WriteLine($"[LOGIN] [{_sw.ElapsedMilliseconds}ms] {msg}");
     }
 
     protected override async void OnAppearing()
@@ -402,8 +394,8 @@ public partial class LoginPage : ContentPage
             var biometricType = await _biometricService.GetBiometricTypeAsync();
             Log($"PromptBiometric: type={biometricType}");
 
-            Log("PromptBiometric: DisplayAlertAsync START");
-            var enableBiometric = await DisplayAlertAsync(
+            Log("PromptBiometric: DisplayAlert START");
+            var enableBiometric = await DisplayAlert(
                 biometricType,
                 $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
                 "Ja",
