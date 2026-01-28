@@ -5,7 +5,26 @@
              BackgroundColor="#2196F3">
 
     <ScrollView>
-        <VerticalStackLayout Padding="30,50,30,30" Spacing="20">
+        <VerticalStackLayout Padding="30,20,30,30" Spacing="15">
+
+            <!-- Debug Log - ganz oben -->
+            <Border BackgroundColor="#1a1a2e"
+                    StrokeShape="RoundRectangle 10"
+                    Stroke="Transparent"
+                    Padding="10">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Debug Log"
+                           FontSize="13"
+                           FontAttributes="Bold"
+                           TextColor="#00ff88"/>
+                    <Label x:Name="DebugLogLabel"
+                           Text=""
+                           FontSize="10"
+                           TextColor="#cccccc"
+                           FontFamily="Courier New"
+                           LineBreakMode="WordWrap"/>
+                </VerticalStackLayout>
+            </Border>
 
             <!-- Title -->
             <Label Text="CleanOrga"
@@ -15,7 +34,7 @@
                    HorizontalOptions="Center"/>
 
             <!-- Logo -->
-            <Image Source="logo_transparent.png" WidthRequest="80" HeightRequest="80" HorizontalOptions="Center"/>
+            <Image Source="logo_transparent.png" WidthRequest="60" HeightRequest="60" HorizontalOptions="Center"/>
 
             <!-- Subtitle -->
             <Label x:Name="SubtitleLabel" Text="Cleaning Management"
@@ -132,28 +151,8 @@
 
             </VerticalStackLayout>
 
-            <!-- Debug Log -->
-            <Border BackgroundColor="#1a1a2e"
-                    StrokeShape="RoundRectangle 10"
-                    Stroke="Transparent"
-                    Padding="10"
-                    Margin="0,10,0,0">
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Debug Log"
-                           FontSize="13"
-                           FontAttributes="Bold"
-                           TextColor="#00ff88"/>
-                    <Label x:Name="DebugLogLabel"
-                           Text=""
-                           FontSize="10"
-                           TextColor="#cccccc"
-                           FontFamily="Courier New"
-                           LineBreakMode="WordWrap"/>
-                </VerticalStackLayout>
-            </Border>
-
             <!-- Version -->
-            <Label Text="v1.16 (Build 83)"
+            <Label Text="v1.16 (Build 84)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

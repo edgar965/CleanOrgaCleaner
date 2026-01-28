@@ -259,6 +259,12 @@ public partial class LoginPage : ContentPage
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
+
+        // Async-Kontext aufwärmen (wie in TryAutoLoginAsync durch SecureStorage.GetAsync)
+        Log("async warmup");
+        await Task.Delay(1);
+        Log("warmup done");
+
         Log("LoginAsync START");
 
         try
