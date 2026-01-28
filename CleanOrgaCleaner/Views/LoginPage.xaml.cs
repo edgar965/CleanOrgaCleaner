@@ -81,7 +81,7 @@ public partial class LoginPage : ContentPage
     {
         var savedPropertyId = Preferences.Get("property_id", "");
         var savedUsername = Preferences.Get("username", "");
-        var rememberMe = Preferences.Get("remember_me", false);
+        var rememberMe = Preferences.Get("remember_me", true);  // Default true bei Neuinstallation
 
         if (!string.IsNullOrEmpty(savedPropertyId))
             PropertyIdEntry.Text = savedPropertyId;
