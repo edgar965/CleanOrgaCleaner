@@ -176,10 +176,17 @@ public partial class LoginPage : ContentPage
             var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
-            if (result?.Success == true)
+            if (result == null)
+            {
+                Log("Login result is null");
+                ShowError(Translations.Get("connection_error"));
+                return;
+            }
+
+            if (result.Success)
             {
                 Log("Login SUCCESS - applying language");
-                var language = result?.CleanerLanguage ?? "de";
+                var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
@@ -195,12 +202,12 @@ public partial class LoginPage : ContentPage
             }
             else
             {
-                Log($"Login FAILED: {result?.ErrorMessage}");
+                Log($"Login FAILED: {result.ErrorMessage}");
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
                 PasswordEntry.Text = "";
-                ShowError(result?.ErrorMessage ?? Translations.Get("connection_error"));
+                ShowError(result.ErrorMessage ?? Translations.Get("connection_error"));
             }
         }
         catch (Exception ex)
@@ -257,7 +264,14 @@ public partial class LoginPage : ContentPage
                 PasswordEntry.Text);
             Log($"LoginAsync DONE: success={result?.Success}");
 
-            if (result?.Success == true)
+            if (result == null)
+            {
+                Log("Login result is null");
+                ShowError(Translations.Get("connection_error"));
+                return;
+            }
+
+            if (result.Success)
             {
                 Log("Login SUCCESS - saving credentials");
                 Preferences.Set("property_id", PropertyIdEntry.Text);
@@ -287,7 +301,7 @@ public partial class LoginPage : ContentPage
                     SecureStorage.Remove("password");
                 }
 
-                var language = result?.CleanerLanguage ?? "de";
+                var language = result.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
@@ -306,8 +320,8 @@ public partial class LoginPage : ContentPage
             }
             else
             {
-                Log($"Login FAILED: {result?.ErrorMessage}");
-                ShowError(result?.ErrorMessage ?? Translations.Get("error"));
+                Log($"Login FAILED: {result.ErrorMessage}");
+                ShowError(result.ErrorMessage ?? Translations.Get("error"));
             }
         }
         catch (Exception ex)
