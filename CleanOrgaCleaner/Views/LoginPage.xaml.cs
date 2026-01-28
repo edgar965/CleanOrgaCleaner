@@ -51,8 +51,10 @@ public partial class LoginPage : ContentPage
         var ms = _sw.ElapsedMilliseconds;
         var line = $"[{ms,5}ms] {msg}";
 
-        System.Diagnostics.Debug.WriteLine($"[LOGIN-DBG] {line}");
+        // In Datei schreiben (für nächsten Start)
+        ApiService.WriteLog(line);
 
+        // Auch auf Screen anzeigen (für aktuelle Session)
         _logLines.Add(line);
         if (_logLines.Count > 30)
             _logLines.RemoveAt(0);
@@ -63,11 +65,15 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
-        // Register debug callback so ApiService logs show on-screen
-        ApiService.DebugLog = (msg) =>
+        // Zeige Logs vom letzten Start (falls vorhanden)
+        var previousLogs = ApiService.GetPreviousLogs();
+        if (!string.IsNullOrEmpty(previousLogs))
         {
-            MainThread.BeginInvokeOnMainThread(() => Log($"[API] {msg}"));
-        };
+            DebugLogLabel.Text = "=== LOGS VOM LETZTEN START ===\n" + previousLogs + "\n=== AKTUELLER START ===\n";
+        }
+
+        // Starte neues File-Logging (löscht alte Datei)
+        ApiService.InitFileLogging();
 
         // Attempt auto-login only once per app session
         if (!_autoLoginAttempted)

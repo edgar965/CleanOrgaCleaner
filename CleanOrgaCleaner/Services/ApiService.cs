@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -73,11 +74,60 @@ public class ApiService
 
     #region Authentication
 
-    private static void DbgLog(string msg)
+    // Datei-Logging für iOS (kein UI-Thread während Login)
+    private static string? _logFilePath;
+    private static readonly object _logLock = new object();
+
+    public static void InitFileLogging()
     {
-        System.Diagnostics.Debug.WriteLine($"[LOGIN-DBG] {msg}");
-        DebugLog?.Invoke(msg);
+        var dir = FileSystem.CacheDirectory;
+        _logFilePath = Path.Combine(dir, "login_debug.log");
+
+        // Alte Log-Datei löschen, neue anfangen
+        try
+        {
+            if (File.Exists(_logFilePath))
+                File.Delete(_logFilePath);
+        }
+        catch { }
     }
+
+    public static string? GetPreviousLogs()
+    {
+        var dir = FileSystem.CacheDirectory;
+        var path = Path.Combine(dir, "login_debug.log");
+
+        try
+        {
+            if (File.Exists(path))
+                return File.ReadAllText(path);
+        }
+        catch { }
+        return null;
+    }
+
+    public static void WriteLog(string msg)
+    {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        var line = $"[{timestamp}] {msg}";
+
+        System.Diagnostics.Debug.WriteLine($"[LOGIN-DBG] {line}");
+
+        // In Datei schreiben (synchron, thread-safe)
+        if (_logFilePath != null)
+        {
+            lock (_logLock)
+            {
+                try
+                {
+                    File.AppendAllText(_logFilePath, line + "\n");
+                }
+                catch { }
+            }
+        }
+    }
+
+    private static void DbgLog(string msg) => WriteLog($"[API] {msg}");
 
     /// <summary>
     /// Komplett synchroner Login - kein async/await, kein SynchronizationContext.
