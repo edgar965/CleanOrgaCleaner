@@ -48,9 +48,11 @@ public partial class LoginPage : ContentPage
 
     private void Log(string msg)
     {
-        // NUR Debug-Output, KEIN File-I/O, KEIN Screen-Update
-        // File-Logging passiert nur in ApiService (Background-Thread)
-        System.Diagnostics.Debug.WriteLine($"[LOGIN] [{_sw.ElapsedMilliseconds}ms] {msg}");
+        var logLine = $"[LOGIN] [{_sw.ElapsedMilliseconds}ms] {msg}";
+        System.Diagnostics.Debug.WriteLine(logLine);
+
+        // Fire-and-forget file logging (non-blocking)
+        _ = Task.Run(() => ApiService.WriteLog(logLine));
     }
 
     protected override async void OnAppearing()
