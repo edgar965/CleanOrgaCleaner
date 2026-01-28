@@ -1,12 +1,7 @@
 name: iOS Build & Deploy
 
 on:
-  push:
-    branches: [ master ]
-    paths:
-      - 'CleanOrgaCleaner/**'
-      - '.github/workflows/ios-build.yml'
-  workflow_dispatch:  # Manueller Trigger
+  workflow_dispatch:  # Nur manueller Trigger - kein automatischer Build bei Push
 
 concurrency:
   group: ios-build-${{ github.ref }}
