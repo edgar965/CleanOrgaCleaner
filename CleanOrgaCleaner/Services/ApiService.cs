@@ -210,10 +210,10 @@ public class ApiService
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
                 DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
-                var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content);
+                var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content).ConfigureAwait(false);
                 DbgLog($"PostAsync DONE -> {response.StatusCode}");
 
-                var responseJson = await response.Content.ReadAsStringAsync();
+                var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 DbgLog($"Response -> {responseJson.Length} chars");
 
                 DbgLog("JsonDocument.Parse START");
