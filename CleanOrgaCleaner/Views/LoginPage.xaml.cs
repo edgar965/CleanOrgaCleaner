@@ -169,46 +169,51 @@ public partial class LoginPage : ContentPage
         // Show auto-login state
         LoginButton.IsEnabled = false;
         LoginButton.Text = Translations.Get("loading");
-        Log("LoginAsync START (sync via Task.Run)");
+        Log("LoginAsync START");
 
         try
         {
+            // 1. Pure login (runs on thread pool)
             var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
             if (result == null)
             {
-                Log("Login result is null");
+                Log("result is null");
                 ShowError(Translations.Get("connection_error"));
                 return;
             }
 
-            if (result.Success)
+            if (!result.Success)
             {
-                Log("Login SUCCESS - applying language");
-                var language = result.CleanerLanguage ?? "de";
-                Preferences.Set("language", language);
-                Translations.CurrentLanguage = language;
-                Log($"language set to: {language}");
-
-                Log("InitializeWebSocketAsync");
-                _ = App.InitializeWebSocketAsync();
-                Log("WebSocket fire-and-forget done");
-
-                Log("GoToAsync START");
-                await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-                Log("GoToAsync DONE");
-                return;
-            }
-            else
-            {
-                Log($"Login FAILED: {result.ErrorMessage}");
+                Log($"FAILED: {result.ErrorMessage}");
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
                 RememberMeCheckbox.IsChecked = false;
                 PasswordEntry.Text = "";
                 ShowError(result.ErrorMessage ?? Translations.Get("connection_error"));
+                return;
             }
+
+            // 2. Login OK - setup on UI thread, step by step
+            Log("setting language");
+            var language = result.CleanerLanguage ?? "de";
+            Preferences.Set("language", language);
+            Translations.CurrentLanguage = language;
+            Log($"language={language}");
+
+            Log("StartHeartbeat");
+            _apiService.StartHeartbeat();
+            Log("StartHeartbeat DONE");
+
+            Log("InitializeWebSocketAsync");
+            _ = App.InitializeWebSocketAsync();
+            Log("WebSocket started");
+
+            Log("GoToAsync START");
+            await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+            Log("GoToAsync DONE");
+            return;
         }
         catch (Exception ex)
         {
@@ -305,6 +310,10 @@ public partial class LoginPage : ContentPage
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
+
+                Log("StartHeartbeat");
+                _apiService.StartHeartbeat();
+                Log("StartHeartbeat DONE");
 
                 Log("PromptBiometric START");
                 await PromptForBiometricLoginAsync();

@@ -193,60 +193,66 @@ public class ApiService
     }
 
     /// <summary>
-    /// Async login via HttpClient.PostAsync + JsonDocument.Parse (reflection-free).
-    /// HttpClient.PostAsync works on all platforms. JsonDocument avoids iOS AOT hang.
+    /// Pure login: HTTP POST + JSON parse. No side effects (no heartbeat, no websocket).
+    /// Call StartHeartbeat() separately after login succeeds.
+    /// Uses Task.Run internally so PostAsync runs off the UI thread (iOS MAUI requirement).
     /// </summary>
-    public async Task<LoginResult> LoginAsync(int propertyId, string username, string password)
+    public Task<LoginResult> LoginAsync(int propertyId, string username, string password)
     {
-        try
+        return Task.Run(async () =>
         {
-            DbgLog($"ENTER prop={propertyId} user={username}");
-            var loginData = new { property_id = propertyId, username, password };
-            var json = JsonSerializer.Serialize(loginData);
-            DbgLog($"done: {json.Length} chars");
-
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-            DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
-            var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content).ConfigureAwait(false);
-            DbgLog($"PostAsync DONE -> {response.StatusCode}");
-
-            var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            DbgLog($"Response -> {responseJson.Length} chars");
-
-            using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
-            var root = doc.RootElement;
-
-            var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
-
-            if (success)
+            try
             {
-                string? cleanerName = null;
-                int? cleanerId = null;
+                DbgLog($"ENTER prop={propertyId} user={username}");
+                var loginData = new { property_id = propertyId, username, password };
+                var json = JsonSerializer.Serialize(loginData);
+                DbgLog($"done: {json.Length} chars");
 
-                if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
+                var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content);
+                DbgLog($"PostAsync DONE -> {response.StatusCode}");
+
+                var responseJson = await response.Content.ReadAsStringAsync();
+                DbgLog($"Response -> {responseJson.Length} chars");
+
+                DbgLog("JsonDocument.Parse START");
+                using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
+                var root = doc.RootElement;
+                DbgLog("JsonDocument.Parse DONE");
+
+                var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
+                DbgLog($"success={success}");
+
+                if (success)
                 {
-                    cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-                    cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+                    string? cleanerName = null;
+                    int? cleanerId = null;
+
+                    if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+                    {
+                        cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+                        cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+                    }
+
+                    CleanerName = cleanerName;
+                    CleanerLanguage = null;
+                    CleanerId = cleanerId;
+                    DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
+                    DbgLog("returning SUCCESS");
+                    return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
                 }
 
-                CleanerName = cleanerName;
-                CleanerLanguage = null;
-                CleanerId = cleanerId;
-                DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
-
-                StartHeartbeat();
-                return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
+                var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+                DbgLog($"returning FAILED: {error}");
+                return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
             }
-
-            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-            DbgLog($"returning FAILED: {error}");
-            return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
-        }
-        catch (Exception ex)
-        {
-            DbgLog($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
-            return new LoginResult { Success = false, ErrorMessage = ex.Message };
-        }
+            catch (Exception ex)
+            {
+                DbgLog($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+                return new LoginResult { Success = false, ErrorMessage = ex.Message };
+            }
+        });
     }
 
     public void Logout()
