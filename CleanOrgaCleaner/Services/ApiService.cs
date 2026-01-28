@@ -209,11 +209,18 @@ public class ApiService
                 DbgLog($"done: {json.Length} chars");
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
-                var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content).ConfigureAwait(false);
+                DbgLog($"PostAsync START (HeadersRead) -> {BaseUrl}/mobile/api/login/");
+                var response = await _httpClient.SendAsync(
+                    new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/mobile/api/login/") { Content = content },
+                    HttpCompletionOption.ResponseHeadersRead
+                ).ConfigureAwait(false);
                 DbgLog($"PostAsync DONE -> {response.StatusCode}");
 
-                return ParseLoginResponse(response);
+                DbgLog("ReadAsStringAsync START");
+                var responseJson = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                DbgLog($"ReadAsStringAsync DONE -> {responseJson.Length} chars");
+
+                return ParseLoginResponse(responseJson);
             }
             catch (Exception ex)
             {
@@ -224,27 +231,10 @@ public class ApiService
     }
 
     /// <summary>
-    /// Komplett synchron: Response lesen, JSON parsen, LoginResult bauen.
+    /// Synchron: JSON parsen, LoginResult bauen.
     /// </summary>
-    private LoginResult ParseLoginResponse(HttpResponseMessage response)
+    private LoginResult ParseLoginResponse(string responseJson)
     {
-        DbgLog("ReadAsStream START");
-        var stream = response.Content.ReadAsStream();
-        DbgLog($"ReadAsStream DONE -> stream={stream != null}");
-
-        DbgLog("new StreamReader START");
-        var reader = new System.IO.StreamReader(stream);
-        DbgLog("StreamReader DONE");
-
-        DbgLog("ReadToEnd START");
-        var responseJson = reader.ReadToEnd();
-        DbgLog($"ReadToEnd DONE -> {responseJson.Length} chars");
-
-        reader.Dispose();
-        DbgLog("reader disposed");
-        stream.Dispose();
-        DbgLog("stream disposed");
-
         DbgLog("JsonDocument.Parse START");
         using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
         DbgLog("JsonDocument.Parse DONE");
