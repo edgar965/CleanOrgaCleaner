@@ -15,29 +15,43 @@ public partial class TodayPage : ContentPage
     private readonly WebSocketService _webSocketService;
     private List<CleaningTask> _tasks = new();
 
+    private static void Log(string msg)
+    {
+        var line = $"[TODAY] {msg}";
+        System.Diagnostics.Debug.WriteLine(line);
+        _ = Task.Run(() => ApiService.WriteLog(line));
+    }
+
     public TodayPage()
     {
+        Log("Constructor START");
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
+        Log("Constructor DONE");
     }
 
     protected override async void OnAppearing()
     {
+        Log("OnAppearing START");
         base.OnAppearing();
 
-        // Subscribe to task updates
+        Log("Subscribe OnTaskUpdate");
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
-        // Initialize header (handles translations, user info, work status, offline banner)
+        Log("Header.InitializeAsync fire-and-forget");
         _ = Header.InitializeAsync();
+
+        Log("Header.SetPageTitle");
         Header.SetPageTitle("today");
 
-        // Ensure WebSocket is connected (for auto-login case)
+        Log("WebSocket fire-and-forget");
         _ = App.InitializeWebSocketAsync();
 
-        // Load tasks (fire-and-forget to not block UI)
+        Log("LoadTasksAsync fire-and-forget");
         _ = LoadTasksAsync();
+
+        Log("OnAppearing DONE");
     }
 
     protected override void OnDisappearing()
@@ -63,25 +77,31 @@ public partial class TodayPage : ContentPage
 
     private async Task LoadTasksAsync()
     {
+        Log("LoadTasksAsync START");
         try
         {
+            Log("GetTodayDataAsync START");
             var data = await _apiService.GetTodayDataAsync();
+            Log($"GetTodayDataAsync DONE: {data?.Tasks?.Count ?? 0} tasks");
             _tasks = data.Tasks;
 
             // Apply translations for page-specific elements
             NoTasksLabel.Text = Translations.Get("no_tasks");
 
-            // Build task grid
+            Log("BuildTaskGrid START");
             BuildTaskGrid();
+            Log("BuildTaskGrid DONE");
         }
         catch (Exception ex)
         {
+            Log($"LoadTasksAsync ERROR: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"LoadTasks error: {ex.Message}");
             // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
             NoTasksLabel.Text = Translations.Get("connection_error");
             EmptyStateView.IsVisible = true;
             TaskRefreshView.IsVisible = false;
         }
+        Log("LoadTasksAsync END");
     }
 
     private void BuildTaskGrid()
@@ -90,6 +110,7 @@ public partial class TodayPage : ContentPage
 
         if (_tasks.Count == 0)
         {
+            Log("BuildTaskGrid: no tasks, showing empty state");
             EmptyStateView.IsVisible = true;
             TaskRefreshView.IsVisible = false;
             return;
