@@ -353,7 +353,7 @@ public class ApiService
         try
         {
             // Server-Logout aufrufen (sendet Offline-Status via WebSocket)
-            await _httpClient.PostAsync("/mobile/api/logout/", null);
+            await _httpClient.PostAsync("/mobile/api/logout/", null).ConfigureAwait(false);
         }
         catch
         {
@@ -402,11 +402,11 @@ public class ApiService
                 url = $"{BaseUrl}{url}";
 
             System.Diagnostics.Debug.WriteLine($"GetImageAsync: {url}");
-            var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
-                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
                 System.Diagnostics.Debug.WriteLine($"GetImageAsync: Got {bytes.Length} bytes");
                 return ImageSource.FromStream(() => new MemoryStream(bytes));
             }
@@ -507,8 +507,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/cleaner/start-time/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/cleaner/start-time/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"StartWork: {response.StatusCode} - {responseText}");
 
             if (response.IsSuccessStatusCode)
@@ -532,8 +532,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/cleaner/end-time/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/cleaner/end-time/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"EndWork: {response.StatusCode} - {responseText}");
 
             if (response.IsSuccessStatusCode)
@@ -553,8 +553,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/cleaner/work-status/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync("/mobile/api/cleaner/work-status/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"GetWorkStatus: {response.StatusCode} - {responseText}");
 
             if (response.IsSuccessStatusCode)
@@ -584,8 +584,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/state/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/state/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UpdateTaskState: {response.StatusCode} - {responseText}");
 
             return JsonSerializer.Deserialize<TaskStateResponse>(responseText, _jsonOptions)
@@ -612,8 +612,8 @@ public class ApiService
         try
         {
             var response = await _httpClient.PostAsync(
-                $"/mobile/api/task/{taskId}/checklist/{itemIndex}/toggle/", null);
-            var responseText = await response.Content.ReadAsStringAsync();
+                $"/mobile/api/task/{taskId}/checklist/{itemIndex}/toggle/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ChecklistToggleResponse>(responseText, _jsonOptions)
                 ?? new ChecklistToggleResponse { Success = response.IsSuccessStatusCode };
@@ -666,8 +666,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/notiz/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/notiz/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
@@ -698,8 +698,8 @@ public class ApiService
                 }
             }
 
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
                 ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
@@ -729,8 +729,8 @@ public class ApiService
                 }
             }
 
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
                 ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
@@ -745,8 +745,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsync($"/api/problem/{problemId}/delete/", null);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/problem/{problemId}/delete/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
@@ -800,8 +800,8 @@ public class ApiService
                 formData.Add(new StringContent(notiz), "notiz");
 
             System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Sende POST zu /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UploadBildStatus: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -849,8 +849,8 @@ public class ApiService
             formData.Add(new StringContent(notiz ?? ""), "notiz");
 
             System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: POST /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -873,8 +873,8 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: Lösche Bild {bildId}");
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/delete/", new StringContent("{}"));
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/delete/", new StringContent("{}")).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -901,8 +901,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/update/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -929,11 +929,11 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"GetTaskLogs: Loading logs for task {taskId}");
-            var response = await _httpClient.GetAsync($"/api/task/{taskId}/logs/");
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/logs/").ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
+                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 System.Diagnostics.Debug.WriteLine($"GetTaskLogs: {json}");
                 var result = JsonSerializer.Deserialize<LogsResponse>(json, _jsonOptions);
                 return result?.Logs ?? new List<LogEntry>();
@@ -960,8 +960,8 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteTask: Deleting task {taskId}");
-            var response = await _httpClient.PostAsync($"/api/cleaning-task/{taskId}/delete/", new StringContent("{}"));
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/cleaning-task/{taskId}/delete/", new StringContent("{}")).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"DeleteTask: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -988,10 +988,10 @@ public class ApiService
         try
         {
             var url = $"/mobile/api/chat/messages/?partner_id={partnerId}";
-            var response = await _httpClient.GetAsync(url);
+            var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
+                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 System.Diagnostics.Debug.WriteLine($"ChatMessages ({partnerId}): {json}");
                 var result = JsonSerializer.Deserialize<ChatMessagesResponse>(json, _jsonOptions);
                 return result?.Messages ?? new List<ChatMessage>();
@@ -1012,8 +1012,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/chat/send/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/chat/send/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"SendChat: {response.StatusCode} - {responseText}");
 
             return JsonSerializer.Deserialize<ChatSendResponse>(responseText, _jsonOptions)
@@ -1033,8 +1033,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/chat/preview-translation/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/chat/preview-translation/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<TranslationPreviewResponse>(responseText, _jsonOptions)
                 ?? new TranslationPreviewResponse { Success = false };
@@ -1057,8 +1057,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/cleaner/language/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/cleaner/language/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1082,8 +1082,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/cleaner/avatar/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/cleaner/avatar/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
                 ?? new ApiResponse { Success = response.IsSuccessStatusCode };
@@ -1102,8 +1102,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/cleaners/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync("/mobile/api/cleaners/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1123,8 +1123,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/cleaners/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync("/mobile/api/cleaners/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1147,8 +1147,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/my-tasks-data/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync("/mobile/api/my-tasks-data/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"GetAuftragsData: {response.StatusCode}");
 
             if (response.IsSuccessStatusCode)
@@ -1169,8 +1169,8 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             if (response.IsSuccessStatusCode)
             {
@@ -1203,8 +1203,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync("/mobile/api/task/create/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync("/mobile/api/task/create/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"CreateAuftrag: {response.StatusCode} - {responseText}");
 
             // Check if response is JSON
@@ -1240,8 +1240,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/update/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UpdateAuftrag: {response.StatusCode} - {responseText}");
 
             // Check if response is JSON
@@ -1264,8 +1264,8 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteAuftrag: Deleting task {taskId}");
-            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/delete/", new StringContent("{}"));
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/mobile/api/task/{taskId}/delete/", new StringContent("{}")).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"DeleteAuftrag: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -1288,8 +1288,8 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"GetTaskImages: Loading images for task {taskId}");
-            var response = await _httpClient.GetAsync($"/api/task/{taskId}/images/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/images/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"GetTaskImages: /api/task/{taskId}/images/ - {response.StatusCode} - {responseText}");
 
             if (response.IsSuccessStatusCode)
@@ -1341,8 +1341,8 @@ public class ApiService
                 formData.Add(new StringContent(note), "notiz");
 
             System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UploadTaskImage: {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -1369,8 +1369,8 @@ public class ApiService
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/update/", content);
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: /api/bildstatus/{imageId}/update/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -1393,8 +1393,8 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: Delete image {imageId}");
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/delete/", new StringContent("{}"));
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/delete/", new StringContent("{}")).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: /api/bildstatus/{imageId}/delete/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
@@ -1471,8 +1471,8 @@ public class ApiService
 
         try
         {
-            var response = await _httpClient.GetAsync("/mobile/api/heartbeat/");
-            var responseText = await response.Content.ReadAsStringAsync();
+            var response = await _httpClient.GetAsync("/mobile/api/heartbeat/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             System.Diagnostics.Debug.WriteLine($"[Heartbeat] Response: {response.StatusCode} - {responseText}");
 
