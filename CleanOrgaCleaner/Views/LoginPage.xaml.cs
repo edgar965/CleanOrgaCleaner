@@ -179,7 +179,7 @@ public partial class LoginPage : ContentPage
             if (result?.Success == true)
             {
                 Log("Login SUCCESS - applying language");
-                var language = result.CleanerLanguage ?? "de";
+                var language = result?.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
@@ -287,7 +287,7 @@ public partial class LoginPage : ContentPage
                     SecureStorage.Remove("password");
                 }
 
-                var language = result.CleanerLanguage ?? "de";
+                var language = result?.CleanerLanguage ?? "de";
                 Preferences.Set("language", language);
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
