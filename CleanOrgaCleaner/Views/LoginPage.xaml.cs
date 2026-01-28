@@ -260,10 +260,18 @@ public partial class LoginPage : ContentPage
         LoginButton.Text = Translations.Get("loading");
         ErrorLabel.IsVisible = false;
 
-        // Async-Kontext aufwärmen (wie in TryAutoLoginAsync durch SecureStorage.GetAsync)
-        Log("async warmup");
-        await Task.Delay(1);
-        Log("warmup done");
+        // Merke ursprünglichen Checkbox-Status
+        var originalRememberMe = RememberMeCheckbox.IsChecked;
+        Log($"RememberMe original={originalRememberMe}");
+
+        // Workaround: Checkbox temporär auf true setzen (scheint iOS async zu stabilisieren)
+        if (!RememberMeCheckbox.IsChecked)
+        {
+            RememberMeCheckbox.IsChecked = true;
+            Log("RememberMe forced true");
+            await Task.Delay(10);
+            Log("delay after checkbox");
+        }
 
         Log("LoginAsync START");
 
@@ -346,6 +354,8 @@ public partial class LoginPage : ContentPage
         }
         finally
         {
+            // Checkbox-Status wiederherstellen
+            RememberMeCheckbox.IsChecked = originalRememberMe;
             LoginButton.IsEnabled = true;
             LoginButton.Text = Translations.Get("login_title");
             Log("ManualLogin END");
