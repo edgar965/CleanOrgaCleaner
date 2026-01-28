@@ -60,15 +60,13 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
-        // Zeige nur die LETZTEN 25 Zeilen vom letzten Start
+        // Zeige nur die LETZTEN 15 Einträge vom letzten Start (wrappen auf Screen)
         var previousLogs = ApiService.GetPreviousLogs();
         if (!string.IsNullOrEmpty(previousLogs))
         {
-            var lines = previousLogs.Split('\n');
-            var lastLines = lines.Length > 25
-                ? string.Join("\n", lines.Skip(lines.Length - 25))
-                : previousLogs;
-            DebugLogLabel.Text = "=== LETZTE 25 ZEILEN ===\n" + lastLines;
+            var lines = previousLogs.Split('\n').Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+            var lastLines = lines.TakeLast(15).ToArray();
+            DebugLogLabel.Text = "=== LETZTE 15 EINTRÄGE ===\n" + string.Join("\n", lastLines);
         }
 
         // Starte neues File-Logging (löscht alte Datei)

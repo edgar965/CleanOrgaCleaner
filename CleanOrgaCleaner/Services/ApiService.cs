@@ -426,53 +426,48 @@ public class ApiService
 
     #region Today / Tasks
 
-    public async Task<TodayDataResponse> GetTodayDataAsync()
+    public Task<TodayDataResponse> GetTodayDataAsync()
     {
-        try
+        // iOS: Run on thread pool to avoid UI thread deadlock (same pattern as LoginAsync)
+        return Task.Run(async () =>
         {
-            // Cache-Buster hinzufügen um sicherzustellen dass wir frische Daten bekommen
-            var cacheBuster = DateTime.Now.Ticks;
-            var response = await _httpClient.GetAsync($"/mobile/api/today-data/?_={cacheBuster}");
-            if (response.IsSuccessStatusCode)
+            try
             {
-                var json = await response.Content.ReadAsStringAsync();
-                System.Diagnostics.Debug.WriteLine($"TodayData JSON length: {json.Length}");
+                WriteLog("[API] GetTodayDataAsync ENTER");
+                var cacheBuster = DateTime.Now.Ticks;
 
-                // Check if bilder is in the response
-                if (json.Contains("\"bilder\""))
-                {
-                    System.Diagnostics.Debug.WriteLine("TodayData: 'bilder' field found in JSON");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine("TodayData: WARNING - 'bilder' field NOT in JSON!");
-                }
+                WriteLog("[API] GetAsync START");
+                var response = await _httpClient.GetAsync($"/mobile/api/today-data/?_={cacheBuster}").ConfigureAwait(false);
+                WriteLog($"[API] GetAsync DONE: {response.StatusCode}");
 
-                var data = JsonSerializer.Deserialize<TodayDataResponse>(json, _jsonOptions) ?? new TodayDataResponse();
-
-                // Cache tasks and log bilder count
-                _taskCache.Clear();
-                foreach (var task in data.Tasks)
+                if (response.IsSuccessStatusCode)
                 {
-                    _taskCache[task.Id] = task;
-                    System.Diagnostics.Debug.WriteLine($"Task {task.Id}: Bilder={task.Bilder?.Count ?? 0}");
-                    if (task.Bilder != null)
+                    WriteLog("[API] ReadAsStringAsync START");
+                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    WriteLog($"[API] ReadAsStringAsync DONE: {json.Length} chars");
+
+                    WriteLog("[API] JsonSerializer.Deserialize START");
+                    var data = JsonSerializer.Deserialize<TodayDataResponse>(json, _jsonOptions) ?? new TodayDataResponse();
+                    WriteLog($"[API] Deserialize DONE: {data.Tasks?.Count ?? 0} tasks");
+
+                    // Cache tasks
+                    _taskCache.Clear();
+                    foreach (var task in data.Tasks)
                     {
-                        foreach (var bild in task.Bilder)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"  Bild {bild.Id}: thumb='{bild.ThumbnailUrl}', full='{bild.FullUrl}'");
-                        }
+                        _taskCache[task.Id] = task;
                     }
-                }
 
-                return data;
+                    WriteLog("[API] GetTodayDataAsync SUCCESS");
+                    return data;
+                }
+                WriteLog($"[API] GetTodayDataAsync FAILED: {response.StatusCode}");
             }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"GetTodayData error: {ex.Message}");
-        }
-        return new TodayDataResponse();
+            catch (Exception ex)
+            {
+                WriteLog($"[API] GetTodayDataAsync ERROR: {ex.Message}");
+            }
+            return new TodayDataResponse();
+        });
     }
 
     public async Task<CleaningTask?> GetAufgabeDetailAsync(int taskId, bool forceRefresh = true)
