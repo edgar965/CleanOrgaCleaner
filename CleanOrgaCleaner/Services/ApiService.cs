@@ -209,11 +209,8 @@ public class ApiService
                 DbgLog($"done: {json.Length} chars");
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
-                DbgLog($"PostAsync START (HeadersRead) -> {BaseUrl}/mobile/api/login/");
-                var response = await _httpClient.SendAsync(
-                    new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/mobile/api/login/") { Content = content },
-                    HttpCompletionOption.ResponseHeadersRead
-                ).ConfigureAwait(false);
+                DbgLog($"PostAsync START -> {BaseUrl}/mobile/api/login/");
+                var response = await _httpClient.PostAsync($"{BaseUrl}/mobile/api/login/", content).ConfigureAwait(false);
                 DbgLog($"PostAsync DONE -> {response.StatusCode}");
 
                 DbgLog("ReadAsStringAsync START");
