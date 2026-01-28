@@ -370,33 +370,57 @@ public partial class LoginPage : ContentPage
 
     private async Task PromptForBiometricLoginAsync()
     {
-        if (!RememberMeCheckbox.IsChecked)
-            return;
-
-        if (_biometricService.IsBiometricLoginEnabled())
-            return;
-
-        bool biometricAvailable = await _biometricService.IsBiometricAvailableAsync();
-        if (!biometricAvailable)
-            return;
-
-        var biometricType = await _biometricService.GetBiometricTypeAsync();
-
-        var enableBiometric = await DisplayAlertAsync(
-            biometricType,
-            $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
-            "Ja",
-            "Nein");
-
-        if (enableBiometric)
+        try
         {
-            var authenticated = await _biometricService.AuthenticateAsync($"{biometricType} einrichten");
-
-            if (authenticated)
+            Log("PromptBiometric: check RememberMe");
+            if (!RememberMeCheckbox.IsChecked)
             {
-                _biometricService.SetBiometricLoginEnabled(true);
-                Log($"{biometricType} enabled");
+                Log("PromptBiometric: RememberMe=false, skip");
+                return;
             }
+
+            Log("PromptBiometric: check IsBiometricLoginEnabled");
+            if (_biometricService.IsBiometricLoginEnabled())
+            {
+                Log("PromptBiometric: already enabled, skip");
+                return;
+            }
+
+            Log("PromptBiometric: IsBiometricAvailableAsync START");
+            bool biometricAvailable = await _biometricService.IsBiometricAvailableAsync();
+            Log($"PromptBiometric: available={biometricAvailable}");
+            if (!biometricAvailable)
+                return;
+
+            Log("PromptBiometric: GetBiometricTypeAsync START");
+            var biometricType = await _biometricService.GetBiometricTypeAsync();
+            Log($"PromptBiometric: type={biometricType}");
+
+            Log("PromptBiometric: DisplayAlertAsync START");
+            var enableBiometric = await DisplayAlertAsync(
+                biometricType,
+                $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
+                "Ja",
+                "Nein");
+            Log($"PromptBiometric: user chose={enableBiometric}");
+
+            if (enableBiometric)
+            {
+                Log("PromptBiometric: AuthenticateAsync START");
+                var authenticated = await _biometricService.AuthenticateAsync($"{biometricType} einrichten");
+                Log($"PromptBiometric: authenticated={authenticated}");
+
+                if (authenticated)
+                {
+                    _biometricService.SetBiometricLoginEnabled(true);
+                    Log($"{biometricType} enabled");
+                }
+            }
+            Log("PromptBiometric: DONE");
+        }
+        catch (Exception ex)
+        {
+            Log($"PromptBiometric EXCEPTION: {ex.GetType().Name}: {ex.Message}");
         }
     }
 }
