@@ -430,8 +430,8 @@ public partial class LoginPage : ContentPage
             var biometricType = await _biometricService.GetBiometricTypeAsync();
             Log($"PromptBiometric: type={biometricType}");
 
-            Log("PromptBiometric: DisplayAlert START");
-            var enableBiometric = await DisplayAlert(
+            Log("PromptBiometric: DisplayAlertAsync START");
+            var enableBiometric = await DisplayAlertAsync(
                 biometricType,
                 $"Moechten Sie {biometricType} fuer zukuenftige Anmeldungen aktivieren?",
                 "Ja",
