@@ -75,7 +75,7 @@ public class WebSocketService : IDisposable
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token, timeoutCts.Token);
 
-            await _socket.ConnectAsync(uri, linkedCts.Token);
+            await _socket.ConnectAsync(uri, linkedCts.Token).ConfigureAwait(false);
 
             if (_socket.State == WebSocketState.Open)
             {
@@ -101,7 +101,7 @@ public class WebSocketService : IDisposable
             _isOnline = false;
             OnConnectionStatusChanged?.Invoke(false);
             if (_shouldReconnect)
-                await TryReconnectAsync();
+                await TryReconnectAsync().ConfigureAwait(false);
         }
     }
 
@@ -125,7 +125,7 @@ public class WebSocketService : IDisposable
             while (_socket?.State == WebSocketState.Open && !_cts!.Token.IsCancellationRequested)
             {
                 var result = await _socket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), _cts.Token);
+                    new ArraySegment<byte>(buffer), _cts.Token).ConfigureAwait(false);
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
@@ -163,7 +163,7 @@ public class WebSocketService : IDisposable
         _isOnline = false;
         OnConnectionStatusChanged?.Invoke(false);
         if (_shouldReconnect && !App.IsInBackground)
-            await TryReconnectAsync();
+            await TryReconnectAsync().ConfigureAwait(false);
     }
 
     private void ProcessMessage(string json)
@@ -218,10 +218,10 @@ public class WebSocketService : IDisposable
         var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _reconnectAttempts - 1), MaxReconnectDelay);
         System.Diagnostics.Debug.WriteLine($"WebSocket reconnecting in {delay}ms (attempt {_reconnectAttempts})");
 
-        await Task.Delay((int)delay);
+        await Task.Delay((int)delay).ConfigureAwait(false);
 
         if (_shouldReconnect && !App.IsInBackground)
-            await ConnectAsync();
+            await ConnectAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -231,7 +231,7 @@ public class WebSocketService : IDisposable
     {
         _shouldReconnect = true;
         _reconnectAttempts = 0;
-        await ConnectAsync();
+        await ConnectAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public class WebSocketService : IDisposable
         try
         {
             System.Diagnostics.Debug.WriteLine("[WebSocket] Processing offline queue...");
-            await OfflineQueueService.Instance.ProcessQueueAsync();
+            await OfflineQueueService.Instance.ProcessQueueAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -262,7 +262,7 @@ public class WebSocketService : IDisposable
         {
             try
             {
-                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None);
+                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
             }
             catch { }
         }

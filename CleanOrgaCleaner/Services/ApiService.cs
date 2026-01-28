@@ -485,7 +485,7 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"Aufgabe: reloading today data for task {taskId}");
             _taskCache.Clear(); // Clear cache to force fresh data
-            var todayData = await GetTodayDataAsync();
+            var todayData = await GetTodayDataAsync().ConfigureAwait(false);
             if (_taskCache.TryGetValue(taskId, out var task))
             {
                 System.Diagnostics.Debug.WriteLine($"Aufgabe loaded: {taskId}, Bilder: {task.Bilder?.Count ?? 0}");
@@ -572,7 +572,7 @@ public class ApiService
 
     public async Task<bool> StopWorkAsync()
     {
-        var result = await EndWorkAsync();
+        var result = await EndWorkAsync().ConfigureAwait(false);
         return result.Success;
     }
 
@@ -599,12 +599,12 @@ public class ApiService
 
     public async Task<TaskStateResponse> StartTaskAsync(int taskId)
     {
-        return await UpdateTaskStateAsync(taskId, "started");
+        return await UpdateTaskStateAsync(taskId, "started").ConfigureAwait(false);
     }
 
     public async Task<TaskStateResponse> StopTaskAsync(int taskId)
     {
-        return await UpdateTaskStateAsync(taskId, "completed");
+        return await UpdateTaskStateAsync(taskId, "completed").ConfigureAwait(false);
     }
 
     public async Task<ChecklistToggleResponse> ToggleChecklistItemAsync(int taskId, int itemIndex)
@@ -631,7 +631,7 @@ public class ApiService
     public async Task<ChecklistToggleResponse> ToggleChecklistItemAsync(int taskId, int itemIndex, bool completed)
     {
         // The API just toggles, but we can call it knowing the expected state
-        return await ToggleChecklistItemAsync(taskId, itemIndex);
+        return await ToggleChecklistItemAsync(taskId, itemIndex).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -639,7 +639,7 @@ public class ApiService
     /// </summary>
     public async Task<ApiResponse> SaveTaskNotesAsync(int taskId, string notes)
     {
-        return await SaveTaskNoteAsync(taskId, notes);
+        return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -647,7 +647,7 @@ public class ApiService
     /// </summary>
     public async Task<ApiResponse> UploadBildStatusAsync(int taskId, byte[] imageBytes, string fileName, string? notiz)
     {
-        return await UploadBildStatusBytesAsync(taskId, imageBytes, fileName, notiz ?? "");
+        return await UploadBildStatusBytesAsync(taskId, imageBytes, fileName, notiz ?? "").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -655,7 +655,7 @@ public class ApiService
     /// </summary>
     public async Task<ProblemResponse> ReportProblemAsync(int taskId, string name, string? description, List<(string, byte[])>? photos)
     {
-        return await ReportProblemWithBytesAsync(taskId, name, description, photos);
+        return await ReportProblemWithBytesAsync(taskId, name, description, photos).ConfigureAwait(false);
     }
 
     public async Task<ApiResponse> SaveTaskNoteAsync(int taskId, string note)
@@ -691,7 +691,7 @@ public class ApiService
             {
                 foreach (var path in photoPaths)
                 {
-                    var bytes = await File.ReadAllBytesAsync(path);
+                    var bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
                     var fileContent = new ByteArrayContent(bytes);
                     fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
                     formData.Add(fileContent, "fotos", Path.GetFileName(path));
@@ -763,7 +763,7 @@ public class ApiService
 
     public async Task<ApiResponse> UpdateTaskNotesAsync(int taskId, string notes)
     {
-        return await SaveTaskNoteAsync(taskId, notes);
+        return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
     }
 
     public async Task<ApiResponse> UploadBildStatusAsync(int taskId, string imagePath, string notiz)
@@ -779,7 +779,7 @@ public class ApiService
             }
 
             var formData = new MultipartFormDataContent();
-            var bytes = await File.ReadAllBytesAsync(imagePath);
+            var bytes = await File.ReadAllBytesAsync(imagePath).ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Datei gelesen, {bytes.Length} bytes");
 
             var fileContent = new ByteArrayContent(bytes);
@@ -1320,7 +1320,7 @@ public class ApiService
             System.Diagnostics.Debug.WriteLine($"UploadTaskImage: Start - TaskId={taskId}, FileName={fileName}");
 
             using var memoryStream = new MemoryStream();
-            await imageStream.CopyToAsync(memoryStream);
+            await imageStream.CopyToAsync(memoryStream).ConfigureAwait(false);
             var bytes = memoryStream.ToArray();
 
             var formData = new MultipartFormDataContent();
@@ -1430,7 +1430,7 @@ public class ApiService
         _heartbeatStopped = false; // Reset flag
 
         _heartbeatTimer = new System.Timers.Timer(_heartbeatIntervalSeconds * 1000);
-        _heartbeatTimer.Elapsed += async (sender, e) => await SendHeartbeatAsync();
+        _heartbeatTimer.Elapsed += async (sender, e) => await SendHeartbeatAsync().ConfigureAwait(false);
         _heartbeatTimer.AutoReset = true;
         _heartbeatTimer.Start();
 

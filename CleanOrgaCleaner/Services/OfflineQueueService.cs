@@ -84,7 +84,7 @@ public class OfflineQueueService : IDisposable
         if (_database != null) return;
 
         _database = new SQLiteAsyncConnection(_dbPath);
-        await _database.CreateTableAsync<OfflineQueueItem>();
+        await _database.CreateTableAsync<OfflineQueueItem>().ConfigureAwait(false);
         System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Initialized at {_dbPath}");
     }
 
@@ -94,7 +94,7 @@ public class OfflineQueueService : IDisposable
     public async Task EnqueueChatMessageAsync(string message)
     {
         var payload = JsonSerializer.Serialize(new { message });
-        await EnqueueAsync("chat", payload, priority: 1);
+        await EnqueueAsync("chat", payload, priority: 1).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -103,7 +103,7 @@ public class OfflineQueueService : IDisposable
     public async Task EnqueueStatusChangeAsync(int taskId, string action, string? notes = null)
     {
         var payload = JsonSerializer.Serialize(new { taskId, action, notes, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("status", payload, priority: 2);
+        await EnqueueAsync("status", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -118,7 +118,7 @@ public class OfflineQueueService : IDisposable
             notes,
             timestamp = DateTime.UtcNow
         });
-        await EnqueueAsync("image", payload, priority: 3);
+        await EnqueueAsync("image", payload, priority: 3).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -127,7 +127,7 @@ public class OfflineQueueService : IDisposable
     public async Task EnqueueChecklistToggleAsync(int taskId, int itemId, bool completed)
     {
         var payload = JsonSerializer.Serialize(new { taskId, itemId, completed, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("checklist", payload, priority: 2);
+        await EnqueueAsync("checklist", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -136,7 +136,7 @@ public class OfflineQueueService : IDisposable
     public async Task EnqueueNotesUpdateAsync(int taskId, string notes)
     {
         var payload = JsonSerializer.Serialize(new { taskId, notes, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("notes", payload, priority: 2);
+        await EnqueueAsync("notes", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ public class OfflineQueueService : IDisposable
             photos = photoBase64List,
             timestamp = DateTime.UtcNow
         });
-        await EnqueueAsync("problem", payload, priority: 2);
+        await EnqueueAsync("problem", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -171,7 +171,7 @@ public class OfflineQueueService : IDisposable
             assignments,
             timestamp = DateTime.UtcNow
         });
-        await EnqueueAsync("task_create", payload, priority: 2);
+        await EnqueueAsync("task_create", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ public class OfflineQueueService : IDisposable
             assignments,
             timestamp = DateTime.UtcNow
         });
-        await EnqueueAsync("task_update", payload, priority: 2);
+        await EnqueueAsync("task_update", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -198,7 +198,7 @@ public class OfflineQueueService : IDisposable
     /// </summary>
     private async Task EnqueueAsync(string operationType, string payload, int priority)
     {
-        await InitializeAsync();
+        await InitializeAsync().ConfigureAwait(false);
 
         var item = new OfflineQueueItem
         {
@@ -209,10 +209,10 @@ public class OfflineQueueService : IDisposable
             Priority = priority
         };
 
-        await _database!.InsertAsync(item);
+        await _database!.InsertAsync(item).ConfigureAwait(false);
         System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Enqueued {operationType} (ID: {item.Id})");
 
-        var count = await GetQueueCountAsync();
+        var count = await GetQueueCountAsync().ConfigureAwait(false);
         OnQueueCountChanged?.Invoke(count);
     }
 
@@ -221,8 +221,8 @@ public class OfflineQueueService : IDisposable
     /// </summary>
     public async Task<int> GetQueueCountAsync()
     {
-        await InitializeAsync();
-        return await _database!.Table<OfflineQueueItem>().CountAsync();
+        await InitializeAsync().ConfigureAwait(false);
+        return await _database!.Table<OfflineQueueItem>().CountAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -230,11 +230,11 @@ public class OfflineQueueService : IDisposable
     /// </summary>
     public async Task<List<OfflineQueueItem>> GetPendingItemsAsync()
     {
-        await InitializeAsync();
+        await InitializeAsync().ConfigureAwait(false);
         return await _database!.Table<OfflineQueueItem>()
             .OrderBy(x => x.Priority)
             .ThenBy(x => x.CreatedAt)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -242,7 +242,7 @@ public class OfflineQueueService : IDisposable
     /// </summary>
     public async Task ProcessQueueAsync()
     {
-        if (!await _processingLock.WaitAsync(0))
+        if (!await _processingLock.WaitAsync(0).ConfigureAwait(false))
         {
             System.Diagnostics.Debug.WriteLine("[OfflineQueue] Already processing");
             return;
@@ -251,42 +251,42 @@ public class OfflineQueueService : IDisposable
         try
         {
             // processing started
-            await InitializeAsync();
+            await InitializeAsync().ConfigureAwait(false);
 
-            var items = await GetPendingItemsAsync();
+            var items = await GetPendingItemsAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Processing {items.Count} items");
 
             foreach (var item in items)
             {
                 try
                 {
-                    var success = await ProcessItemAsync(item);
+                    var success = await ProcessItemAsync(item).ConfigureAwait(false);
                     if (success)
                     {
-                        await _database!.DeleteAsync(item);
+                        await _database!.DeleteAsync(item).ConfigureAwait(false);
                         OnItemSynced?.Invoke(item);
                         System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Synced {item.OperationType} (ID: {item.Id})");
                     }
                     else
                     {
                         item.RetryCount++;
-                        await _database!.UpdateAsync(item);
+                        await _database!.UpdateAsync(item).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
                 {
                     item.RetryCount++;
                     item.LastError = ex.Message;
-                    await _database!.UpdateAsync(item);
+                    await _database!.UpdateAsync(item).ConfigureAwait(false);
                     OnItemSyncFailed?.Invoke(item, ex.Message);
                     System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Failed {item.OperationType}: {ex.Message}");
                 }
 
                 // Small delay between items
-                await Task.Delay(100);
+                await Task.Delay(100).ConfigureAwait(false);
             }
 
-            var count = await GetQueueCountAsync();
+            var count = await GetQueueCountAsync().ConfigureAwait(false);
             OnQueueCountChanged?.Invoke(count);
         }
         finally
@@ -333,7 +333,7 @@ public class OfflineQueueService : IDisposable
         var message = data.GetProperty("message").GetString();
         if (string.IsNullOrEmpty(message)) return true;
 
-        var response = await api.SendChatMessageAsync(message);
+        var response = await api.SendChatMessageAsync(message).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -346,10 +346,10 @@ public class OfflineQueueService : IDisposable
         switch (action)
         {
             case "start":
-                var startResponse = await api.StartTaskAsync(taskId);
+                var startResponse = await api.StartTaskAsync(taskId).ConfigureAwait(false);
                 return startResponse.Success;
             case "stop":
-                var stopResponse = await api.StopTaskAsync(taskId);
+                var stopResponse = await api.StopTaskAsync(taskId).ConfigureAwait(false);
                 return stopResponse.Success;
             default:
                 return true;
@@ -366,7 +366,7 @@ public class OfflineQueueService : IDisposable
         if (string.IsNullOrEmpty(imageBase64)) return true;
 
         var imageBytes = Convert.FromBase64String(imageBase64);
-        var response = await api.UploadBildStatusAsync(taskId, imageBytes, "offline_image.jpg", notes);
+        var response = await api.UploadBildStatusAsync(taskId, imageBytes, "offline_image.jpg", notes).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -377,7 +377,7 @@ public class OfflineQueueService : IDisposable
         var itemId = data.GetProperty("itemId").GetInt32();
         var completed = data.GetProperty("completed").GetBoolean();
 
-        var response = await api.ToggleChecklistItemAsync(taskId, itemId, completed);
+        var response = await api.ToggleChecklistItemAsync(taskId, itemId, completed).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -387,7 +387,7 @@ public class OfflineQueueService : IDisposable
         var taskId = data.GetProperty("taskId").GetInt32();
         var notes = data.GetProperty("notes").GetString() ?? "";
 
-        var response = await api.SaveTaskNotesAsync(taskId, notes);
+        var response = await api.SaveTaskNotesAsync(taskId, notes).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -406,7 +406,7 @@ public class OfflineQueueService : IDisposable
                 .ToList();
         }
 
-        var response = await api.ReportProblemAsync(taskId, name, description, photos);
+        var response = await api.ReportProblemAsync(taskId, name, description, photos).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -426,7 +426,7 @@ public class OfflineQueueService : IDisposable
             assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
         }
 
-        var response = await api.CreateAuftragAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
+        var response = await api.CreateAuftragAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -447,7 +447,7 @@ public class OfflineQueueService : IDisposable
             assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
         }
 
-        var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments);
+        var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -456,8 +456,8 @@ public class OfflineQueueService : IDisposable
     /// </summary>
     public async Task ClearQueueAsync()
     {
-        await InitializeAsync();
-        await _database!.DeleteAllAsync<OfflineQueueItem>();
+        await InitializeAsync().ConfigureAwait(false);
+        await _database!.DeleteAllAsync<OfflineQueueItem>().ConfigureAwait(false);
         OnQueueCountChanged?.Invoke(0);
     }
 

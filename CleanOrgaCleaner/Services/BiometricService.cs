@@ -65,7 +65,7 @@ public class BiometricService
             var result = await BiometricAuthenticationService.Default.AuthenticateAsync(
                 request,
                 CancellationToken.None
-            );
+            ).ConfigureAwait(false);
 
             System.Diagnostics.Debug.WriteLine($"[Biometric] Auth result: {result.Status}");
             return result.Status == BiometricResponseStatus.Success;
