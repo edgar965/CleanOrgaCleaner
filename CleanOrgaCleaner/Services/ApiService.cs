@@ -224,46 +224,65 @@ public class ApiService
     }
 
     /// <summary>
-    /// Synchron: Response lesen, JSON parsen, LoginResult bauen.
-    /// Wird auf Thread-Pool-Thread aufgerufen, kein async noetig.
+    /// Komplett synchron: Response lesen, JSON parsen, LoginResult bauen.
     /// </summary>
     private LoginResult ParseLoginResponse(HttpResponseMessage response)
     {
-        using var stream = response.Content.ReadAsStream();
-        using var reader = new System.IO.StreamReader(stream);
+        DbgLog("ReadAsStream START");
+        var stream = response.Content.ReadAsStream();
+        DbgLog($"ReadAsStream DONE -> stream={stream != null}");
+
+        DbgLog("new StreamReader START");
+        var reader = new System.IO.StreamReader(stream);
+        DbgLog("StreamReader DONE");
+
+        DbgLog("ReadToEnd START");
         var responseJson = reader.ReadToEnd();
-        DbgLog($"Response -> {responseJson.Length} chars");
+        DbgLog($"ReadToEnd DONE -> {responseJson.Length} chars");
+
+        reader.Dispose();
+        DbgLog("reader disposed");
+        stream.Dispose();
+        DbgLog("stream disposed");
 
         DbgLog("JsonDocument.Parse START");
         using var doc = System.Text.Json.JsonDocument.Parse(responseJson);
-        var root = doc.RootElement;
         DbgLog("JsonDocument.Parse DONE");
+
+        var root = doc.RootElement;
+        DbgLog("root.RootElement OK");
 
         var success = root.TryGetProperty("success", out var successProp) && successProp.GetBoolean();
         DbgLog($"success={success}");
 
-        if (success)
+        if (!success)
         {
-            string? cleanerName = null;
-            int? cleanerId = null;
-
-            if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
-            {
-                cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
-                cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
-            }
-
-            CleanerName = cleanerName;
-            CleanerLanguage = null;
-            CleanerId = cleanerId;
-            DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
-            DbgLog("returning SUCCESS");
-            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
+            var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
+            DbgLog($"returning FAILED: {error}");
+            return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
         }
 
-        var error = root.TryGetProperty("error", out var errorProp) ? errorProp.GetString() : null;
-        DbgLog($"returning FAILED: {error}");
-        return new LoginResult { Success = false, ErrorMessage = error ?? "Login fehlgeschlagen" };
+        string? cleanerName = null;
+        int? cleanerId = null;
+        DbgLog("reading cleaner object");
+
+        if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
+        {
+            DbgLog("cleaner object found");
+            cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+            DbgLog($"cleanerName={cleanerName}");
+            cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+            DbgLog($"cleanerId={cleanerId}");
+        }
+
+        CleanerName = cleanerName;
+        DbgLog("CleanerName set");
+        CleanerLanguage = null;
+        CleanerId = cleanerId;
+        DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
+
+        DbgLog("returning SUCCESS");
+        return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
     }
 
     public void Logout()
