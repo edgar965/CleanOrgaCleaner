@@ -80,32 +80,42 @@ public partial class TodayPage : ContentPage
         Log("LoadTasksAsync START");
         try
         {
-            Log("GetTodayDataAsync START");
-            var data = await _apiService.GetTodayDataAsync();
-            Log($"GetTodayDataAsync DONE: {data?.Tasks?.Count ?? 0} tasks");
+            Log("GetTodayDataAsync call START");
+            var data = await _apiService.GetTodayDataAsync().ConfigureAwait(false);
+            Log($"GetTodayDataAsync call DONE: {data?.Tasks?.Count ?? 0} tasks");
+
+            Log("Setting _tasks");
             _tasks = data.Tasks;
+            Log($"_tasks set: {_tasks?.Count ?? 0}");
 
-            // Apply translations for page-specific elements
-            NoTasksLabel.Text = Translations.Get("no_tasks");
-
-            Log("BuildTaskGrid START");
-            BuildTaskGrid();
-            Log("BuildTaskGrid DONE");
+            // UI updates must be on main thread
+            Log("MainThread.BeginInvoke for UI");
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                Log("UI update START");
+                NoTasksLabel.Text = Translations.Get("no_tasks");
+                Log("BuildTaskGrid START");
+                BuildTaskGrid();
+                Log("BuildTaskGrid DONE");
+                Log("UI update DONE");
+            });
         }
         catch (Exception ex)
         {
             Log($"LoadTasksAsync ERROR: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"LoadTasks error: {ex.Message}");
-            // Don't use DisplayAlertAsync in fire-and-forget - it deadlocks iOS Shell navigation
-            NoTasksLabel.Text = Translations.Get("connection_error");
-            EmptyStateView.IsVisible = true;
-            TaskRefreshView.IsVisible = false;
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                NoTasksLabel.Text = Translations.Get("connection_error");
+                EmptyStateView.IsVisible = true;
+                TaskRefreshView.IsVisible = false;
+            });
         }
         Log("LoadTasksAsync END");
     }
 
     private void BuildTaskGrid()
     {
+        Log("BuildTaskGrid: clearing children");
         TasksStackLayout.Children.Clear();
 
         if (_tasks.Count == 0)
@@ -116,14 +126,18 @@ public partial class TodayPage : ContentPage
             return;
         }
 
+        Log($"BuildTaskGrid: building {_tasks.Count} tasks");
         EmptyStateView.IsVisible = false;
         TaskRefreshView.IsVisible = true;
 
-        foreach (var task in _tasks)
+        for (int i = 0; i < _tasks.Count; i++)
         {
+            var task = _tasks[i];
+            Log($"BuildTaskGrid: task {i+1}/{_tasks.Count} id={task.Id}");
             var taskButton = CreateTaskButton(task);
             TasksStackLayout.Children.Add(taskButton);
         }
+        Log("BuildTaskGrid: all tasks added");
     }
 
     private View CreateTaskButton(CleaningTask task)
