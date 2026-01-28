@@ -175,6 +175,10 @@ public partial class LoginPage : ContentPage
             var result = await _apiService.LoginAsync(propertyId, savedUsername, savedPassword);
             Log($"LoginAsync DONE: success={result?.Success}");
 
+            // iOS: UI thread braucht Zeit zum Atmen nach async call
+            await Task.Yield();
+            Log("after Yield");
+
             if (result == null)
             {
                 Log("result is null");
@@ -200,13 +204,22 @@ public partial class LoginPage : ContentPage
             Translations.CurrentLanguage = language;
             Log($"language={language}");
 
+            // iOS: UI thread atmen lassen
+            await Task.Yield();
+
             Log("StartHeartbeat");
             _apiService.StartHeartbeat();
             Log("StartHeartbeat DONE");
 
+            // iOS: UI thread atmen lassen
+            await Task.Yield();
+
             Log("InitializeWebSocketAsync");
             _ = App.InitializeWebSocketAsync();
             Log("WebSocket started");
+
+            // iOS: UI thread atmen lassen vor Navigation
+            await Task.Yield();
 
             Log("GoToAsync START");
             await Shell.Current.GoToAsync("//MainTabs/TodayPage");
@@ -281,6 +294,10 @@ public partial class LoginPage : ContentPage
                 PasswordEntry.Text);
             Log($"LoginAsync DONE: success={result?.Success}");
 
+            // iOS: UI thread braucht Zeit zum Atmen nach async call
+            await Task.Yield();
+            Log("after Yield");
+
             if (result == null)
             {
                 Log("Login result is null");
@@ -323,17 +340,29 @@ public partial class LoginPage : ContentPage
                 Translations.CurrentLanguage = language;
                 Log($"language set to: {language}");
 
+                // iOS: UI thread atmen lassen
+                await Task.Yield();
+
                 Log("StartHeartbeat");
                 _apiService.StartHeartbeat();
                 Log("StartHeartbeat DONE");
+
+                // iOS: UI thread atmen lassen
+                await Task.Yield();
 
                 Log("PromptBiometric START");
                 await PromptForBiometricLoginAsync();
                 Log("PromptBiometric DONE");
 
+                // iOS: UI thread atmen lassen
+                await Task.Yield();
+
                 Log("InitializeWebSocketAsync");
                 _ = App.InitializeWebSocketAsync();
                 Log("WebSocket fire-and-forget done");
+
+                // iOS: UI thread atmen lassen vor Navigation
+                await Task.Yield();
 
                 Log("GoToAsync START");
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
