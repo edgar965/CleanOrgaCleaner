@@ -88,20 +88,30 @@ public partial class App : Application
         WebSocketService.Instance.Dispose();
     }
 
+    private static void Log(string msg)
+    {
+        var line = $"[APP] {msg}";
+        System.Diagnostics.Debug.WriteLine(line);
+        _ = Task.Run(() => ApiService.WriteLog(line));
+    }
+
     /// <summary>
     /// Initialize WebSocket connection after successful login
     /// </summary>
     public static async Task InitializeWebSocketAsync()
     {
+        Log("InitializeWebSocketAsync START");
         try
         {
-            await WebSocketService.Instance.ConnectAsync();
-            System.Diagnostics.Debug.WriteLine("[App] WebSocket connected");
+            Log("WebSocketService.ConnectAsync START");
+            await WebSocketService.Instance.ConnectAsync().ConfigureAwait(false);
+            Log("WebSocketService.ConnectAsync DONE");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[App] WebSocket error: {ex.Message}");
+            Log($"InitializeWebSocketAsync ERROR: {ex.Message}");
         }
+        Log("InitializeWebSocketAsync END");
     }
 
     /// <summary>

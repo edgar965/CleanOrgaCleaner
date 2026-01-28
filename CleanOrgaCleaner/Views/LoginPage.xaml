@@ -152,7 +152,7 @@
             </VerticalStackLayout>
 
             <!-- Version -->
-            <Label Text="v1.16 (Build 98)"
+            <Label Text="v1.16 (Build 99)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

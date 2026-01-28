@@ -22,11 +22,22 @@ public partial class AppHeader : ContentView
         UpdateOfflineBanner(false);
     }
 
+    private static void Log(string msg)
+    {
+        var line = $"[HEADER] {msg}";
+        System.Diagnostics.Debug.WriteLine(line);
+        _ = Task.Run(() => ApiService.WriteLog(line));
+    }
+
     public async Task InitializeAsync()
     {
+        Log("InitializeAsync START");
         ApplyTranslations();
+        Log("ApplyTranslations DONE");
         UpdateUserInfo();
+        Log("UpdateUserInfo DONE");
         _ = LoadWorkStatusAsync();
+        Log("LoadWorkStatusAsync fire-and-forget");
     }
 
     public void ApplyTranslations()
@@ -87,19 +98,29 @@ public partial class AppHeader : ContentView
 
     public async Task LoadWorkStatusAsync()
     {
+        Log("LoadWorkStatusAsync START");
         try
         {
-            var status = await _apiService.GetWorkStatusAsync();
+            Log("GetWorkStatusAsync call START");
+            var status = await _apiService.GetWorkStatusAsync().ConfigureAwait(false);
+            Log($"GetWorkStatusAsync call DONE: isWorking={status?.IsWorking}");
             if (status != null)
             {
                 _isWorking = status.IsWorking;
-                UpdateWorkButton();
+                Log("BeginInvokeOnMainThread for UpdateWorkButton");
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    Log("UpdateWorkButton START");
+                    UpdateWorkButton();
+                    Log("UpdateWorkButton DONE");
+                });
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[AppHeader] Work status error: {ex.Message}");
+            Log($"LoadWorkStatusAsync ERROR: {ex.Message}");
         }
+        Log("LoadWorkStatusAsync END");
     }
 
     private void UpdateWorkButton()
