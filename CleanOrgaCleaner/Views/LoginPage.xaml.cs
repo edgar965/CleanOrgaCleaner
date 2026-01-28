@@ -1,3 +1,4 @@
+using System.Linq;
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
 
@@ -59,11 +60,15 @@ public partial class LoginPage : ContentPage
     {
         base.OnAppearing();
 
-        // Zeige Logs vom letzten Start (falls vorhanden)
+        // Zeige nur die LETZTEN 25 Zeilen vom letzten Start
         var previousLogs = ApiService.GetPreviousLogs();
         if (!string.IsNullOrEmpty(previousLogs))
         {
-            DebugLogLabel.Text = "=== LOGS VOM LETZTEN START ===\n" + previousLogs + "\n=== AKTUELLER START ===\n";
+            var lines = previousLogs.Split('\n');
+            var lastLines = lines.Length > 25
+                ? string.Join("\n", lines.Skip(lines.Length - 25))
+                : previousLogs;
+            DebugLogLabel.Text = "=== LETZTE 25 ZEILEN ===\n" + lastLines;
         }
 
         // Starte neues File-Logging (löscht alte Datei)
