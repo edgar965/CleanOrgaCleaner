@@ -48,7 +48,7 @@ public partial class AppHeader : ContentView
         MenuTodayButton.Text = "🏠 " + t("today");
         MenuChatButton.Text = "💬 " + t("chat");
         MenuAuftragButton.Text = "📋 " + t("task");
-        MenuSettingsButton.Text = t("settings");
+        MenuSettingsButton.Text = "⚙️ " + t("settings");
         MenuLogoutButton.Text = "🚪 " + t("logout");
 
         // Update work button text

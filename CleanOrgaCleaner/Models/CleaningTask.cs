@@ -10,6 +10,9 @@ public class CleaningTask
     [JsonPropertyName("id")]
     public int Id { get; set; }
 
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
     [JsonPropertyName("apartment_name")]
     public string ApartmentName { get; set; } = "";
 
@@ -18,6 +21,11 @@ public class CleaningTask
 
     [JsonPropertyName("aufgabenart")]
     public string Aufgabenart { get; set; } = "Reinigung";
+
+    /// <summary>
+    /// Display name for the task (Name or Aufgabenart fallback)
+    /// </summary>
+    public string DisplayName => !string.IsNullOrEmpty(Name) ? Name : Aufgabenart;
 
     [JsonPropertyName("aufgabenart_farbe")]
     public string AufgabenartFarbe { get; set; } = "#667eea";

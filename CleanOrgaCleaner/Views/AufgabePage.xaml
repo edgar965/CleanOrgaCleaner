@@ -17,32 +17,30 @@
         <ScrollView Grid.Row="1">
             <VerticalStackLayout Spacing="15" Padding="15">
 
-                <!-- Header mit Apartment -->
-                <Label x:Name="ApartmentLabel" Text="" FontSize="26" FontAttributes="Bold" TextColor="#1a3a5c"/>
+                <!-- Task Title (z.B. "02 Reinigung") - Combined apartment and task name -->
+                <Label x:Name="TaskNameLabel" Text="" FontSize="22" FontAttributes="Bold" TextColor="#1a3a5c"/>
 
-                <!-- Tab Bar -->
-                <HorizontalStackLayout Spacing="8" Margin="0,5,0,10">
-                    <Button x:Name="TabAufgabeButton" Text="Aufgabe"
-                            BackgroundColor="White" TextColor="#1a3a5c"
-                            BorderColor="#1a3a5c" BorderWidth="2"
-                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="40" Padding="16,0" Clicked="OnTabAufgabeClicked"/>
-                    <Button x:Name="TabProblemeButton" Text="Problem"
-                            BackgroundColor="#1a3a5c" TextColor="White"
-                            BorderColor="#1a3a5c" BorderWidth="2"
-                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="40" Padding="16,0" Clicked="OnTabProblemeClicked"/>
-                    <Button x:Name="TabAnmerkungenButton" Text="Notiz"
-                            BackgroundColor="#1a3a5c" TextColor="White"
-                            BorderColor="#1a3a5c" BorderWidth="2"
-                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="40" Padding="16,0" Clicked="OnTabAnmerkungenClicked"/>
-                    <Button x:Name="TabLogsButton" Text="Log"
-                            BackgroundColor="#1a3a5c" TextColor="White"
-                            BorderColor="#1a3a5c" BorderWidth="2"
-                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="40" Padding="16,0" Clicked="OnTabLogsClicked"/>
-                </HorizontalStackLayout>
+                <!-- Tab Bar (scrollable) -->
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,5,0,10">
+                    <HorizontalStackLayout Spacing="8">
+                        <Button x:Name="TabAufgabeButton" Text="Aufgabe"
+                                BackgroundColor="White" TextColor="#1a3a5c"
+                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
+                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabAufgabeClicked"/>
+                        <Button x:Name="TabProblemeButton" Text="Problem"
+                                BackgroundColor="#1a3a5c" TextColor="White"
+                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
+                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabProblemeClicked"/>
+                        <Button x:Name="TabAnmerkungenButton" Text="Notiz"
+                                BackgroundColor="#1a3a5c" TextColor="White"
+                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
+                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabAnmerkungenClicked"/>
+                        <Button x:Name="TabLogsButton" Text="Log"
+                                BackgroundColor="#1a3a5c" TextColor="White"
+                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
+                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabLogsClicked"/>
+                    </HorizontalStackLayout>
+                </ScrollView>
 
                 <!-- Tab Content: Aufgabe -->
                 <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
@@ -100,16 +98,13 @@
                 </OnPlatform>
             </Border.Padding>
             <Border.Shadow><Shadow Brush="Black" Offset="0,-4" Radius="20" Opacity="0.15"/></Border.Shadow>
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                <Button x:Name="CancelButton" Text="&#x25C0;" BackgroundColor="#f0f0f0" TextColor="#666" FontSize="22" CornerRadius="15" HeightRequest="55" WidthRequest="70" HorizontalOptions="Center" Clicked="OnCancelClicked"/>
-                <Button x:Name="StartStopButton" Grid.Column="1" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="55" Clicked="OnStartStopClicked">
-                    <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
-                </Button>
-            </Grid>
+            <Button x:Name="StartStopButton" Text="Start" BackgroundColor="#9e9e9e" TextColor="White" FontSize="18" FontAttributes="Bold" CornerRadius="15" HeightRequest="55" HorizontalOptions="Fill" Clicked="OnStartStopClicked">
+                <Button.Shadow><Shadow Brush="Gray" Offset="0,3" Radius="10" Opacity="0.15"/></Button.Shadow>
+            </Button>
         </Border>
 
         <!-- Problem Popup -->
-        <Grid x:Name="ProblemPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="3">
+        <Grid x:Name="ProblemPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1000" Grid.RowSpan="3">
             <BoxView Color="Transparent">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnPopupBackgroundTapped"/>
@@ -118,9 +113,10 @@
             <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="600">
                 <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
                 <Grid RowDefinitions="Auto,*">
-                    <Grid Padding="20,15,15,0">
-                        <Label x:Name="ProblemPopupTitle" Text="Problem melden" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
-                        <Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelProblemClicked"/>
+                    <!-- Blue Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#1a3a5c">
+                        <Label x:Name="ProblemPopupTitle" Text="Problem melden" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelProblemClicked"/>
                     </Grid>
                     <ScrollView Grid.Row="1" Padding="20,10,20,20">
                         <VerticalStackLayout Spacing="15">
@@ -143,8 +139,8 @@
                                 <Label x:Name="PhotoCountLabel" Text="Keine Fotos ausgewaehlt" FontSize="12" TextColor="#888"/>
                             </VerticalStackLayout>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
-                                <Button x:Name="SaveProblemButton" Text="Speichern" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveProblemClicked"/>
-                                <Button x:Name="CancelProblemButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelProblemClicked"/>
+                                <Button x:Name="CancelProblemButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelProblemClicked"/>
+                                <Button x:Name="SaveProblemButton" Grid.Column="1" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveProblemClicked"/>
                             </Grid>
                         </VerticalStackLayout>
                     </ScrollView>
@@ -153,7 +149,7 @@
         </Grid>
 
         <!-- Anmerkung hinzufuegen Popup -->
-        <Grid x:Name="AnmerkungPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1000" Grid.RowSpan="3">
+        <Grid x:Name="AnmerkungPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1000" Grid.RowSpan="3">
             <BoxView Color="Transparent">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnAnmerkungPopupBackgroundTapped"/>
@@ -162,9 +158,10 @@
             <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400" MaximumHeightRequest="500">
                 <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
                 <Grid RowDefinitions="Auto,*">
-                    <Grid Padding="20,15,15,0">
-                        <Label x:Name="AnmerkungPopupTitle" Text="Anmerkung hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="#333" VerticalOptions="Center"/>
-                        <Button Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelAnmerkungClicked"/>
+                    <!-- Blue Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#1a3a5c">
+                        <Label x:Name="AnmerkungPopupTitle" Text="Anmerkung hinzufuegen" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelAnmerkungClicked"/>
                     </Grid>
                     <ScrollView Grid.Row="1" Padding="20,10,20,20">
                         <VerticalStackLayout Spacing="15">
@@ -183,8 +180,8 @@
                                 <Editor x:Name="AnmerkungNotizEditor" Placeholder="Notiz eingeben..." HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5"/>
                             </VerticalStackLayout>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
-                                <Button x:Name="SaveAnmerkungButton" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveAnmerkungClicked"/>
-                                <Button x:Name="CancelAnmerkungButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelAnmerkungClicked"/>
+                                <Button x:Name="CancelAnmerkungButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelAnmerkungClicked"/>
+                                <Button x:Name="SaveAnmerkungButton" Grid.Column="1" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveAnmerkungClicked"/>
                             </Grid>
                         </VerticalStackLayout>
                     </ScrollView>
@@ -192,8 +189,60 @@
             </Border>
         </Grid>
 
+        <!-- Problem Löschen Popup -->
+        <Grid x:Name="DeleteProblemPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1002" Grid.RowSpan="3">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnDeleteProblemPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,Auto">
+                    <!-- Blue Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#1a3a5c">
+                        <Label x:Name="DeleteProblemTitle" Text="Problem löschen" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelDeleteProblemClicked"/>
+                    </Grid>
+                    <VerticalStackLayout Grid.Row="1" Padding="20" Spacing="20">
+                        <Label x:Name="DeleteProblemMessage" Text="Möchtest du dieses Problem wirklich löschen?" FontSize="16" TextColor="#333" HorizontalTextAlignment="Center"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button x:Name="CancelDeleteProblemButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelDeleteProblemClicked"/>
+                            <Button x:Name="ConfirmDeleteProblemButton" Grid.Column="1" Text="Ja, löschen" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnConfirmDeleteProblemClicked"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Aufgabe Abschliessen Popup -->
+        <Grid x:Name="CompleteTaskPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1003" Grid.RowSpan="3">
+            <BoxView Color="Transparent">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCompleteTaskPopupBackgroundTapped"/>
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="400">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                <Grid RowDefinitions="Auto,Auto">
+                    <!-- Blue Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#1a3a5c">
+                        <Label x:Name="CompleteTaskTitle" Text="Aufgabe abschliessen" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCancelCompleteTaskClicked"/>
+                    </Grid>
+                    <VerticalStackLayout Grid.Row="1" Padding="20" Spacing="20">
+                        <Label x:Name="CompleteTaskMessage" Text="Wurde die Reinigung vollständig beendet?" FontSize="16" TextColor="#333" HorizontalTextAlignment="Center"/>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button x:Name="CancelCompleteTaskButton" Text="Nein" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelCompleteTaskClicked"/>
+                            <Button x:Name="ConfirmCompleteTaskButton" Grid.Column="1" Text="Ja" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnConfirmCompleteTaskClicked"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+        </Grid>
+
         <!-- Bild Detail Popup -->
-        <Grid x:Name="BildDetailPopupOverlay" IsVisible="False" BackgroundColor="#80000000" ZIndex="1001" Grid.RowSpan="3">
+        <Grid x:Name="BildDetailPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1001" Grid.RowSpan="3">
             <BoxView Color="Transparent">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnBildDetailPopupBackgroundTapped"/>
@@ -202,10 +251,10 @@
             <Border BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Margin="20" VerticalOptions="Center" MaximumWidthRequest="500" MaximumHeightRequest="700">
                 <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
                 <Grid RowDefinitions="Auto,*,Auto">
-                    <!-- Header -->
-                    <Grid Padding="20,15,15,15" BackgroundColor="#2196F3">
+                    <!-- Blue Header -->
+                    <Grid Padding="20,15,15,15" BackgroundColor="#1a3a5c">
                         <Label x:Name="BildDetailTitle" Text="Bild Details" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
-                        <Button Text="X" BackgroundColor="#2196F3" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnCloseBildDetailClicked"/>
                     </Grid>
                     <!-- Content -->
                     <ScrollView Grid.Row="1" Padding="20">

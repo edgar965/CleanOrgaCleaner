@@ -17,6 +17,7 @@ public partial class AufgabePage : ContentPage
     private byte[]? _selectedBildBytes; // Store bytes in memory for BildStatus upload
     private BildStatus? _currentBildDetail;
     private string _currentTab = "aufgabe"; // Track current tab for state persistence
+    private int _problemIdToDelete; // For custom delete popup
 
     public string TaskId
     {
@@ -41,7 +42,7 @@ public partial class AufgabePage : ContentPage
 
         // Initialize header (handles translations, user info, work status, offline banner)
         _ = Header.InitializeAsync();
-        Header.SetPageTitle("task");
+        Header.SetPageTitle("today");
 
         ApplyTranslations();
         _ = LoadTaskAsync();
@@ -54,9 +55,9 @@ public partial class AufgabePage : ContentPage
 
         // Tab Buttons without emojis (cleaner design)
         TabAufgabeButton.Text = t("task_tab");
-        TabProblemeButton.Text = t("problem");
+        TabProblemeButton.Text = t("problems_tab");
         TabAnmerkungenButton.Text = t("note");
-        TabLogsButton.Text = "Log";
+        TabLogsButton.Text = t("log");
 
         // Buttons
         AddProblemButton.Text = $"+ {t("report_problem")}";
@@ -93,6 +94,18 @@ public partial class AufgabePage : ContentPage
         DeleteBildButton.Text = t("delete");
         CloseBildButton.Text = t("cancel");
         SaveBildDetailButton.Text = t("save");
+
+        // Delete Problem Popup
+        DeleteProblemTitle.Text = t("delete_problem_title");
+        DeleteProblemMessage.Text = t("delete_problem_confirm");
+        CancelDeleteProblemButton.Text = t("cancel");
+        ConfirmDeleteProblemButton.Text = t("yes_delete");
+
+        // Complete Task Popup
+        CompleteTaskTitle.Text = t("task_completed");
+        CompleteTaskMessage.Text = t("task_completed_question");
+        CancelCompleteTaskButton.Text = t("no");
+        ConfirmCompleteTaskButton.Text = t("yes");
     }
 
     // Tab handling
@@ -122,15 +135,19 @@ public partial class AufgabePage : ContentPage
         // Save current tab for state persistence
         _currentTab = tab;
 
-        // Reset all tab buttons to inactive state (dark blue background, white text)
+        // Reset all tab buttons to inactive state (dark blue background, white text, no border)
         TabAufgabeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabAufgabeButton.TextColor = Colors.White;
+        TabAufgabeButton.BorderWidth = 0;
         TabProblemeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabProblemeButton.TextColor = Colors.White;
+        TabProblemeButton.BorderWidth = 0;
         TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabAnmerkungenButton.TextColor = Colors.White;
+        TabAnmerkungenButton.BorderWidth = 0;
         TabLogsButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabLogsButton.TextColor = Colors.White;
+        TabLogsButton.BorderWidth = 0;
 
         // Hide all tab content
         TabAufgabeContent.IsVisible = false;
@@ -138,27 +155,36 @@ public partial class AufgabePage : ContentPage
         TabAnmerkungenContent.IsVisible = false;
         TabLogsContent.IsVisible = false;
 
-        // Activate selected tab (white background, dark blue text)
+        // Activate selected tab (white background, dark blue text, with border)
+        var borderColor = Color.FromArgb("#1a3a5c");
         switch (tab)
         {
             case "aufgabe":
                 TabAufgabeButton.BackgroundColor = Colors.White;
                 TabAufgabeButton.TextColor = Color.FromArgb("#1a3a5c");
+                TabAufgabeButton.BorderColor = borderColor;
+                TabAufgabeButton.BorderWidth = 2;
                 TabAufgabeContent.IsVisible = true;
                 break;
             case "probleme":
                 TabProblemeButton.BackgroundColor = Colors.White;
                 TabProblemeButton.TextColor = Color.FromArgb("#1a3a5c");
+                TabProblemeButton.BorderColor = borderColor;
+                TabProblemeButton.BorderWidth = 2;
                 TabProblemeContent.IsVisible = true;
                 break;
             case "anmerkungen":
                 TabAnmerkungenButton.BackgroundColor = Colors.White;
                 TabAnmerkungenButton.TextColor = Color.FromArgb("#1a3a5c");
+                TabAnmerkungenButton.BorderColor = borderColor;
+                TabAnmerkungenButton.BorderWidth = 2;
                 TabAnmerkungenContent.IsVisible = true;
                 break;
             case "logs":
                 TabLogsButton.BackgroundColor = Colors.White;
                 TabLogsButton.TextColor = Color.FromArgb("#1a3a5c");
+                TabLogsButton.BorderColor = borderColor;
+                TabLogsButton.BorderWidth = 2;
                 TabLogsContent.IsVisible = true;
                 break;
         }
@@ -180,7 +206,8 @@ public partial class AufgabePage : ContentPage
                 return;
             }
 
-            ApartmentLabel.Text = _task.ApartmentName;
+            // Combined apartment and task name (e.g. "02 Reinigung")
+            TaskNameLabel.Text = $"{_task.ApartmentName} {_task.DisplayName}";
 
             // Aufgabe tab content - mit Übersetzung
             string aufgabeText = GetTranslatedAufgabe();
@@ -266,6 +293,14 @@ public partial class AufgabePage : ContentPage
     private async void OnStartStopClicked(object sender, EventArgs e)
     {
         if (_task == null) return;
+
+        // If task is started, show custom complete popup instead of DisplayAlertAsync
+        if (_task.StateCompleted == "started")
+        {
+            CompleteTaskPopupOverlay.IsVisible = true;
+            return;
+        }
+
         StartStopButton.IsEnabled = false;
         try
         {
@@ -274,15 +309,6 @@ public partial class AufgabePage : ContentPage
             {
                 case "not_started":
                     newState = "started";
-                    break;
-                case "started":
-                    var confirmComplete = await DisplayAlertAsync(
-                        Translations.Get("task_completed"),
-                        Translations.Get("task_completed_question"),
-                        Translations.Get("yes"),
-                        Translations.Get("no"));
-                    if (!confirmComplete) { StartStopButton.IsEnabled = true; return; }
-                    newState = "completed";
                     break;
                 case "completed":
                     newState = "not_started";
@@ -295,7 +321,63 @@ public partial class AufgabePage : ContentPage
             {
                 _task.StateCompleted = response.NewState ?? newState;
                 UpdateStartStopButton();
-                if (newState == "completed") await Shell.Current.GoToAsync("..");
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", response.Error ?? "Status konnte nicht geaendert werden", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+        }
+        finally
+        {
+            StartStopButton.IsEnabled = true;
+        }
+    }
+
+    private void OnCompleteTaskPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        CompleteTaskPopupOverlay.IsVisible = false;
+    }
+
+    private void OnCancelCompleteTaskClicked(object sender, EventArgs e)
+    {
+        CompleteTaskPopupOverlay.IsVisible = false;
+    }
+
+    private async void OnConfirmCompleteTaskClicked(object sender, EventArgs e)
+    {
+        CompleteTaskPopupOverlay.IsVisible = false;
+        StartStopButton.IsEnabled = false;
+
+        try
+        {
+            var response = await _apiService.UpdateTaskStateAsync(_taskId, "completed");
+            if (response.Success)
+            {
+                _task!.StateCompleted = response.NewState ?? "completed";
+                UpdateStartStopButton();
+
+                // Navigate back on main thread with delay for iOS stability
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Task.Delay(150);
+                    try
+                    {
+                        await Shell.Current.GoToAsync("..");
+                    }
+                    catch (Exception navEx)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Navigation error: {navEx.Message}");
+                        // Fallback: try Navigation.PopAsync if Shell navigation fails
+                        if (Navigation.NavigationStack.Count > 1)
+                        {
+                            await Navigation.PopAsync();
+                        }
+                    }
+                });
             }
             else
             {
@@ -358,11 +440,11 @@ public partial class AufgabePage : ContentPage
         grid.Children.Add(textStack);
         Grid.SetColumn(textStack, 1);
 
-        // Big round X delete button on the right
+        // Big round X delete button on the right (same red as Stop button)
         var deleteButton = new Button
         {
             Text = "\u2715",
-            BackgroundColor = Color.FromArgb("#f44336"),
+            BackgroundColor = Color.FromArgb("#E91E63"),
             TextColor = Colors.White,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
@@ -372,7 +454,7 @@ public partial class AufgabePage : ContentPage
             Padding = 0,
             VerticalOptions = LayoutOptions.Center
         };
-        deleteButton.Clicked += async (s, e) => await OnDeleteProblem(problem.Id);
+        deleteButton.Clicked += (s, e) => OnDeleteProblem(problem.Id);
         grid.Children.Add(deleteButton);
         Grid.SetColumn(deleteButton, 2);
 
@@ -380,15 +462,28 @@ public partial class AufgabePage : ContentPage
         return border;
     }
 
-    private async Task OnDeleteProblem(int problemId)
+    private void OnDeleteProblem(int problemId)
     {
-        var confirm = await DisplayAlertAsync("Problem loeschen", "Moechtest du dieses Problem wirklich loeschen?", "Ja", "Nein");
-        if (confirm)
-        {
-            var response = await _apiService.DeleteProblemAsync(problemId);
-            if (response.Success) await LoadTaskAsync();
-            else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
-        }
+        _problemIdToDelete = problemId;
+        DeleteProblemPopupOverlay.IsVisible = true;
+    }
+
+    private void OnDeleteProblemPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        DeleteProblemPopupOverlay.IsVisible = false;
+    }
+
+    private void OnCancelDeleteProblemClicked(object sender, EventArgs e)
+    {
+        DeleteProblemPopupOverlay.IsVisible = false;
+    }
+
+    private async void OnConfirmDeleteProblemClicked(object sender, EventArgs e)
+    {
+        DeleteProblemPopupOverlay.IsVisible = false;
+        var response = await _apiService.DeleteProblemAsync(_problemIdToDelete);
+        if (response.Success) await LoadTaskAsync();
+        else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
     }
 
     private void OnAddProblemClicked(object sender, EventArgs e)
@@ -528,9 +623,6 @@ public partial class AufgabePage : ContentPage
     }
 
     private void OnCancelProblemClicked(object sender, EventArgs e) { ProblemPopupOverlay.IsVisible = false; }
-
-    // Cancel button - go back
-    private async void OnCancelClicked(object sender, EventArgs e) { await Shell.Current.GoToAsync(".."); }
 
     // Bilder section
     private string GetAbsoluteImageUrl(string? url)

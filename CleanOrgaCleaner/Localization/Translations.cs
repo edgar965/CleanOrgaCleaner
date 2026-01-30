@@ -104,7 +104,7 @@ public static class Translations
             ["images"] = "Bilder",
             ["image_gallery"] = "Bilder Galerie",
             ["add_image"] = "Bild hinzufügen",
-            ["add_note"] = "Anmerkung hinzufügen",
+            ["add_note"] = "Notiz hinzufügen",
             ["image_optional"] = "Bild (optional)",
             ["no_notes"] = "Keine Anmerkungen",
             ["no_logs"] = "Keine Protokolleinträge vorhanden",
