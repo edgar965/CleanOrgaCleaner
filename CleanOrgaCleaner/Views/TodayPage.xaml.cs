@@ -85,11 +85,13 @@ public partial class TodayPage : ContentPage
     {
         var t = Translations.Get;
 
-        // Update UI texts based on current language
+        // Header
+        MenuButton.Text = "≡";
         LogoutButton.Text = t("logout");
+        PageTitleLabel.Text = t("today");
         NoTasksLabel.Text = t("no_tasks");
 
-        // Menu items - no emojis, fixed text
+        // Empty state
         MenuTodayLabel.Text = t("today");
         MenuChatLabel.Text = t("chat");
         MenuAuftragLabel.Text = t("task");
@@ -121,7 +123,7 @@ public partial class TodayPage : ContentPage
 
     private void BuildTaskGrid()
     {
-        TasksFlexLayout.Children.Clear();
+        TasksStackLayout.Children.Clear();
 
         if (_tasks.Count == 0)
         {
@@ -136,7 +138,7 @@ public partial class TodayPage : ContentPage
         foreach (var task in _tasks)
         {
             var taskCard = CreateTaskCard(task);
-            TasksFlexLayout.Children.Add(taskCard);
+            TasksStackLayout.Children.Add(taskCard);
         }
     }
 

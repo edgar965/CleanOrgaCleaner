@@ -75,11 +75,17 @@ public partial class AufgabePage : ContentPage
         Title = t("task");
 
         // Header
+        MenuButton.Text = $"≡ {t("menu")} ▼";
         LogoutButton.Text = t("logout");
         PageTitleLabel.Text = t("task");
         UserInfoLabel.Text = ApiService.Instance.CleanerName ?? Preferences.Get("username", "");
 
-        // Menu - fixed text, no dynamic override
+        // Tab Buttons
+        TabAufgabeButton.Text = t("task_tab");
+        TabProblemeButton.Text = t("problems_tab");
+        TabAnmerkungenButton.Text = t("notes_tab");
+
+        // Menu
         MenuTodayButton.Text = t("today");
         MenuChatButton.Text = t("chat");
         MenuAuftragButton.Text = t("task");
@@ -88,6 +94,11 @@ public partial class AufgabePage : ContentPage
         // Buttons
         AddProblemButton.Text = $"⚠️ {t("report_problem")}";
         AddAnmerkungButton.Text = $"+ {t("add_note").ToUpper()}";
+
+        // Empty state labels
+        NoTaskDescriptionLabel.Text = t("no_task_description");
+        NoProblemsLabel.Text = t("no_problems");
+        NoAnmerkungenLabel.Text = t("no_notes");
 
         // Problem Popup
         ProblemPopupTitle.Text = t("report_problem");
