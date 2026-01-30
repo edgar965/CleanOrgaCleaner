@@ -34,26 +34,24 @@
                 <!-- Hamburger Menu Button (centered) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="≡"
+                        Text="&#x2261;"
                         BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="16"
-                        FontAttributes="Bold"
+                        FontSize="28"
                         CornerRadius="8"
-                        Padding="20,10"
+                        Padding="12,6"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
-                <!-- Logout Button -->
+                <!-- Logout Button (compact) -->
                 <Button Grid.Column="2"
                         x:Name="LogoutButton"
-                        Text="Logout"
+                        Text="Abmelden"
                         BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="16"
-                        FontAttributes="Bold"
+                        FontSize="13"
                         CornerRadius="8"
-                        Padding="20,10"
+                        Padding="10,6"
                         Clicked="OnLogoutClicked"/>
             </Grid>
 
@@ -62,7 +60,7 @@
                 <Label Grid.Column="0"
                        x:Name="PageTitleLabel"
                        Text=""
-                       FontSize="18"
+                       FontSize="13"
                        TextColor="White"
                        FontAttributes="Bold"
                        VerticalOptions="Center"/>
@@ -70,9 +68,8 @@
                 <Label Grid.Column="1"
                        x:Name="UserInfoLabel"
                        Text=""
-                       FontSize="16"
-                       FontAttributes="Bold"
-                       TextColor="#4fc3f7"/>
+                       FontSize="13"
+                       TextColor="#2196F3"/>
             </Grid>
         </Grid>
 
@@ -114,14 +111,16 @@
                        HorizontalOptions="Center"/>
             </VerticalStackLayout>
 
-            <!-- Tasks List -->
+            <!-- Tasks Grid -->
             <RefreshView x:Name="TaskRefreshView"
                          Refreshing="OnRefreshing"
                          IsVisible="True">
                 <ScrollView>
-                    <VerticalStackLayout x:Name="TasksStackLayout"
-                                         Spacing="12"
-                                         Padding="15"/>
+                    <FlexLayout x:Name="TasksFlexLayout"
+                                Wrap="Wrap"
+                                JustifyContent="Center"
+                                AlignContent="Start"
+                                Padding="10"/>
                 </ScrollView>
             </RefreshView>
         </Grid>
