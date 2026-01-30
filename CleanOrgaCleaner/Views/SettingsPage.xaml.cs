@@ -102,6 +102,8 @@ public partial class SettingsPage : ContentPage
         // Display username from stored preferences
         var username = Preferences.Get("username", "");
         UserNameLabel.Text = string.IsNullOrEmpty(username) ? "Unbekannt" : username;
+        // Also set username in avatar section (like Django client)
+        AvatarUsernameLabel.Text = string.IsNullOrEmpty(username) ? "Unbekannt" : username;
     }
 
     private void LoadCurrentLanguage()

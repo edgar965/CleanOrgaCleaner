@@ -31,19 +31,14 @@
                         <Label x:Name="AdminSectionLabel" Text="ADMINISTRATION" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
 
                         <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
-                            <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="Transparent">
-                                <Border.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#2196F3" Offset="0"/>
-                                        <GradientStop Color="#1976D2" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.Background>
-                                <Label x:Name="AdminAvatarLabel" Text="A" FontSize="20" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center"/>
+                            <!-- Admin avatar in circular border (like Django client) -->
+                            <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="#e0e0e0" BackgroundColor="#f0f0f0">
+                                <Label x:Name="AdminAvatarLabel" Text="&#x1F468;&#x200D;&#x1F4BC;" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
                             </Border>
 
                             <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                 <Label Text="Admin" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
-                                <Label Text="Buero / Verwaltung" FontSize="13" TextColor="#888"/>
+                                <Label x:Name="AdminRoleLabel" Text="office_admin" FontSize="13" TextColor="#888"/>
                             </VerticalStackLayout>
 
                             <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" Clicked="OnAdminChatTapped"/>
@@ -60,18 +55,22 @@
                             <CollectionView.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
-                                        <!-- Avatar or Initial -->
-                                        <Label Grid.Column="0"
-                                               Text="{Binding DisplayAvatar}"
-                                               FontSize="32"
-                                               WidthRequest="50"
-                                               HeightRequest="50"
-                                               HorizontalOptions="Center"
-                                               VerticalOptions="Center"/>
+                                        <!-- Avatar in circular border (like Django client) -->
+                                        <Border Grid.Column="0"
+                                                WidthRequest="50"
+                                                HeightRequest="50"
+                                                StrokeShape="RoundRectangle 25"
+                                                Stroke="#e0e0e0"
+                                                BackgroundColor="#f0f0f0">
+                                            <Label Text="{Binding DisplayAvatar}"
+                                                   FontSize="28"
+                                                   HorizontalOptions="Center"
+                                                   VerticalOptions="Center"/>
+                                        </Border>
 
                                         <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
                                             <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
-                                            <Label Text="Reinigungskraft" FontSize="13" TextColor="#888"/>
+                                            <Label Text="cleaner_role" FontSize="13" TextColor="#888"/>
                                         </VerticalStackLayout>
 
                                         <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" CommandParameter="{Binding .}" Clicked="OnCleanerChatTapped"/>
