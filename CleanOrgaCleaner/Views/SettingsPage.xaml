@@ -133,10 +133,6 @@
                             </Picker.Items>
                         </Picker>
 
-                        <Label x:Name="LanguageHintLabel"
-                               Text="Die Sprache wird fuer Chat-Uebersetzungen verwendet"
-                               FontSize="12"
-                               TextColor="#888"/>
                     </VerticalStackLayout>
                 </Border>
 

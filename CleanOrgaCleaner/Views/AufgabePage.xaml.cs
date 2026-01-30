@@ -411,23 +411,37 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK"); return; }
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Starting...");
 
-            // Explizit Kamera-Berechtigung anfordern
+            if (!MediaPicker.Default.IsCaptureSupported)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Capture not supported");
+                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
+                return;
+            }
+
+            // Check and request camera permission
             var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Initial status: {cameraStatus}");
+
             if (cameraStatus != PermissionStatus.Granted)
             {
                 cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                System.Diagnostics.Debug.WriteLine($"[Camera Problem] After request: {cameraStatus}");
+
                 if (cameraStatus != PermissionStatus.Granted)
                 {
-                    await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+                    await OfferOpenSettingsAsync("Kamera");
                     return;
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Permission granted, calling CapturePhotoAsync...");
             var photo = await MediaPicker.Default.CapturePhotoAsync();
+
             if (photo != null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Photo captured: {photo.FileName}");
                 using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
@@ -436,8 +450,44 @@ public partial class AufgabePage : ContentPage
                 _selectedPhotos.Add((fileName, bytes));
                 UpdatePhotoPreview();
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Photo was null (user cancelled?)");
+            }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Kamera konnte nicht geöffnet werden", "OK"); }
+        catch (FeatureNotSupportedException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] FeatureNotSupported: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Kamera wird auf diesem Geraet nicht unterstuetzt", "OK");
+        }
+        catch (PermissionException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] PermissionException: {ex.Message}");
+            await OfferOpenSettingsAsync("Kamera");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            // Also offer settings for unknown errors that might be permission-related
+            var openSettings = await DisplayAlertAsync("Kamera-Fehler",
+                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
+                "Einstellungen", "Abbrechen");
+            if (openSettings)
+            {
+                AppInfo.ShowSettingsUI();
+            }
+        }
+    }
+
+    private async Task OfferOpenSettingsAsync(string permissionName)
+    {
+        var openSettings = await DisplayAlertAsync($"{permissionName}-Berechtigung",
+            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und erlaube den Zugriff.",
+            "Einstellungen oeffnen", "Abbrechen");
+        if (openSettings)
+        {
+            AppInfo.ShowSettingsUI();
+        }
     }
 
     private async void OnPickPhotoClicked(object sender, EventArgs e)
@@ -520,20 +570,6 @@ public partial class AufgabePage : ContentPage
     {
         AnmerkungenStack.Children.Clear();
         var bilderCount = _task?.Bilder?.Count ?? 0;
-
-        Console.WriteLine($"=== LoadBilder START ===");
-        Console.WriteLine($"Task ID: {_task?.Id}, Bilder Count: {bilderCount}");
-
-        // Update badge on tab
-        if (bilderCount > 0)
-        {
-            AnmerkungenBadge.IsVisible = true;
-            AnmerkungenBadgeLabel.Text = bilderCount.ToString();
-        }
-        else
-        {
-            AnmerkungenBadge.IsVisible = false;
-        }
 
         if (_task?.Bilder == null || _task.Bilder.Count == 0)
         {
@@ -793,24 +829,32 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
+            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Starting...");
+
             if (!MediaPicker.Default.IsCaptureSupported)
             {
+                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Capture not supported");
                 await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
                 return;
             }
 
-            // Explizit Kamera-Berechtigung anfordern
+            // Check and request camera permission
             var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Initial status: {cameraStatus}");
+
             if (cameraStatus != PermissionStatus.Granted)
             {
                 cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] After request: {cameraStatus}");
+
                 if (cameraStatus != PermissionStatus.Granted)
                 {
-                    await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+                    await OfferOpenSettingsAsync("Kamera");
                     return;
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Permission granted, calling CapturePhotoAsync...");
             var photo = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
             {
                 Title = "Foto aufnehmen"
@@ -818,6 +862,7 @@ public partial class AufgabePage : ContentPage
 
             if (photo != null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Photo captured: {photo.FileName}");
                 // Stream direkt lesen und Bytes speichern
                 using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
@@ -831,15 +876,26 @@ public partial class AufgabePage : ContentPage
                 AnmerkungPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 AnmerkungPreviewBorder.IsVisible = true;
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Photo was null (user cancelled?)");
+            }
         }
-        catch (PermissionException)
+        catch (PermissionException ex)
         {
-            await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] PermissionException: {ex.Message}");
+            await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Anmerkung Camera error: {ex.Message}");
-            await DisplayAlertAsync("Kamera-Fehler", ex.Message, "OK");
+            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            var openSettings = await DisplayAlertAsync("Kamera-Fehler",
+                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
+                "Einstellungen", "Abbrechen");
+            if (openSettings)
+            {
+                AppInfo.ShowSettingsUI();
+            }
         }
     }
 

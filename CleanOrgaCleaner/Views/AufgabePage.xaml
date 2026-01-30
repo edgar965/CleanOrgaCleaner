@@ -43,10 +43,6 @@
                             FontSize="15" FontAttributes="Bold" CornerRadius="20"
                             HeightRequest="40" Padding="16,0" Clicked="OnTabLogsClicked"/>
                 </HorizontalStackLayout>
-                <!-- Badge for Anmerkungen (hidden) -->
-                <Border x:Name="AnmerkungenBadge" IsVisible="False">
-                    <Label x:Name="AnmerkungenBadgeLabel" Text="0"/>
-                </Border>
 
                 <!-- Tab Content: Aufgabe -->
                 <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">

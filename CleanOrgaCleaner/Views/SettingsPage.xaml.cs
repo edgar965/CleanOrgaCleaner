@@ -85,7 +85,6 @@ public partial class SettingsPage : ContentPage
         // Language
         LanguageTitleLabel.Text = t("language");
         LanguagePicker.Title = t("select_language");
-        LanguageHintLabel.Text = t("language_hint");
 
         // App Info
         AppInfoLabel.Text = t("app_info");
@@ -140,10 +139,6 @@ public partial class SettingsPage : ContentPage
                 // Refresh UI with new language
                 ApplyTranslations();
                 Header.ApplyTranslations();
-
-                await DisplayAlertAsync(Localization.Translations.Get("saved"),
-                    Localization.Translations.Get("language_hint"),
-                    "OK");
             }
             else
             {

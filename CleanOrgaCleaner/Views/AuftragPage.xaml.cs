@@ -487,19 +487,73 @@ public partial class AuftragPage : ContentPage
     {
         try
         {
-            var photo = await MediaPicker.CapturePhotoAsync();
+            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Starting...");
+
+            if (!MediaPicker.Default.IsCaptureSupported)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Capture not supported");
+                await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK");
+                return;
+            }
+
+            // Request camera permission
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Initial status: {cameraStatus}");
+
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] After request: {cameraStatus}");
+
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    await OfferOpenSettingsAsync("Kamera");
+                    return;
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Permission granted, calling CapturePhotoAsync...");
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+
             if (photo != null)
             {
+                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Photo captured: {photo.FileName}");
                 _selectedImageFile = photo;
                 ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
                 ImagePreviewBorder.IsVisible = true;
                 SaveImageButton.IsEnabled = true;
             }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Photo was null (user cancelled?)");
+            }
+        }
+        catch (PermissionException ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] PermissionException: {ex.Message}");
+            await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Camera error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("camera_error"), Translations.Get("ok"));
+            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
+            var openSettings = await DisplayAlert("Kamera-Fehler",
+                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
+                "Einstellungen", "Abbrechen");
+            if (openSettings)
+            {
+                AppInfo.ShowSettingsUI();
+            }
+        }
+    }
+
+    private async Task OfferOpenSettingsAsync(string permissionName)
+    {
+        var openSettings = await DisplayAlert($"{permissionName}-Berechtigung",
+            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und erlaube den Zugriff.",
+            "Einstellungen oeffnen", "Abbrechen");
+        if (openSettings)
+        {
+            AppInfo.ShowSettingsUI();
         }
     }
 
@@ -507,19 +561,36 @@ public partial class AuftragPage : ContentPage
     {
         try
         {
-            var photo = await MediaPicker.PickPhotoAsync();
-            if (photo != null)
+            // Use FilePicker for better Android Scoped Storage support
+            var options = new PickOptions
             {
-                _selectedImageFile = photo;
-                ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
+                PickerTitle = "Bild auswaehlen",
+                FileTypes = FilePickerFileType.Images
+            };
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result != null)
+            {
+                // Read the file and create a temporary copy for preview
+                using var stream = await result.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+
+                // Save to temp file for ImageSource
+                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"temp_image_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
+                await File.WriteAllBytesAsync(tempPath, bytes);
+
+                // Create a FileResult-like object for _selectedImageFile
+                _selectedImageFile = new FileResult(tempPath);
+                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
                 ImagePreviewBorder.IsVisible = true;
                 SaveImageButton.IsEnabled = true;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("gallery_error"), Translations.Get("ok"));
+            System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.GetType().Name}: {ex.Message}");
+            await DisplayAlert("Galerie-Fehler", $"{ex.GetType().Name}: {ex.Message}", "OK");
         }
     }
 
