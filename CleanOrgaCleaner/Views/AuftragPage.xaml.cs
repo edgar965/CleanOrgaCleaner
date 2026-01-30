@@ -487,24 +487,16 @@ public partial class AuftragPage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Starting...");
-
             if (!MediaPicker.Default.IsCaptureSupported)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Capture not supported");
                 await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK");
                 return;
             }
 
-            // Request camera permission
             var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Initial status: {cameraStatus}");
-
             if (cameraStatus != PermissionStatus.Granted)
             {
                 cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] After request: {cameraStatus}");
-
                 if (cameraStatus != PermissionStatus.Granted)
                 {
                     await OfferOpenSettingsAsync("Kamera");
@@ -512,37 +504,22 @@ public partial class AuftragPage : ContentPage
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Permission granted, calling CapturePhotoAsync...");
             var photo = await MediaPicker.Default.CapturePhotoAsync();
-
             if (photo != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Photo captured: {photo.FileName}");
                 _selectedImageFile = photo;
                 ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
                 ImagePreviewBorder.IsVisible = true;
                 SaveImageButton.IsEnabled = true;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Photo was null (user cancelled?)");
-            }
         }
-        catch (PermissionException ex)
+        catch (PermissionException)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] PermissionException: {ex.Message}");
             await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Auftrag] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-            var openSettings = await DisplayAlert("Kamera-Fehler",
-                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
-                "Einstellungen", "Abbrechen");
-            if (openSettings)
-            {
-                Services.PermissionHelper.OpenAppSettings();
-            }
+            await DisplayAlert("Fehler", ex.Message, "OK");
         }
     }
 

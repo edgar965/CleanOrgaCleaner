@@ -411,41 +411,27 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Starting...");
-
-            // Show diagnostic info
-            var captureSupported = MediaPicker.Default.IsCaptureSupported;
-            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] CaptureSupported: {captureSupported}, CameraStatus: {cameraStatus}");
-
-            if (!captureSupported)
+            if (!MediaPicker.Default.IsCaptureSupported)
             {
-                await DisplayAlertAsync("Diagnose", $"Kamera nicht unterstützt.\nBerechtigung: {cameraStatus}", "OK");
+                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
                 return;
             }
 
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
             if (cameraStatus != PermissionStatus.Granted)
             {
                 cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                System.Diagnostics.Debug.WriteLine($"[Camera Problem] After request: {cameraStatus}");
-
                 if (cameraStatus != PermissionStatus.Granted)
                 {
-                    await DisplayAlertAsync("Diagnose", $"Berechtigung nach Anfrage: {cameraStatus}", "OK");
                     await OfferOpenSettingsAsync("Kamera");
                     return;
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Permission granted ({cameraStatus}), calling CapturePhotoAsync...");
-            await DisplayAlertAsync("Status", $"Berechtigung: {cameraStatus}\nStarte Kamera...", "OK");
-
             var photo = await MediaPicker.Default.CapturePhotoAsync();
 
             if (photo != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Photo captured: {photo.FileName}");
                 using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
@@ -454,30 +440,18 @@ public partial class AufgabePage : ContentPage
                 _selectedPhotos.Add((fileName, bytes));
                 UpdatePhotoPreview();
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Photo was null (user cancelled?)");
-            }
         }
-        catch (FeatureNotSupportedException ex)
+        catch (FeatureNotSupportedException)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] FeatureNotSupported: {ex.Message}");
             await DisplayAlertAsync("Fehler", "Kamera wird auf diesem Geraet nicht unterstuetzt", "OK");
         }
-        catch (PermissionException ex)
+        catch (PermissionException)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] PermissionException: {ex.Message}\n{ex.StackTrace}");
-            await DisplayAlertAsync("PermissionException Details",
-                $"Message: {ex.Message}\n\nInner: {ex.InnerException?.Message}\n\nType: {ex.GetType().FullName}",
-                "OK");
             await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-            await DisplayAlertAsync("Exception Details",
-                $"Type: {ex.GetType().FullName}\n\nMessage: {ex.Message}\n\nInner: {ex.InnerException?.Message}",
-                "OK");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
     }
 
@@ -831,24 +805,16 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Starting...");
-
             if (!MediaPicker.Default.IsCaptureSupported)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Capture not supported");
                 await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
                 return;
             }
 
-            // Check and request camera permission
             var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Initial status: {cameraStatus}");
-
             if (cameraStatus != PermissionStatus.Granted)
             {
                 cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
-                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] After request: {cameraStatus}");
-
                 if (cameraStatus != PermissionStatus.Granted)
                 {
                     await OfferOpenSettingsAsync("Kamera");
@@ -856,48 +822,28 @@ public partial class AufgabePage : ContentPage
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Permission granted, calling CapturePhotoAsync...");
-            var photo = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
-            {
-                Title = "Foto aufnehmen"
-            });
-
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Photo captured: {photo.FileName}");
-                // Stream direkt lesen und Bytes speichern
                 using var stream = await photo.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
                 var originalBytes = memoryStream.ToArray();
 
-                // Komprimiere Bild auf max 2000px
                 _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
                 _selectedBildPath = $"photo_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
 
                 AnmerkungPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 AnmerkungPreviewBorder.IsVisible = true;
             }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Photo was null (user cancelled?)");
-            }
         }
-        catch (PermissionException ex)
+        catch (PermissionException)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] PermissionException: {ex.Message}");
             await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Notiz] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-            var openSettings = await DisplayAlertAsync("Kamera-Fehler",
-                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
-                "Einstellungen", "Abbrechen");
-            if (openSettings)
-            {
-                Services.PermissionHelper.OpenAppSettings();
-            }
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
         }
     }
 
