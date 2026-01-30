@@ -97,6 +97,8 @@ public static class Translations
             ["saved"] = "Gespeichert",
             ["delete_problem_title"] = "Problem löschen",
             ["delete_problem_confirm"] = "Möchtest du dieses Problem wirklich löschen?",
+            ["problem_details"] = "Problem Details",
+            ["close"] = "Schließen",
             ["yes_delete"] = "Ja, löschen",
             ["problem_reported"] = "Problem wurde gemeldet",
 
@@ -298,6 +300,8 @@ public static class Translations
             ["saved"] = "Saved",
             ["delete_problem_title"] = "Delete problem",
             ["delete_problem_confirm"] = "Do you really want to delete this problem?",
+            ["problem_details"] = "Problem Details",
+            ["close"] = "Close",
             ["yes_delete"] = "Yes, delete",
             ["problem_reported"] = "Problem reported",
 
@@ -505,6 +509,8 @@ public static class Translations
             ["saved"] = "Guardado",
             ["delete_problem_title"] = "Eliminar problema",
             ["delete_problem_confirm"] = "¿Realmente quieres eliminar este problema?",
+            ["problem_details"] = "Detalles del problema",
+            ["close"] = "Cerrar",
             ["yes_delete"] = "Sí, eliminar",
             ["problem_reported"] = "Problema reportado",
 
@@ -713,6 +719,8 @@ public static class Translations
             ["saved"] = "Salvat",
             ["delete_problem_title"] = "Șterge problema",
             ["delete_problem_confirm"] = "Sigur vrei să ștergi această problemă?",
+            ["problem_details"] = "Detalii problemă",
+            ["close"] = "Închide",
             ["yes_delete"] = "Da, șterge",
             ["problem_reported"] = "Problemă raportată",
 
@@ -921,6 +929,8 @@ public static class Translations
             ["saved"] = "Zapisano",
             ["delete_problem_title"] = "Usuń problem",
             ["delete_problem_confirm"] = "Na pewno chcesz usunąć ten problem?",
+            ["problem_details"] = "Szczegóły problemu",
+            ["close"] = "Zamknij",
             ["yes_delete"] = "Tak, usuń",
             ["problem_reported"] = "Problem zgłoszony",
 
@@ -1129,6 +1139,8 @@ public static class Translations
             ["saved"] = "Сохранено",
             ["delete_problem_title"] = "Удалить проблему",
             ["delete_problem_confirm"] = "Вы уверены, что хотите удалить эту проблему?",
+            ["problem_details"] = "Детали проблемы",
+            ["close"] = "Закрыть",
             ["yes_delete"] = "Да, удалить",
             ["problem_reported"] = "Проблема сообщена",
 
@@ -1337,6 +1349,8 @@ public static class Translations
             ["saved"] = "Збережено",
             ["delete_problem_title"] = "Видалити проблему",
             ["delete_problem_confirm"] = "Ви впевнені, що хочете видалити цю проблему?",
+            ["problem_details"] = "Деталі проблеми",
+            ["close"] = "Закрити",
             ["yes_delete"] = "Так, видалити",
             ["problem_reported"] = "Проблему повідомлено",
 
@@ -1545,6 +1559,8 @@ public static class Translations
             ["saved"] = "Đã lưu",
             ["delete_problem_title"] = "Xóa vấn đề",
             ["delete_problem_confirm"] = "Bạn có chắc muốn xóa vấn đề này?",
+            ["problem_details"] = "Chi tiết vấn đề",
+            ["close"] = "Đóng",
             ["yes_delete"] = "Có, xóa",
             ["problem_reported"] = "Đã báo cáo vấn đề",
 

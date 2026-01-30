@@ -18,6 +18,9 @@ public partial class AufgabePage : ContentPage
     private BildStatus? _currentBildDetail;
     private string _currentTab = "aufgabe"; // Track current tab for state persistence
     private int _problemIdToDelete; // For custom delete popup
+    private int _bildIdToDelete; // For custom delete bild popup
+    private bool _deleteFromDetailPopup; // Track if delete was triggered from detail popup
+    private Problem? _currentProblemDetail; // For problem detail popup
 
     public string TaskId
     {
@@ -44,8 +47,28 @@ public partial class AufgabePage : ContentPage
         _ = Header.InitializeAsync();
         Header.SetPageTitle("today");
 
+        // Subscribe to menu visibility for page-level overlay
+        Header.MenuVisibilityChanged += OnMenuVisibilityChanged;
+
         ApplyTranslations();
         _ = LoadTaskAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        Header.MenuVisibilityChanged -= OnMenuVisibilityChanged;
+    }
+
+    private void OnMenuVisibilityChanged(object? sender, bool isVisible)
+    {
+        PageMenuOverlay.IsVisible = isVisible;
+    }
+
+    private void OnPageMenuOverlayTapped(object sender, EventArgs e)
+    {
+        Header.HideMenu();
+        PageMenuOverlay.IsVisible = false;
     }
 
     private void ApplyTranslations()
@@ -91,7 +114,6 @@ public partial class AufgabePage : ContentPage
         // Bild Detail Popup
         BildDetailTitle.Text = t("image_details");
         BildDetailNoteLabel.Text = $"{t("note")}:";
-        DeleteBildButton.Text = t("delete");
         CloseBildButton.Text = t("cancel");
         SaveBildDetailButton.Text = t("save");
 
@@ -100,6 +122,17 @@ public partial class AufgabePage : ContentPage
         DeleteProblemMessage.Text = t("delete_problem_confirm");
         CancelDeleteProblemButton.Text = t("cancel");
         ConfirmDeleteProblemButton.Text = t("yes_delete");
+
+        // Delete Bild Popup
+        DeleteBildTitle.Text = t("delete_image");
+        DeleteBildMessage.Text = t("confirm_delete_image");
+        CancelDeleteBildButton.Text = t("cancel");
+        ConfirmDeleteBildButton.Text = t("yes_delete");
+
+        // Problem Detail Popup
+        ProblemDetailTitle.Text = t("problem_details");
+        ProblemDetailPhotosLabel.Text = $"{t("photos")}:";
+        CloseProblemDetailButton.Text = t("close");
 
         // Complete Task Popup
         CompleteTaskTitle.Text = t("task_completed");
@@ -423,7 +456,7 @@ public partial class AufgabePage : ContentPage
         };
 
         // First photo thumbnail on the left
-        
+
         if (problem.Fotos != null && problem.Fotos.Count > 0)
         {
             var imgBorder = new Border { StrokeShape = new RoundRectangle { CornerRadius = 10 }, Stroke = Color.FromArgb("#e0e0e0"), WidthRequest = 70, HeightRequest = 70 };
@@ -458,6 +491,12 @@ public partial class AufgabePage : ContentPage
         grid.Children.Add(deleteButton);
         Grid.SetColumn(deleteButton, 2);
 
+        // Tap to open detail
+        var problemCopy = problem;
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (s, e) => ShowProblemDetail(problemCopy);
+        border.GestureRecognizers.Add(tapGesture);
+
         border.Content = grid;
         return border;
     }
@@ -484,6 +523,60 @@ public partial class AufgabePage : ContentPage
         var response = await _apiService.DeleteProblemAsync(_problemIdToDelete);
         if (response.Success) await LoadTaskAsync();
         else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
+    }
+
+    private void ShowProblemDetail(Problem problem)
+    {
+        _currentProblemDetail = problem;
+
+        // Fill popup
+        ProblemDetailName.Text = problem.Name;
+
+        if (!string.IsNullOrEmpty(problem.Beschreibung))
+        {
+            ProblemDetailDescription.Text = problem.Beschreibung;
+            ProblemDetailDescription.IsVisible = true;
+        }
+        else
+        {
+            ProblemDetailDescription.IsVisible = false;
+        }
+
+        // Photos
+        ProblemDetailPhotos.Children.Clear();
+        if (problem.Fotos != null && problem.Fotos.Count > 0)
+        {
+            ProblemDetailPhotosStack.IsVisible = true;
+            foreach (var fotoUrl in problem.Fotos)
+            {
+                var imgBorder = new Border
+                {
+                    StrokeShape = new RoundRectangle { CornerRadius = 10 },
+                    Stroke = Color.FromArgb("#e0e0e0"),
+                    Margin = new Thickness(0, 0, 10, 10)
+                };
+                imgBorder.Content = new Image { Source = fotoUrl, WidthRequest = 100, HeightRequest = 100, Aspect = Aspect.AspectFill };
+                ProblemDetailPhotos.Children.Add(imgBorder);
+            }
+        }
+        else
+        {
+            ProblemDetailPhotosStack.IsVisible = false;
+        }
+
+        ProblemDetailPopupOverlay.IsVisible = true;
+    }
+
+    private void OnProblemDetailPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        ProblemDetailPopupOverlay.IsVisible = false;
+        _currentProblemDetail = null;
+    }
+
+    private void OnCloseProblemDetailClicked(object sender, EventArgs e)
+    {
+        ProblemDetailPopupOverlay.IsVisible = false;
+        _currentProblemDetail = null;
     }
 
     private void OnAddProblemClicked(object sender, EventArgs e)
@@ -634,14 +727,12 @@ public partial class AufgabePage : ContentPage
         return $"{ApiService.BaseUrl}{url}";
     }
 
-    private async void LoadBilder()
+    private void LoadBilder()
     {
         AnmerkungenStack.Children.Clear();
-        var bilderCount = _task?.Bilder?.Count ?? 0;
 
         if (_task?.Bilder == null || _task.Bilder.Count == 0)
         {
-            Console.WriteLine($"LoadBilder: No images found, exiting");
             NoAnmerkungenLabel.IsVisible = true;
             return;
         }
@@ -649,113 +740,85 @@ public partial class AufgabePage : ContentPage
 
         foreach (var bild in _task.Bilder)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadBilder: Processing Bild {bild.Id}");
-            System.Diagnostics.Debug.WriteLine($"  - ThumbnailUrl: '{bild.ThumbnailUrl}'");
-            System.Diagnostics.Debug.WriteLine($"  - FullUrl: '{bild.FullUrl}'");
-            System.Diagnostics.Debug.WriteLine($"  - Url: '{bild.Url}'");
-
-            // Container mit Bild und Delete-Button
-            var grid = new Grid
-            {
-                WidthRequest = 80,
-                HeightRequest = 80,
-                Margin = new Thickness(0, 0, 10, 10)
-            };
-
-            // Bild - load with authentication
-            var imageUrl = bild.ThumbnailUrl ?? bild.FullUrl ?? bild.Url;
-            System.Diagnostics.Debug.WriteLine($"  - Final imageUrl: '{imageUrl}'");
-
-            var imageBorder = new Border
-            {
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
-                Stroke = Colors.LightGray,
-                StrokeThickness = 1,
-                BackgroundColor = Color.FromArgb("#E0E0E0") // Placeholder color
-            };
-
-            var image = new Image
-            {
-                WidthRequest = 80,
-                HeightRequest = 80,
-                Aspect = Aspect.AspectFill
-            };
-
-            // Load image asynchronously with auth
-            var bildIdForLog = bild.Id;
-            var urlForLog = imageUrl;
-            _ = Task.Run(async () =>
-            {
-                System.Diagnostics.Debug.WriteLine($"GetImageAsync START: Bild {bildIdForLog}, URL: {urlForLog}");
-                var imageSource = await _apiService.GetImageAsync(urlForLog);
-                if (imageSource != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"GetImageAsync SUCCESS: Bild {bildIdForLog}");
-                    MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"GetImageAsync FAILED: Bild {bildIdForLog} - imageSource is null");
-                }
-            });
-
-            imageBorder.Content = image;
-
-            // Tap zum Vergrößern
-            var tapGesture = new TapGestureRecognizer();
-            var bildCopy = bild; // Closure fix
-            tapGesture.Tapped += (s, e) => ShowBildDetail(bildCopy);
-            imageBorder.GestureRecognizers.Add(tapGesture);
-
-            // Delete-Button (X oben rechts)
-            var deleteBtn = new Border
-            {
-                BackgroundColor = Color.FromArgb("#CC000000"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
-                Stroke = Colors.Transparent,
-                WidthRequest = 24,
-                HeightRequest = 24,
-                HorizontalOptions = LayoutOptions.End,
-                VerticalOptions = LayoutOptions.Start,
-                Margin = new Thickness(0, 4, 4, 0),
-                Content = new Label
-                {
-                    Text = "X",
-                    TextColor = Colors.White,
-                    FontSize = 14,
-                    HorizontalTextAlignment = TextAlignment.Center,
-                    VerticalTextAlignment = TextAlignment.Center
-                }
-            };
-            var deleteTap = new TapGestureRecognizer();
-            deleteTap.Tapped += async (s, e) => await DeleteBild(bildCopy.Id);
-            deleteBtn.GestureRecognizers.Add(deleteTap);
-
-            // Notiz-Indikator (unten links)
-            if (!string.IsNullOrWhiteSpace(bild.Notiz))
-            {
-                var notizIndicator = new Border
-                {
-                    BackgroundColor = Color.FromArgb("#CCFF9800"),
-                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
-                    Stroke = Colors.Transparent,
-                    Padding = new Thickness(4, 2),
-                    HorizontalOptions = LayoutOptions.Start,
-                    VerticalOptions = LayoutOptions.End,
-                    Margin = new Thickness(4, 0, 0, 4),
-                    Content = new Label
-                    {
-                        Text = "N",
-                        FontSize = 10
-                    }
-                };
-                grid.Children.Add(notizIndicator);
-            }
-
-            grid.Children.Add(imageBorder);
-            grid.Children.Add(deleteBtn);
-            AnmerkungenStack.Children.Add(grid);
+            AnmerkungenStack.Children.Add(CreateBildView(bild));
         }
+    }
+
+    private View CreateBildView(BildStatus bild)
+    {
+        var border = new Border { BackgroundColor = Colors.White, Stroke = Color.FromArgb("#e0e0e0"), StrokeShape = new RoundRectangle { CornerRadius = 12 }, Padding = 12 };
+        border.Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(0, 2), Radius = 8, Opacity = 0.1f };
+
+        // Horizontal layout: [Thumbnail] [Text] [X Button]
+        var grid = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(GridLength.Auto),
+                new ColumnDefinition(GridLength.Star),
+                new ColumnDefinition(GridLength.Auto)
+            },
+            ColumnSpacing = 12
+        };
+
+        // Thumbnail on the left
+        var imageUrl = bild.ThumbnailUrl ?? bild.FullUrl ?? bild.Url;
+        var imgBorder = new Border
+        {
+            StrokeShape = new RoundRectangle { CornerRadius = 10 },
+            Stroke = Color.FromArgb("#e0e0e0"),
+            WidthRequest = 70,
+            HeightRequest = 70,
+            BackgroundColor = Color.FromArgb("#E0E0E0")
+        };
+        var image = new Image { WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
+
+        // Load image asynchronously
+        var bildCopy = bild;
+        _ = Task.Run(async () =>
+        {
+            var imageSource = await _apiService.GetImageAsync(imageUrl);
+            if (imageSource != null)
+                MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
+        });
+
+        imgBorder.Content = image;
+        grid.Children.Add(imgBorder);
+        Grid.SetColumn(imgBorder, 0);
+
+        // Note text in the middle
+        var textStack = new VerticalStackLayout { Spacing = 4, VerticalOptions = LayoutOptions.Center };
+        var notizText = !string.IsNullOrWhiteSpace(bild.Notiz) ? bild.Notiz : "(Keine Notiz)";
+        textStack.Children.Add(new Label { Text = notizText, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#333333"), LineBreakMode = LineBreakMode.TailTruncation, MaxLines = 2 });
+        textStack.Children.Add(new Label { Text = bild.ErstelltAm ?? "", FontSize = 12, TextColor = Color.FromArgb("#999999") });
+        grid.Children.Add(textStack);
+        Grid.SetColumn(textStack, 1);
+
+        // Big round X delete button on the right
+        var deleteButton = new Button
+        {
+            Text = "\u2715",
+            BackgroundColor = Color.FromArgb("#E91E63"),
+            TextColor = Colors.White,
+            FontSize = 20,
+            FontAttributes = FontAttributes.Bold,
+            WidthRequest = 44,
+            HeightRequest = 44,
+            CornerRadius = 22,
+            Padding = 0,
+            VerticalOptions = LayoutOptions.Center
+        };
+        deleteButton.Clicked += (s, e) => DeleteBild(bildCopy.Id);
+        grid.Children.Add(deleteButton);
+        Grid.SetColumn(deleteButton, 2);
+
+        // Tap to open detail
+        var tapGesture = new TapGestureRecognizer();
+        tapGesture.Tapped += (s, e) => ShowBildDetail(bildCopy);
+        border.GestureRecognizers.Add(tapGesture);
+
+        border.Content = grid;
+        return border;
     }
 
     private async void ShowBildDetail(BildStatus bild)
@@ -827,47 +890,49 @@ public partial class AufgabePage : ContentPage
         }
     }
 
-    private async void OnDeleteBildDetailClicked(object sender, EventArgs e)
+    private void OnDeleteBildDetailClicked(object sender, EventArgs e)
     {
         if (_currentBildDetail == null) return;
 
-        var confirm = await DisplayAlertAsync("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
-        if (!confirm) return;
-
-        try
-        {
-            var response = await _apiService.DeleteBildStatusAsync(_currentBildDetail.Id);
-            if (response.Success)
-            {
-                BildDetailPopupOverlay.IsVisible = false;
-                _currentBildDetail = null;
-                await DisplayAlertAsync("Gelöscht", "Bild wurde gelöscht", "OK");
-                await LoadTaskAsync();
-            }
-            else
-            {
-                await DisplayAlertAsync("Fehler", response.Error ?? "Löschen fehlgeschlagen", "OK");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteBildDetail error: {ex.Message}");
-            await DisplayAlertAsync("Fehler", "Bild konnte nicht gelöscht werden", "OK");
-        }
+        _bildIdToDelete = _currentBildDetail.Id;
+        _deleteFromDetailPopup = true;
+        DeleteBildPopupOverlay.IsVisible = true;
     }
 
-    private async Task DeleteBild(int bildId)
+    private void DeleteBild(int bildId)
     {
-        var confirm = await DisplayAlertAsync("Bild löschen", "Möchtest du dieses Bild wirklich löschen?", "Ja, löschen", "Abbrechen");
-        if (!confirm) return;
+        _bildIdToDelete = bildId;
+        _deleteFromDetailPopup = false;
+        DeleteBildPopupOverlay.IsVisible = true;
+    }
+
+    private void OnDeleteBildPopupBackgroundTapped(object sender, EventArgs e)
+    {
+        DeleteBildPopupOverlay.IsVisible = false;
+    }
+
+    private void OnCancelDeleteBildClicked(object sender, EventArgs e)
+    {
+        DeleteBildPopupOverlay.IsVisible = false;
+    }
+
+    private async void OnConfirmDeleteBildClicked(object sender, EventArgs e)
+    {
+        DeleteBildPopupOverlay.IsVisible = false;
 
         try
         {
-            var response = await _apiService.DeleteBildStatusAsync(bildId);
+            var response = await _apiService.DeleteBildStatusAsync(_bildIdToDelete);
             if (response.Success)
             {
+                // If triggered from detail popup, close it too
+                if (_deleteFromDetailPopup)
+                {
+                    BildDetailPopupOverlay.IsVisible = false;
+                    _currentBildDetail = null;
+                }
                 await DisplayAlertAsync("Gelöscht", "Bild wurde gelöscht", "OK");
-                await LoadTaskAsync(); // Refresh
+                await LoadTaskAsync();
             }
             else
             {
@@ -1056,14 +1121,7 @@ public partial class AufgabePage : ContentPage
                     Margin = new Thickness(0, 0, 0, 8)
                 };
 
-                // Left border accent
-                var grid = new Grid { ColumnDefinitions = new ColumnDefinitionCollection { new ColumnDefinition(new GridLength(4)), new ColumnDefinition(GridLength.Star) } };
-
-                var accent = new BoxView { Color = Color.FromArgb("#667eea"), VerticalOptions = LayoutOptions.Fill };
-                grid.Children.Add(accent);
-                Grid.SetColumn(accent, 0);
-
-                var content = new VerticalStackLayout { Spacing = 4, Padding = new Thickness(10, 0, 0, 0) };
+                var content = new VerticalStackLayout { Spacing = 4 };
 
                 // Date/Time
                 content.Children.Add(new Label
@@ -1078,7 +1136,7 @@ public partial class AufgabePage : ContentPage
                 {
                     Text = log.User,
                     FontSize = 12,
-                    TextColor = Color.FromArgb("#667eea"),
+                    TextColor = Color.FromArgb("#1a3a5c"),
                     FontAttributes = FontAttributes.Bold
                 });
 
@@ -1090,10 +1148,7 @@ public partial class AufgabePage : ContentPage
                     TextColor = Color.FromArgb("#333333")
                 });
 
-                grid.Children.Add(content);
-                Grid.SetColumn(content, 1);
-
-                logEntry.Content = grid;
+                logEntry.Content = content;
                 LogsStack.Children.Add(logEntry);
             }
         }

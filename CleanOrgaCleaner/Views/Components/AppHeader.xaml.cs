@@ -9,6 +9,9 @@ public partial class AppHeader : ContentView
     private readonly WebSocketService _webSocketService;
     private bool _isWorking = false;
 
+    // Event for menu visibility changes
+    public event EventHandler<bool>? MenuVisibilityChanged;
+
     public AppHeader()
     {
         InitializeComponent();
@@ -215,11 +218,19 @@ public partial class AppHeader : ContentView
     private void OnMenuButtonClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
+        MenuVisibilityChanged?.Invoke(this, MenuOverlayGrid.IsVisible);
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
+        MenuVisibilityChanged?.Invoke(this, false);
+    }
+
+    public void HideMenu()
+    {
+        MenuOverlayGrid.IsVisible = false;
+        MenuVisibilityChanged?.Invoke(this, false);
     }
 
     private async void OnLogoTapped(object sender, EventArgs e)
