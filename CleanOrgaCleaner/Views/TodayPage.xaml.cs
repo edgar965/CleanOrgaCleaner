@@ -84,7 +84,7 @@ public partial class TodayPage : ContentPage
 
     private void BuildTaskGrid()
     {
-        TasksStackLayout.Children.Clear();
+        TasksFlexLayout.Children.Clear();
 
         if (_tasks.Count == 0)
         {
@@ -99,7 +99,7 @@ public partial class TodayPage : ContentPage
         foreach (var task in _tasks)
         {
             var taskButton = CreateTaskButton(task);
-            TasksStackLayout.Children.Add(taskButton);
+            TasksFlexLayout.Children.Add(taskButton);
         }
     }
 
