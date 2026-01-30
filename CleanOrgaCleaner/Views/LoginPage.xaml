@@ -7,25 +7,6 @@
     <ScrollView>
         <VerticalStackLayout Padding="30,20,30,30" Spacing="15">
 
-            <!-- Debug Log - ganz oben -->
-            <Border BackgroundColor="#1a1a2e"
-                    StrokeShape="RoundRectangle 10"
-                    Stroke="Transparent"
-                    Padding="10">
-                <VerticalStackLayout Spacing="5">
-                    <Label Text="Debug Log"
-                           FontSize="13"
-                           FontAttributes="Bold"
-                           TextColor="#00ff88"/>
-                    <Label x:Name="DebugLogLabel"
-                           Text=""
-                           FontSize="10"
-                           TextColor="#cccccc"
-                           FontFamily="Courier New"
-                           LineBreakMode="WordWrap"/>
-                </VerticalStackLayout>
-            </Border>
-
             <!-- Title -->
             <Label Text="CleanOrga"
                    FontSize="36"

@@ -13,43 +13,47 @@
             </Grid.RowDefinitions>
 
             <!-- Row 0: App Name, Menu Button, Start/Stop Work -->
-            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+            <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                 <!-- App Name - Tappable to go to Today -->
                 <Label Grid.Column="0"
                        Text="CleanOrga"
-                       FontSize="28"
+                       FontSize="24"
                        FontAttributes="Bold"
                        TextColor="#2196F3"
-                       VerticalOptions="Center">
+                       VerticalOptions="Center"
+                       VerticalTextAlignment="Center">
                     <Label.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnLogoTapped"/>
                     </Label.GestureRecognizers>
                 </Label>
 
-                <!-- Hamburger Menu Button (centered, small square like Django client) -->
+                <!-- Hamburger Menu Button (centered, like Django client) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
                         Text="&#x2261;"
                         BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="22"
+                        FontSize="20"
                         CornerRadius="8"
                         WidthRequest="50"
-                        HeightRequest="44"
+                        HeightRequest="40"
                         Padding="0"
                         HorizontalOptions="Center"
+                        VerticalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
-                <!-- Start/Stop Work Button (larger, like Django client) -->
+                <!-- Start/Stop Work Button (similar size to menu button) -->
                 <Button Grid.Column="2"
                         x:Name="WorkToggleButton"
                         Text="Start"
                         BackgroundColor="#4CAF50"
                         TextColor="White"
-                        FontSize="18"
+                        FontSize="15"
                         FontAttributes="Bold"
                         CornerRadius="8"
-                        Padding="24,12"
+                        HeightRequest="40"
+                        Padding="18,0"
+                        VerticalOptions="Center"
                         Clicked="OnWorkToggleClicked"/>
             </Grid>
 

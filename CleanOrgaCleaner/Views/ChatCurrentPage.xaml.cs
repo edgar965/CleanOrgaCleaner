@@ -151,8 +151,25 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             var messages = await _apiService.GetChatMessagesAsync(_partnerId);
             _messages.Clear();
 
+            // Get current username to determine which messages are "mine"
+            var currentUsername = Preferences.Get("username", "");
+
             foreach (var msg in messages.OrderBy(m => m.Id))
             {
+                // Set FromCurrentUser based on sender matching current user
+                // If chatting with admin: my messages have sender = my username
+                // Admin messages have is_from_admin = true
+                if (!string.IsNullOrEmpty(currentUsername) &&
+                    msg.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    msg.FromCurrentUser = true;
+                }
+                else if (_partnerId == "admin" && !msg.IsFromAdmin)
+                {
+                    // If not from admin and sender is not set, assume it's from current user
+                    msg.FromCurrentUser = true;
+                }
+
                 _messages.Add(msg);
             }
 

@@ -18,41 +18,40 @@
             <VerticalStackLayout Spacing="15" Padding="15">
 
                 <!-- Header mit Apartment -->
-                <Label x:Name="ApartmentLabel" Text="" FontSize="28" FontAttributes="Bold" TextColor="#2196F3"/>
+                <Label x:Name="ApartmentLabel" Text="" FontSize="26" FontAttributes="Bold" TextColor="#1a3a5c"/>
 
                 <!-- Tab Bar -->
-                <Grid ColumnDefinitions="*,*,*,*" ColumnSpacing="4" Margin="0,5,0,10">
-                    <Button x:Name="TabAufgabeButton" Text="📋 Aufgabe"
-                            BackgroundColor="#6c5ce7" TextColor="White"
-                            FontSize="10" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="38" Padding="2,0" Clicked="OnTabAufgabeClicked"/>
-                    <Button x:Name="TabProblemeButton" Grid.Column="1" Text="⚠️ Probleme"
-                            BackgroundColor="#e0e0e0" TextColor="#666"
-                            FontSize="10" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="38" Padding="2,0" Clicked="OnTabProblemeClicked"/>
-                    <Grid Grid.Column="2">
-                        <Button x:Name="TabAnmerkungenButton" Text="📝 Anmerkung"
-                                BackgroundColor="#e0e0e0" TextColor="#666"
-                                FontSize="10" FontAttributes="Bold" CornerRadius="20"
-                                HeightRequest="38" Padding="2,0" Clicked="OnTabAnmerkungenClicked"/>
-                        <Border x:Name="AnmerkungenBadge" BackgroundColor="#2196F3" StrokeShape="RoundRectangle 10"
-                                Stroke="Transparent" WidthRequest="20" HeightRequest="20"
-                                HorizontalOptions="End" VerticalOptions="Start" Margin="0,-5,-5,0"
-                                IsVisible="False">
-                            <Label x:Name="AnmerkungenBadgeLabel" Text="0" FontSize="11" TextColor="White"
-                                   HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/>
-                        </Border>
-                    </Grid>
-                    <Button x:Name="TabLogsButton" Grid.Column="3" Text="📜 Log"
-                            BackgroundColor="#e0e0e0" TextColor="#666"
-                            FontSize="10" FontAttributes="Bold" CornerRadius="20"
-                            HeightRequest="38" Padding="2,0" Clicked="OnTabLogsClicked"/>
-                </Grid>
+                <HorizontalStackLayout Spacing="8" Margin="0,5,0,10">
+                    <Button x:Name="TabAufgabeButton" Text="Aufgabe"
+                            BackgroundColor="White" TextColor="#1a3a5c"
+                            BorderColor="#1a3a5c" BorderWidth="2"
+                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
+                            HeightRequest="40" Padding="16,0" Clicked="OnTabAufgabeClicked"/>
+                    <Button x:Name="TabProblemeButton" Text="Problem"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            BorderColor="#1a3a5c" BorderWidth="2"
+                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
+                            HeightRequest="40" Padding="16,0" Clicked="OnTabProblemeClicked"/>
+                    <Button x:Name="TabAnmerkungenButton" Text="Notiz"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            BorderColor="#1a3a5c" BorderWidth="2"
+                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
+                            HeightRequest="40" Padding="16,0" Clicked="OnTabAnmerkungenClicked"/>
+                    <Button x:Name="TabLogsButton" Text="Log"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            BorderColor="#1a3a5c" BorderWidth="2"
+                            FontSize="15" FontAttributes="Bold" CornerRadius="20"
+                            HeightRequest="40" Padding="16,0" Clicked="OnTabLogsClicked"/>
+                </HorizontalStackLayout>
+                <!-- Badge for Anmerkungen (hidden) -->
+                <Border x:Name="AnmerkungenBadge" IsVisible="False">
+                    <Label x:Name="AnmerkungenBadgeLabel" Text="0"/>
+                </Border>
 
                 <!-- Tab Content: Aufgabe -->
-                <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="#f0f0f0" StrokeShape="RoundRectangle 15" Stroke="#e0e0e0" Padding="20">
+                <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
                     <VerticalStackLayout Spacing="15">
-                        <Label x:Name="NoticeLabel" Text="" FontSize="16" TextColor="#1a3a5c" LineHeight="1.5"
+                        <Label x:Name="NoticeLabel" Text="" FontSize="18" TextColor="#1a3a5c" LineHeight="1.5"
                                IsVisible="False"/>
                         <Label x:Name="NoTaskDescriptionLabel" Text="Keine Aufgabenbeschreibung vorhanden"
                                FontSize="14" TextColor="#999" FontAttributes="Italic"

@@ -133,11 +133,16 @@ public partial class SettingsPage : ContentPage
 
             if (response.Success)
             {
-                // Store locally
+                // Store locally and update Translations
                 Preferences.Set("language", selectedLang);
+                Localization.Translations.CurrentLanguage = selectedLang;
 
-                await DisplayAlertAsync("Gespeichert",
-                    "Sprache wurde geaendert",
+                // Refresh UI with new language
+                ApplyTranslations();
+                Header.ApplyTranslations();
+
+                await DisplayAlertAsync(Localization.Translations.Get("saved"),
+                    Localization.Translations.Get("language_hint"),
                     "OK");
             }
             else

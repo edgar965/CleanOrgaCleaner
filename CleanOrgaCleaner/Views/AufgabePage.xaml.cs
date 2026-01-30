@@ -52,11 +52,11 @@ public partial class AufgabePage : ContentPage
         var t = Translations.Get;
         Title = t("task");
 
-        // Tab Buttons with emojis
-        TabAufgabeButton.Text = $"📋 {t("task_tab")}";
-        TabProblemeButton.Text = $"⚠️ {t("problems_tab")}";
-        TabAnmerkungenButton.Text = $"📝 {t("notes_tab")}";
-        TabLogsButton.Text = $"📜 {t("protocol")}";
+        // Tab Buttons without emojis (cleaner design)
+        TabAufgabeButton.Text = t("task_tab");
+        TabProblemeButton.Text = t("problem");
+        TabAnmerkungenButton.Text = t("note");
+        TabLogsButton.Text = "Log";
 
         // Buttons
         AddProblemButton.Text = $"+ {t("report_problem")}";
@@ -122,15 +122,15 @@ public partial class AufgabePage : ContentPage
         // Save current tab for state persistence
         _currentTab = tab;
 
-        // Reset all tab buttons
-        TabAufgabeButton.BackgroundColor = Color.FromArgb("#e0e0e0");
-        TabAufgabeButton.TextColor = Color.FromArgb("#666666");
-        TabProblemeButton.BackgroundColor = Color.FromArgb("#e0e0e0");
-        TabProblemeButton.TextColor = Color.FromArgb("#666666");
-        TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#e0e0e0");
-        TabAnmerkungenButton.TextColor = Color.FromArgb("#666666");
-        TabLogsButton.BackgroundColor = Color.FromArgb("#e0e0e0");
-        TabLogsButton.TextColor = Color.FromArgb("#666666");
+        // Reset all tab buttons to inactive state (dark blue background, white text)
+        TabAufgabeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
+        TabAufgabeButton.TextColor = Colors.White;
+        TabProblemeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
+        TabProblemeButton.TextColor = Colors.White;
+        TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#1a3a5c");
+        TabAnmerkungenButton.TextColor = Colors.White;
+        TabLogsButton.BackgroundColor = Color.FromArgb("#1a3a5c");
+        TabLogsButton.TextColor = Colors.White;
 
         // Hide all tab content
         TabAufgabeContent.IsVisible = false;
@@ -138,27 +138,27 @@ public partial class AufgabePage : ContentPage
         TabAnmerkungenContent.IsVisible = false;
         TabLogsContent.IsVisible = false;
 
-        // Activate selected tab
+        // Activate selected tab (white background, dark blue text)
         switch (tab)
         {
             case "aufgabe":
-                TabAufgabeButton.BackgroundColor = Color.FromArgb("#6c5ce7");
-                TabAufgabeButton.TextColor = Colors.White;
+                TabAufgabeButton.BackgroundColor = Colors.White;
+                TabAufgabeButton.TextColor = Color.FromArgb("#1a3a5c");
                 TabAufgabeContent.IsVisible = true;
                 break;
             case "probleme":
-                TabProblemeButton.BackgroundColor = Color.FromArgb("#6c5ce7");
-                TabProblemeButton.TextColor = Colors.White;
+                TabProblemeButton.BackgroundColor = Colors.White;
+                TabProblemeButton.TextColor = Color.FromArgb("#1a3a5c");
                 TabProblemeContent.IsVisible = true;
                 break;
             case "anmerkungen":
-                TabAnmerkungenButton.BackgroundColor = Color.FromArgb("#6c5ce7");
-                TabAnmerkungenButton.TextColor = Colors.White;
+                TabAnmerkungenButton.BackgroundColor = Colors.White;
+                TabAnmerkungenButton.TextColor = Color.FromArgb("#1a3a5c");
                 TabAnmerkungenContent.IsVisible = true;
                 break;
             case "logs":
-                TabLogsButton.BackgroundColor = Color.FromArgb("#6c5ce7");
-                TabLogsButton.TextColor = Colors.White;
+                TabLogsButton.BackgroundColor = Colors.White;
+                TabLogsButton.TextColor = Color.FromArgb("#1a3a5c");
                 TabLogsContent.IsVisible = true;
                 break;
         }
@@ -412,6 +412,19 @@ public partial class AufgabePage : ContentPage
         try
         {
             if (!MediaPicker.Default.IsCaptureSupported) { await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK"); return; }
+
+            // Explizit Kamera-Berechtigung anfordern
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+                    return;
+                }
+            }
+
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
@@ -786,6 +799,18 @@ public partial class AufgabePage : ContentPage
                 return;
             }
 
+            // Explizit Kamera-Berechtigung anfordern
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    await DisplayAlertAsync("Berechtigung erforderlich", "Bitte erlaube den Kamera-Zugriff in den App-Einstellungen", "OK");
+                    return;
+                }
+            }
+
             var photo = await MediaPicker.Default.CapturePhotoAsync(new MediaPickerOptions
             {
                 Title = "Foto aufnehmen"
@@ -822,24 +847,26 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            // MediaPicker für iOS Fotos-App Zugriff
-            var photos = await MediaPicker.Default.PickPhotosAsync(new MediaPickerOptions
+            // FilePicker für bessere Android Scoped Storage Unterstützung
+            var options = new PickOptions
             {
-                Title = "Bild auswählen"
-            });
-            var photo = photos?.FirstOrDefault();
+                PickerTitle = "Bild auswählen",
+                FileTypes = FilePickerFileType.Images
+            };
+            var result = await FilePicker.Default.PickAsync(options);
 
-            if (photo != null)
+            if (result != null)
             {
                 // Stream direkt lesen
-                using var stream = await photo.OpenReadAsync();
+                using var stream = await result.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
                 var originalBytes = memoryStream.ToArray();
 
                 // Komprimiere Bild auf max 2000px
                 _selectedBildBytes = await ImageHelper.CompressImageAsync(originalBytes);
-                _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                var ext = System.IO.Path.GetExtension(result.FileName) ?? ".jpg";
+                _selectedBildPath = $"gallery_{DateTime.Now:yyyyMMdd_HHmmss}{ext}";
 
                 AnmerkungPreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(_selectedBildBytes));
                 AnmerkungPreviewBorder.IsVisible = true;

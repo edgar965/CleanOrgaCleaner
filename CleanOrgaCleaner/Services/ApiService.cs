@@ -202,6 +202,7 @@ public class ApiService
                 string? cleanerName = null;
                 int? cleanerId = null;
 
+                string? cleanerLanguage = null;
                 if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
                 {
                     cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
@@ -213,10 +214,19 @@ public class ApiService
                         Preferences.Set("avatar", avatar);
                         DbgLog($"Avatar stored: {avatar}");
                     }
+                    // Extract and store language from server
+                    cleanerLanguage = cleanerProp.TryGetProperty("language", out var langProp) ? langProp.GetString() : null;
+                    DbgLog($"Server returned language: '{cleanerLanguage}'");
+                    if (!string.IsNullOrEmpty(cleanerLanguage))
+                    {
+                        Preferences.Set("language", cleanerLanguage);
+                        Localization.Translations.CurrentLanguage = cleanerLanguage;
+                        DbgLog($"Language stored and applied: {cleanerLanguage}");
+                    }
                 }
 
                 CleanerName = cleanerName;
-                CleanerLanguage = null; // Language comes from client preferences
+                CleanerLanguage = cleanerLanguage;
                 CleanerId = cleanerId;
                 DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
 
@@ -229,7 +239,7 @@ public class ApiService
                 {
                     Success = true,
                     CleanerName = cleanerName,
-                    CleanerLanguage = null
+                    CleanerLanguage = cleanerLanguage
                 };
             }
 
@@ -316,6 +326,7 @@ public class ApiService
             int? cleanerId = null;
             DbgLog("reading cleaner object");
 
+            string? cleanerLanguage = null;
             if (root.TryGetProperty("cleaner", out var cleanerProp) && cleanerProp.ValueKind == JsonValueKind.Object)
             {
                 DbgLog("cleaner object found");
@@ -323,16 +334,35 @@ public class ApiService
                 DbgLog($"cleanerName={cleanerName}");
                 cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
                 DbgLog($"cleanerId={cleanerId}");
+
+                // Extract and store avatar
+                var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : null;
+                DbgLog($"avatar from server: '{avatar}'");
+                if (!string.IsNullOrEmpty(avatar))
+                {
+                    Preferences.Set("avatar", avatar);
+                    DbgLog($"Avatar stored: {avatar}");
+                }
+
+                // Extract and store language from server
+                cleanerLanguage = cleanerProp.TryGetProperty("language", out var langProp) ? langProp.GetString() : null;
+                DbgLog($"language from server: '{cleanerLanguage}'");
+                if (!string.IsNullOrEmpty(cleanerLanguage))
+                {
+                    Preferences.Set("language", cleanerLanguage);
+                    Localization.Translations.CurrentLanguage = cleanerLanguage;
+                    DbgLog($"Language stored and applied: {cleanerLanguage}");
+                }
             }
 
             CleanerName = cleanerName;
             DbgLog("CleanerName set");
-            CleanerLanguage = null;
+            CleanerLanguage = cleanerLanguage;
             CleanerId = cleanerId;
-            DbgLog($"Cleaner: {CleanerName}, id={CleanerId}");
+            DbgLog($"Cleaner: {CleanerName}, id={CleanerId}, lang={CleanerLanguage}");
 
             DbgLog("returning SUCCESS");
-            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = null };
+            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = cleanerLanguage };
         }
         catch (Exception ex)
         {

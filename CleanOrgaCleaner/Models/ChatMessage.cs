@@ -31,6 +31,9 @@ public class ChatMessage
     [JsonPropertyName("from_current_user")]
     public bool FromCurrentUser { get; set; }
 
+    [JsonPropertyName("is_from_admin")]
+    public bool IsFromAdmin { get; set; }
+
     #region UI Properties
 
     /// <summary>
