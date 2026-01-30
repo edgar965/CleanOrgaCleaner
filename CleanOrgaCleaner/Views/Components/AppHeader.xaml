@@ -26,29 +26,30 @@
                     </Label.GestureRecognizers>
                 </Label>
 
-                <!-- Hamburger Menu Button (centered) -->
+                <!-- Hamburger Menu Button (centered, small square like Django client) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="≡"
+                        Text="&#x2261;"
                         BackgroundColor="#2196F3"
                         TextColor="White"
-                        FontSize="16"
-                        FontAttributes="Bold"
+                        FontSize="22"
                         CornerRadius="8"
-                        Padding="20,10"
+                        WidthRequest="50"
+                        HeightRequest="44"
+                        Padding="0"
                         HorizontalOptions="Center"
                         Clicked="OnMenuButtonClicked"/>
 
-                <!-- Start/Stop Work Button -->
+                <!-- Start/Stop Work Button (larger, like Django client) -->
                 <Button Grid.Column="2"
                         x:Name="WorkToggleButton"
                         Text="Start"
                         BackgroundColor="#4CAF50"
                         TextColor="White"
-                        FontSize="16"
+                        FontSize="18"
                         FontAttributes="Bold"
                         CornerRadius="8"
-                        Padding="20,10"
+                        Padding="24,12"
                         Clicked="OnWorkToggleClicked"/>
             </Grid>
 
