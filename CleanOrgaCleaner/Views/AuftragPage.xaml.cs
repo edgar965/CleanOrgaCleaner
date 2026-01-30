@@ -663,7 +663,7 @@ public partial class AuftragPage : ContentPage
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
 
-    private void OnMenuAuftragsClicked(object sender, EventArgs e)
+    private void OnMenuAuftragClicked(object sender, EventArgs e)
     {
         MenuOverlayGrid.IsVisible = false;
         // Already here
