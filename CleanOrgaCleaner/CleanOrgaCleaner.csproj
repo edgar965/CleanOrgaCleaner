@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.16</ApplicationDisplayVersion>
-		<ApplicationVersion>100</ApplicationVersion>
+		<ApplicationVersion>125</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -32,14 +32,8 @@
 
 	<!-- iOS specific settings -->
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
-		<DefineConstants>$(DefineConstants);IOS</DefineConstants>
 		<!-- Required for App Store icon to appear correctly -->
 		<IpaIncludeArtwork>true</IpaIncludeArtwork>
-	</PropertyGroup>
-
-	<!-- Mac Catalyst specific settings -->
-	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">
-		<DefineConstants>$(DefineConstants);MACCATALYST</DefineConstants>
 	</PropertyGroup>
 
 	<!-- Android specific settings -->
@@ -75,10 +69,6 @@
 
 		<!-- Raw Assets -->
 		<MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Compile Remove="Views\OldLoginPage.xaml.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
