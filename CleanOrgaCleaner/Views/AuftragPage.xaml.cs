@@ -33,6 +33,8 @@ public partial class AuftragPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        await Header.InitializeAsync();
+        Header.SetPageTitle("task");
         ApplyTranslations();
         await LoadDataAsync();
     }
@@ -40,16 +42,9 @@ public partial class AuftragPage : ContentPage
     private void ApplyTranslations()
     {
         var t = Translations.Get;
-        // Page title
-        PageTitleLabel.Text = t("task");
-        MenuButton.Text = t("new_task");
-        LogoutButton.Text = t("logout");
+        // Page-specific translations (header handled by AppHeader)
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");
-        MenuTodayBtn.Text = t("today");
-        MenuChatBtn.Text = t("chat");
-        MenuAuftragBtn.Text = t("new_task");
-        MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
         TabImages.Text = t("images_tab");
         TabAssign.Text = t("assign_tab");
@@ -260,6 +255,7 @@ public partial class AuftragPage : ContentPage
     private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
     private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
+    private void OnTabLogsClicked(object sender, EventArgs e) => ShowTab("logs");
     private void OnAufgabenartChanged(object sender, EventArgs e)
     {
         // No longer need checklist display
@@ -636,87 +632,9 @@ public partial class AuftragPage : ContentPage
 
     #region Menu Handlers
 
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-    }
 
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
 
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        // Already here
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            // Call logout API
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-
-        // Clear secure storage
-        SecureStorage.Remove("password");
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
-    #endregion
+#endregion
 }
 
 /// <summary>
