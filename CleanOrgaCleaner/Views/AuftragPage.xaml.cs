@@ -541,7 +541,7 @@ public partial class AuftragPage : ContentPage
                 "Einstellungen", "Abbrechen");
             if (openSettings)
             {
-                AppInfo.ShowSettingsUI();
+                Services.PermissionHelper.OpenAppSettings();
             }
         }
     }
@@ -549,11 +549,11 @@ public partial class AuftragPage : ContentPage
     private async Task OfferOpenSettingsAsync(string permissionName)
     {
         var openSettings = await DisplayAlert($"{permissionName}-Berechtigung",
-            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und erlaube den Zugriff.",
+            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und aktiviere die Berechtigung unter 'Berechtigungen'.",
             "Einstellungen oeffnen", "Abbrechen");
         if (openSettings)
         {
-            AppInfo.ShowSettingsUI();
+            Services.PermissionHelper.OpenAppSettings();
         }
     }
 

@@ -413,16 +413,17 @@ public partial class AufgabePage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"[Camera Problem] Starting...");
 
-            if (!MediaPicker.Default.IsCaptureSupported)
+            // Show diagnostic info
+            var captureSupported = MediaPicker.Default.IsCaptureSupported;
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] CaptureSupported: {captureSupported}, CameraStatus: {cameraStatus}");
+
+            if (!captureSupported)
             {
-                System.Diagnostics.Debug.WriteLine($"[Camera Problem] Capture not supported");
-                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
+                await DisplayAlertAsync("Diagnose", $"Kamera nicht unterstützt.\nBerechtigung: {cameraStatus}", "OK");
                 return;
             }
-
-            // Check and request camera permission
-            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Initial status: {cameraStatus}");
 
             if (cameraStatus != PermissionStatus.Granted)
             {
@@ -431,12 +432,15 @@ public partial class AufgabePage : ContentPage
 
                 if (cameraStatus != PermissionStatus.Granted)
                 {
+                    await DisplayAlertAsync("Diagnose", $"Berechtigung nach Anfrage: {cameraStatus}", "OK");
                     await OfferOpenSettingsAsync("Kamera");
                     return;
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Permission granted, calling CapturePhotoAsync...");
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] Permission granted ({cameraStatus}), calling CapturePhotoAsync...");
+            await DisplayAlertAsync("Status", $"Berechtigung: {cameraStatus}\nStarte Kamera...", "OK");
+
             var photo = await MediaPicker.Default.CapturePhotoAsync();
 
             if (photo != null)
@@ -462,31 +466,29 @@ public partial class AufgabePage : ContentPage
         }
         catch (PermissionException ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[Camera Problem] PermissionException: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[Camera Problem] PermissionException: {ex.Message}\n{ex.StackTrace}");
+            await DisplayAlertAsync("PermissionException Details",
+                $"Message: {ex.Message}\n\nInner: {ex.InnerException?.Message}\n\nType: {ex.GetType().FullName}",
+                "OK");
             await OfferOpenSettingsAsync("Kamera");
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[Camera Problem] Exception: {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-            // Also offer settings for unknown errors that might be permission-related
-            var openSettings = await DisplayAlertAsync("Kamera-Fehler",
-                $"Fehler: {ex.Message}\n\nMoechtest du die App-Einstellungen oeffnen?",
-                "Einstellungen", "Abbrechen");
-            if (openSettings)
-            {
-                AppInfo.ShowSettingsUI();
-            }
+            await DisplayAlertAsync("Exception Details",
+                $"Type: {ex.GetType().FullName}\n\nMessage: {ex.Message}\n\nInner: {ex.InnerException?.Message}",
+                "OK");
         }
     }
 
     private async Task OfferOpenSettingsAsync(string permissionName)
     {
         var openSettings = await DisplayAlertAsync($"{permissionName}-Berechtigung",
-            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und erlaube den Zugriff.",
+            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte oeffne die App-Einstellungen und aktiviere die Berechtigung unter 'Berechtigungen'.",
             "Einstellungen oeffnen", "Abbrechen");
         if (openSettings)
         {
-            AppInfo.ShowSettingsUI();
+            Services.PermissionHelper.OpenAppSettings();
         }
     }
 
@@ -894,7 +896,7 @@ public partial class AufgabePage : ContentPage
                 "Einstellungen", "Abbrechen");
             if (openSettings)
             {
-                AppInfo.ShowSettingsUI();
+                Services.PermissionHelper.OpenAppSettings();
             }
         }
     }

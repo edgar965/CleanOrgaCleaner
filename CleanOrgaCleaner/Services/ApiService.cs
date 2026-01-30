@@ -766,14 +766,28 @@ public class ApiService
                 }
             }
 
+            System.Diagnostics.Debug.WriteLine($"[ReportProblem] POST /api/task/{taskId}/problem/create/ with {photos?.Count ?? 0} photos");
             var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[ReportProblem] Response: {response.StatusCode} - {responseText.Substring(0, Math.Min(200, responseText.Length))}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ProblemResponse { Success = false, Error = $"Server error {(int)response.StatusCode}: {responseText.Substring(0, Math.Min(100, responseText.Length))}" };
+            }
+
+            // Check if response is JSON
+            if (string.IsNullOrEmpty(responseText) || (!responseText.TrimStart().StartsWith("{") && !responseText.TrimStart().StartsWith("[")))
+            {
+                return new ProblemResponse { Success = false, Error = $"Invalid response: {responseText.Substring(0, Math.Min(100, responseText.Length))}" };
+            }
 
             return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
                 ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ReportProblem] Exception: {ex.Message}");
             return new ProblemResponse { Success = false, Error = ex.Message };
         }
     }
