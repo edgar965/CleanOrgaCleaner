@@ -206,6 +206,13 @@ public class ApiService
                 {
                     cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
                     cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
+                    // Extract and store avatar
+                    var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : null;
+                    if (!string.IsNullOrEmpty(avatar))
+                    {
+                        Preferences.Set("avatar", avatar);
+                        DbgLog($"Avatar stored: {avatar}");
+                    }
                 }
 
                 CleanerName = cleanerName;
