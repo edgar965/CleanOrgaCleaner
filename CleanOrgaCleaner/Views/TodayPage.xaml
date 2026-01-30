@@ -37,9 +37,12 @@
                          Refreshing="OnRefreshing"
                          IsVisible="True">
                 <ScrollView>
-                    <VerticalStackLayout x:Name="TasksStackLayout"
-                                         Spacing="12"
-                                         Padding="15"/>
+                    <FlexLayout x:Name="TasksFlexLayout"
+                                Wrap="Wrap"
+                                JustifyContent="Center"
+                                AlignContent="Start"
+                                         
+                                         Padding="10"/>
                 </ScrollView>
             </RefreshView>
         </Grid>
