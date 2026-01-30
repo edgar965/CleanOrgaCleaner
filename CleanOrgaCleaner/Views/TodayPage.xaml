@@ -34,7 +34,7 @@
                 <!-- Hamburger Menu Button (centered) -->
                 <Button Grid.Column="1"
                         x:Name="MenuButton"
-                        Text="&#x2261;"
+                        Text="≡"
                         BackgroundColor="#0078D4"
                         TextColor="White"
                         FontSize="18"
