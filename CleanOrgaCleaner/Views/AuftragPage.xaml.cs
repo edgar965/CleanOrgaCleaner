@@ -48,7 +48,7 @@ public partial class AuftragPage : ContentPage
         EmptyLabel.Text = t("no_my_tasks");
         MenuTodayBtn.Text = t("today");
         MenuChatBtn.Text = t("chat");
-        MenuAuftragsBtn.Text = t("new_task");
+        MenuAuftragBtn.Text = t("new_task");
         MenuSettingsBtn.Text = t("settings");
         TabDetails.Text = t("details_tab");
         TabImages.Text = t("images_tab");
