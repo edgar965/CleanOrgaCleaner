@@ -1,6 +1,7 @@
 using CleanOrgaCleaner.Helpers;
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
+using CleanOrgaCleaner.Models.Responses;
 using CleanOrgaCleaner.Services;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -513,7 +514,7 @@ public partial class AufgabePage : ContentPage
         _editingProblemId = problem.Id;
 
         // Use same popup as Add Problem but in edit mode
-        ProblemPopupTitle.Text = LocalizationManager.GetString("edit_problem");
+        ProblemPopupTitle.Text = Translations.Get["edit_problem"];
         ProblemNameEntry.Text = problem.Name ?? "";
         ProblemDescriptionEditor.Text = problem.Beschreibung ?? "";
         CharCountLabel.Text = $"{(problem.Beschreibung?.Length ?? 0)} / 300";
@@ -538,7 +539,7 @@ public partial class AufgabePage : ContentPage
     private void OnAddProblemClicked(object sender, EventArgs e)
     {
         _editingProblemId = null;
-        ProblemPopupTitle.Text = LocalizationManager.GetString("report_problem");
+        ProblemPopupTitle.Text = Translations.Get["report_problem"];
         ProblemNameEntry.Text = ""; ProblemDescriptionEditor.Text = "";
         _selectedPhotos.Clear(); UpdatePhotoPreview(); CharCountLabel.Text = "0 / 300";
         ProblemPopupOverlay.IsVisible = true;
@@ -798,7 +799,7 @@ public partial class AufgabePage : ContentPage
         _editingBildId = bild.Id;
 
         // Use same popup as Add Note but in edit mode
-        AnmerkungPopupTitle.Text = LocalizationManager.GetString("edit_note");
+        AnmerkungPopupTitle.Text = Translations.Get["edit_note"];
         AnmerkungNotizEditor.Text = bild.Notiz ?? "";
         _selectedBildPath = null;
         _selectedBildBytes = null;
@@ -933,7 +934,7 @@ public partial class AufgabePage : ContentPage
     private void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
         _editingBildId = null;
-        AnmerkungPopupTitle.Text = LocalizationManager.GetString("add_note");
+        AnmerkungPopupTitle.Text = Translations.Get["add_note"];
         _selectedBildPath = null;
         _selectedBildBytes = null;
         AnmerkungPreviewBorder.IsVisible = false;
