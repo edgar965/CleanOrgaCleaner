@@ -439,11 +439,28 @@ public partial class AufgabePage : ContentPage
         };
 
         // First photo thumbnail on the left
-
         if (problem.Fotos != null && problem.Fotos.Count > 0)
         {
-            var imgBorder = new Border { StrokeShape = new RoundRectangle { CornerRadius = 10 }, Stroke = Color.FromArgb("#e0e0e0"), WidthRequest = 70, HeightRequest = 70 };
-            imgBorder.Content = new Image { Source = problem.Fotos[0], WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
+            var imgBorder = new Border
+            {
+                StrokeShape = new RoundRectangle { CornerRadius = 10 },
+                Stroke = Color.FromArgb("#e0e0e0"),
+                WidthRequest = 70,
+                HeightRequest = 70,
+                BackgroundColor = Color.FromArgb("#E0E0E0")
+            };
+            var image = new Image { WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
+
+            // Load image asynchronously with authentication
+            var imageUrl = problem.Fotos[0];
+            _ = Task.Run(async () =>
+            {
+                var imageSource = await _apiService.GetImageAsync(imageUrl);
+                if (imageSource != null)
+                    MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
+            });
+
+            imgBorder.Content = image;
             grid.Children.Add(imgBorder);
             Grid.SetColumn(imgBorder, 0);
         }
@@ -642,8 +659,8 @@ public partial class AufgabePage : ContentPage
     private void UpdatePhotoPreview()
     {
         PhotoPreviewStack.Children.Clear();
-        if (_selectedPhotos.Count == 0) { PhotoPreviewStack.IsVisible = false; PhotoCountLabel.Text = "Keine Fotos ausgewählt"; return; }
-        PhotoPreviewStack.IsVisible = true; PhotoCountLabel.Text = $"{_selectedPhotos.Count} Foto(s) ausgewählt";
+        if (_selectedPhotos.Count == 0) { PhotoPreviewStack.IsVisible = false; PhotoCountLabel.IsVisible = false; return; }
+        PhotoPreviewStack.IsVisible = true; PhotoCountLabel.IsVisible = true; PhotoCountLabel.Text = $"{_selectedPhotos.Count} Foto(s)";
         for (int i = 0; i < _selectedPhotos.Count; i++)
         {
             var photo = _selectedPhotos[i];
@@ -675,7 +692,7 @@ public partial class AufgabePage : ContentPage
                 var response = await _apiService.UpdateProblemAsync(_editingProblemId.Value, name, beschreibung);
                 success = response.Success;
                 error = response.Error;
-                if (success) { await DisplayAlertAsync("Gespeichert", "Problem wurde aktualisiert", "OK"); await LoadTaskAsync(); }
+                if (success) { await LoadTaskAsync(); }
                 else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Aktualisieren", "OK");
             }
             else
@@ -1106,16 +1123,32 @@ public partial class AufgabePage : ContentPage
         // Dynamic translation of common log messages from German
         var translations = new Dictionary<string, string>
         {
+            // Note/Image operations
             { "Anmerkung hinzugefügt", Translations.Get("log_note_added") },
+            { "Bild gelöscht", Translations.Get("log_image_deleted") },
+
+            // Problem operations
             { "Problem gemeldet", Translations.Get("log_problem_reported") },
             { "Problem gelöscht", Translations.Get("log_problem_deleted") },
+
+            // Task operations
+            { "Aufgabe erstellt", Translations.Get("log_task_created") },
+            { "Aufgabe aktualisiert", Translations.Get("log_task_updated") },
+            { "Reparatur-Aufgabe erstellt", Translations.Get("log_repair_task_created") },
+
+            // Assignments
             { "Reinigung zugewiesen an", Translations.Get("log_cleaning_assigned_to") },
-            { "Fortschritt", Translations.Get("log_progress") },
+            { "Zuweisung entfernt", Translations.Get("log_assignment_removed") },
+
+            // Progress/Status
+            { "Fortschritt:", Translations.Get("log_progress") + ":" },
+            { "Status geändert:", Translations.Get("log_status_changed") + ":" },
+            { "Checkliste aktualisiert", Translations.Get("log_checklist_updated") },
+
+            // State values (used in progress text)
             { "Nicht gestartet", Translations.Get("log_not_started") },
             { "Gestartet", Translations.Get("log_started") },
-            { "Abgeschlossen", Translations.Get("log_completed") },
-            { "Aufgabe erstellt", Translations.Get("log_task_created") },
-            { "Checkliste aktualisiert", Translations.Get("log_checklist_updated") }
+            { "Abgeschlossen", Translations.Get("log_completed") }
         };
 
         var result = text;

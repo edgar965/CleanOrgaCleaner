@@ -16,6 +16,9 @@ public class ApiResponse
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 
+    [JsonPropertyName("task_id")]
+    public int? TaskId { get; set; }
+
     /// <summary>
     /// Get the error message or a default message
     /// </summary>

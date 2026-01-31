@@ -335,8 +335,22 @@ public partial class AuftragPage : ContentPage
 
         if (result.Success)
         {
-            TaskPopupOverlay.IsVisible = false;
-            await LoadDataAsync();
+            // If new task was created and we got the task_id, switch to edit mode
+            if (_isNewTask && result.TaskId.HasValue)
+            {
+                _isNewTask = false;
+                _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
+                PopupTitle.Text = Translations.Get("edit_task");
+                BtnDelete.IsVisible = true;
+                LoadTaskImages(result.TaskId.Value);
+                // Refresh tasks list in background
+                _ = LoadDataAsync();
+            }
+            else
+            {
+                TaskPopupOverlay.IsVisible = false;
+                await LoadDataAsync();
+            }
         }
         else
         {

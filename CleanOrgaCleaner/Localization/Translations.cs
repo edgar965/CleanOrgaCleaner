@@ -207,15 +207,20 @@ public static class Translations
 
             // Log translations
             ["log_note_added"] = "Anmerkung hinzugefügt",
+            ["log_image_deleted"] = "Bild gelöscht",
             ["log_problem_reported"] = "Problem gemeldet",
             ["log_problem_deleted"] = "Problem gelöscht",
+            ["log_task_created"] = "Aufgabe erstellt",
+            ["log_task_updated"] = "Aufgabe aktualisiert",
+            ["log_repair_task_created"] = "Reparatur-Aufgabe erstellt",
             ["log_cleaning_assigned_to"] = "Reinigung zugewiesen an",
+            ["log_assignment_removed"] = "Zuweisung entfernt",
             ["log_progress"] = "Fortschritt",
+            ["log_status_changed"] = "Status geändert",
+            ["log_checklist_updated"] = "Checkliste aktualisiert",
             ["log_not_started"] = "Nicht gestartet",
             ["log_started"] = "Gestartet",
             ["log_completed"] = "Abgeschlossen",
-            ["log_task_created"] = "Aufgabe erstellt",
-            ["log_checklist_updated"] = "Checkliste aktualisiert",
 
             // Login Screen
             ["login_subtitle"] = "Reinigungsmanagement",
@@ -423,15 +428,20 @@ public static class Translations
 
             // Log translations
             ["log_note_added"] = "Note added",
+            ["log_image_deleted"] = "Image deleted",
             ["log_problem_reported"] = "Problem reported",
             ["log_problem_deleted"] = "Problem deleted",
+            ["log_task_created"] = "Task created",
+            ["log_task_updated"] = "Task updated",
+            ["log_repair_task_created"] = "Repair task created",
             ["log_cleaning_assigned_to"] = "Cleaning assigned to",
+            ["log_assignment_removed"] = "Assignment removed",
             ["log_progress"] = "Progress",
+            ["log_status_changed"] = "Status changed",
+            ["log_checklist_updated"] = "Checklist updated",
             ["log_not_started"] = "Not started",
             ["log_started"] = "Started",
             ["log_completed"] = "Completed",
-            ["log_task_created"] = "Task created",
-            ["log_checklist_updated"] = "Checklist updated",
 
             // Login Screen
             ["login_subtitle"] = "Cleaning Management",
@@ -643,6 +653,23 @@ public static class Translations
             ["delete_image"] = "Eliminar imagen",
             ["confirm_delete_image"] = "¿Realmente quieres eliminar esta imagen?",
 
+            // Log translations
+            ["log_note_added"] = "Nota añadida",
+            ["log_image_deleted"] = "Imagen eliminada",
+            ["log_problem_reported"] = "Problema reportado",
+            ["log_problem_deleted"] = "Problema eliminado",
+            ["log_task_created"] = "Tarea creada",
+            ["log_task_updated"] = "Tarea actualizada",
+            ["log_repair_task_created"] = "Tarea de reparación creada",
+            ["log_cleaning_assigned_to"] = "Limpieza asignada a",
+            ["log_assignment_removed"] = "Asignación eliminada",
+            ["log_progress"] = "Progreso",
+            ["log_status_changed"] = "Estado cambiado",
+            ["log_checklist_updated"] = "Lista actualizada",
+            ["log_not_started"] = "No iniciado",
+            ["log_started"] = "Iniciado",
+            ["log_completed"] = "Completado",
+
             // Login Screen
             ["login_subtitle"] = "Gestión de limpieza",
             ["login_enterprise_app"] = "App empresarial:",
@@ -852,6 +879,23 @@ public static class Translations
             ["delete_error"] = "Eroare la ștergere",
             ["delete_image"] = "Șterge imagine",
             ["confirm_delete_image"] = "Sigur vrei să ștergi această imagine?",
+
+            // Log translations
+            ["log_note_added"] = "Notă adăugată",
+            ["log_image_deleted"] = "Imagine ștearsă",
+            ["log_problem_reported"] = "Problemă raportată",
+            ["log_problem_deleted"] = "Problemă ștearsă",
+            ["log_task_created"] = "Sarcină creată",
+            ["log_task_updated"] = "Sarcină actualizată",
+            ["log_repair_task_created"] = "Sarcină de reparație creată",
+            ["log_cleaning_assigned_to"] = "Curățenie atribuită la",
+            ["log_assignment_removed"] = "Atribuire eliminată",
+            ["log_progress"] = "Progres",
+            ["log_status_changed"] = "Stare schimbată",
+            ["log_checklist_updated"] = "Listă actualizată",
+            ["log_not_started"] = "Neînceput",
+            ["log_started"] = "Început",
+            ["log_completed"] = "Finalizat",
 
             // Login Screen
             ["login_subtitle"] = "Management curățenie",
@@ -1063,6 +1107,23 @@ public static class Translations
             ["delete_image"] = "Usuń obraz",
             ["confirm_delete_image"] = "Na pewno chcesz usunąć ten obraz?",
 
+            // Log translations
+            ["log_note_added"] = "Notatka dodana",
+            ["log_image_deleted"] = "Obraz usunięty",
+            ["log_problem_reported"] = "Problem zgłoszony",
+            ["log_problem_deleted"] = "Problem usunięty",
+            ["log_task_created"] = "Zadanie utworzone",
+            ["log_task_updated"] = "Zadanie zaktualizowane",
+            ["log_repair_task_created"] = "Zadanie naprawcze utworzone",
+            ["log_cleaning_assigned_to"] = "Sprzątanie przypisane do",
+            ["log_assignment_removed"] = "Przypisanie usunięte",
+            ["log_progress"] = "Postęp",
+            ["log_status_changed"] = "Status zmieniony",
+            ["log_checklist_updated"] = "Lista zaktualizowana",
+            ["log_not_started"] = "Nierozpoczęte",
+            ["log_started"] = "Rozpoczęte",
+            ["log_completed"] = "Zakończone",
+
             // Login Screen
             ["login_subtitle"] = "Zarządzanie sprzątaniem",
             ["login_enterprise_app"] = "Aplikacja firmowa:",
@@ -1272,6 +1333,23 @@ public static class Translations
             ["delete_error"] = "Ошибка удаления",
             ["delete_image"] = "Удалить изображение",
             ["confirm_delete_image"] = "Вы уверены, что хотите удалить это изображение?",
+
+            // Log translations
+            ["log_note_added"] = "Заметка добавлена",
+            ["log_image_deleted"] = "Изображение удалено",
+            ["log_problem_reported"] = "Проблема сообщена",
+            ["log_problem_deleted"] = "Проблема удалена",
+            ["log_task_created"] = "Задача создана",
+            ["log_task_updated"] = "Задача обновлена",
+            ["log_repair_task_created"] = "Ремонтная задача создана",
+            ["log_cleaning_assigned_to"] = "Уборка назначена",
+            ["log_assignment_removed"] = "Назначение удалено",
+            ["log_progress"] = "Прогресс",
+            ["log_status_changed"] = "Статус изменён",
+            ["log_checklist_updated"] = "Список обновлён",
+            ["log_not_started"] = "Не начато",
+            ["log_started"] = "Начато",
+            ["log_completed"] = "Завершено",
 
             // Login Screen
             ["login_subtitle"] = "Управление уборкой",
@@ -1483,6 +1561,23 @@ public static class Translations
             ["delete_image"] = "Видалити зображення",
             ["confirm_delete_image"] = "Ви впевнені, що хочете видалити це зображення?",
 
+            // Log translations
+            ["log_note_added"] = "Замітку додано",
+            ["log_image_deleted"] = "Зображення видалено",
+            ["log_problem_reported"] = "Проблему повідомлено",
+            ["log_problem_deleted"] = "Проблему видалено",
+            ["log_task_created"] = "Завдання створено",
+            ["log_task_updated"] = "Завдання оновлено",
+            ["log_repair_task_created"] = "Ремонтне завдання створено",
+            ["log_cleaning_assigned_to"] = "Прибирання призначено",
+            ["log_assignment_removed"] = "Призначення видалено",
+            ["log_progress"] = "Прогрес",
+            ["log_status_changed"] = "Статус змінено",
+            ["log_checklist_updated"] = "Список оновлено",
+            ["log_not_started"] = "Не розпочато",
+            ["log_started"] = "Розпочато",
+            ["log_completed"] = "Завершено",
+
             // Login Screen
             ["login_subtitle"] = "Управління прибиранням",
             ["login_enterprise_app"] = "Корпоративний додаток:",
@@ -1692,6 +1787,23 @@ public static class Translations
             ["delete_error"] = "Lỗi xóa",
             ["delete_image"] = "Xóa ảnh",
             ["confirm_delete_image"] = "Bạn có chắc muốn xóa ảnh này?",
+
+            // Log translations
+            ["log_note_added"] = "Đã thêm ghi chú",
+            ["log_image_deleted"] = "Đã xóa ảnh",
+            ["log_problem_reported"] = "Đã báo cáo sự cố",
+            ["log_problem_deleted"] = "Đã xóa sự cố",
+            ["log_task_created"] = "Đã tạo công việc",
+            ["log_task_updated"] = "Đã cập nhật công việc",
+            ["log_repair_task_created"] = "Đã tạo công việc sửa chữa",
+            ["log_cleaning_assigned_to"] = "Dọn dẹp được giao cho",
+            ["log_assignment_removed"] = "Đã xóa phân công",
+            ["log_progress"] = "Tiến độ",
+            ["log_status_changed"] = "Trạng thái đã thay đổi",
+            ["log_checklist_updated"] = "Đã cập nhật danh sách",
+            ["log_not_started"] = "Chưa bắt đầu",
+            ["log_started"] = "Đã bắt đầu",
+            ["log_completed"] = "Hoàn thành",
 
             // Login Screen
             ["login_subtitle"] = "Quản lý dọn dẹp",
