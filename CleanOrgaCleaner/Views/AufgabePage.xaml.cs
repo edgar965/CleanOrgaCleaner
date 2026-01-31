@@ -1101,6 +1101,34 @@ public partial class AufgabePage : ContentPage
     // Protokoll / Logs
     // ============================================
 
+    private string TranslateLogText(string text)
+    {
+        // Dynamic translation of common log messages from German
+        var translations = new Dictionary<string, string>
+        {
+            { "Anmerkung hinzugefügt", Translations.Get("log_note_added") },
+            { "Problem gemeldet", Translations.Get("log_problem_reported") },
+            { "Problem gelöscht", Translations.Get("log_problem_deleted") },
+            { "Reinigung zugewiesen an", Translations.Get("log_cleaning_assigned_to") },
+            { "Fortschritt", Translations.Get("log_progress") },
+            { "Nicht gestartet", Translations.Get("log_not_started") },
+            { "Gestartet", Translations.Get("log_started") },
+            { "Abgeschlossen", Translations.Get("log_completed") },
+            { "Aufgabe erstellt", Translations.Get("log_task_created") },
+            { "Checkliste aktualisiert", Translations.Get("log_checklist_updated") }
+        };
+
+        var result = text;
+        foreach (var kvp in translations)
+        {
+            if (!string.IsNullOrEmpty(kvp.Value) && kvp.Value != kvp.Key)
+            {
+                result = result.Replace(kvp.Key, kvp.Value);
+            }
+        }
+        return result;
+    }
+
     private async Task LoadLogsAsync()
     {
         try
@@ -1146,10 +1174,10 @@ public partial class AufgabePage : ContentPage
                     FontAttributes = FontAttributes.Bold
                 });
 
-                // Text
+                // Text - with dynamic translation
                 content.Children.Add(new Label
                 {
-                    Text = log.Text,
+                    Text = TranslateLogText(log.Text),
                     FontSize = 14,
                     TextColor = Color.FromArgb("#333333")
                 });

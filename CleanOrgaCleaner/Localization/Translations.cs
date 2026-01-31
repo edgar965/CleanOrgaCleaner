@@ -205,6 +205,18 @@ public static class Translations
             ["delete_image"] = "Bild löschen",
             ["confirm_delete_image"] = "Möchtest du dieses Bild wirklich löschen?",
 
+            // Log translations
+            ["log_note_added"] = "Anmerkung hinzugefügt",
+            ["log_problem_reported"] = "Problem gemeldet",
+            ["log_problem_deleted"] = "Problem gelöscht",
+            ["log_cleaning_assigned_to"] = "Reinigung zugewiesen an",
+            ["log_progress"] = "Fortschritt",
+            ["log_not_started"] = "Nicht gestartet",
+            ["log_started"] = "Gestartet",
+            ["log_completed"] = "Abgeschlossen",
+            ["log_task_created"] = "Aufgabe erstellt",
+            ["log_checklist_updated"] = "Checkliste aktualisiert",
+
             // Login Screen
             ["login_subtitle"] = "Reinigungsmanagement",
             ["login_enterprise_app"] = "Firmen-App:",
@@ -408,6 +420,18 @@ public static class Translations
             ["delete_error"] = "Delete error",
             ["delete_image"] = "Delete image",
             ["confirm_delete_image"] = "Do you really want to delete this image?",
+
+            // Log translations
+            ["log_note_added"] = "Note added",
+            ["log_problem_reported"] = "Problem reported",
+            ["log_problem_deleted"] = "Problem deleted",
+            ["log_cleaning_assigned_to"] = "Cleaning assigned to",
+            ["log_progress"] = "Progress",
+            ["log_not_started"] = "Not started",
+            ["log_started"] = "Started",
+            ["log_completed"] = "Completed",
+            ["log_task_created"] = "Task created",
+            ["log_checklist_updated"] = "Checklist updated",
 
             // Login Screen
             ["login_subtitle"] = "Cleaning Management",
