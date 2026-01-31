@@ -808,6 +808,25 @@ public class ApiService
         }
     }
 
+    public async Task<ApiResponse> UpdateProblemAsync(int problemId, string name, string? beschreibung)
+    {
+        try
+        {
+            var data = new { name = name, beschreibung = beschreibung ?? "" };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"/api/problem/{problemId}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
     #region BildStatus

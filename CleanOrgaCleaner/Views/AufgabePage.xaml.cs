@@ -21,6 +21,7 @@ public partial class AufgabePage : ContentPage
     private int _bildIdToDelete; // For custom delete bild popup
     private bool _deleteFromDetailPopup; // Track if delete was triggered from detail popup
     private Problem? _currentProblemDetail; // For problem detail popup
+    private int? _editingProblemId; // null = creating new, int = editing existing
 
     public string TaskId
     {
@@ -508,43 +509,17 @@ public partial class AufgabePage : ContentPage
     private void ShowProblemDetail(Problem problem)
     {
         _currentProblemDetail = problem;
+        _editingProblemId = problem.Id;
 
-        // Fill popup
-        ProblemDetailName.Text = problem.Name;
+        // Use same popup as Add Problem but in edit mode
+        ProblemPopupTitle.Text = LocalizationManager.GetString("edit_problem");
+        ProblemNameEntry.Text = problem.Name ?? "";
+        ProblemDescriptionEditor.Text = problem.Beschreibung ?? "";
+        CharCountLabel.Text = $"{(problem.Beschreibung?.Length ?? 0)} / 300";
+        _selectedPhotos.Clear();
+        UpdatePhotoPreview();
 
-        if (!string.IsNullOrEmpty(problem.Beschreibung))
-        {
-            ProblemDetailDescription.Text = problem.Beschreibung;
-            ProblemDetailDescription.IsVisible = true;
-        }
-        else
-        {
-            ProblemDetailDescription.IsVisible = false;
-        }
-
-        // Photos
-        ProblemDetailPhotos.Children.Clear();
-        if (problem.Fotos != null && problem.Fotos.Count > 0)
-        {
-            ProblemDetailPhotosStack.IsVisible = true;
-            foreach (var fotoUrl in problem.Fotos)
-            {
-                var imgBorder = new Border
-                {
-                    StrokeShape = new RoundRectangle { CornerRadius = 10 },
-                    Stroke = Color.FromArgb("#e0e0e0"),
-                    Margin = new Thickness(0, 0, 10, 10)
-                };
-                imgBorder.Content = new Image { Source = fotoUrl, WidthRequest = 100, HeightRequest = 100, Aspect = Aspect.AspectFill };
-                ProblemDetailPhotos.Children.Add(imgBorder);
-            }
-        }
-        else
-        {
-            ProblemDetailPhotosStack.IsVisible = false;
-        }
-
-        ProblemDetailPopupOverlay.IsVisible = true;
+        ProblemPopupOverlay.IsVisible = true;
     }
 
     private void OnProblemDetailPopupBackgroundTapped(object sender, EventArgs e)
@@ -561,6 +536,8 @@ public partial class AufgabePage : ContentPage
 
     private void OnAddProblemClicked(object sender, EventArgs e)
     {
+        _editingProblemId = null;
+        ProblemPopupTitle.Text = LocalizationManager.GetString("report_problem");
         ProblemNameEntry.Text = ""; ProblemDescriptionEditor.Text = "";
         _selectedPhotos.Clear(); UpdatePhotoPreview(); CharCountLabel.Text = "0 / 300";
         ProblemPopupOverlay.IsVisible = true;
@@ -688,11 +665,24 @@ public partial class AufgabePage : ContentPage
         ProblemPopupOverlay.IsVisible = false;
         try
         {
-            var response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
-            if (response.Success) { await DisplayAlertAsync("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
-            else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Melden", "OK");
+            ApiResponse response;
+            if (_editingProblemId.HasValue)
+            {
+                // Update existing problem
+                response = await _apiService.UpdateProblemAsync(_editingProblemId.Value, name, beschreibung);
+                if (response.Success) { await DisplayAlertAsync("Gespeichert", "Problem wurde aktualisiert", "OK"); await LoadTaskAsync(); }
+                else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Aktualisieren", "OK");
+            }
+            else
+            {
+                // Create new problem
+                response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
+                if (response.Success) { await DisplayAlertAsync("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
+                else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Melden", "OK");
+            }
         }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Report problem error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Problem konnte nicht gemeldet werden", "OK"); }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Save problem error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Problem konnte nicht gespeichert werden", "OK"); }
+        finally { _editingProblemId = null; }
     }
 
     private void OnCancelProblemClicked(object sender, EventArgs e) { ProblemPopupOverlay.IsVisible = false; }
