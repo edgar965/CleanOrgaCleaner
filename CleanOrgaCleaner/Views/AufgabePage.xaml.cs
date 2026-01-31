@@ -921,7 +921,7 @@ public partial class AufgabePage : ContentPage
                     BildDetailPopupOverlay.IsVisible = false;
                     _currentBildDetail = null;
                 }
-                await DisplayAlertAsync("Gelöscht", "Bild wurde gelöscht", "OK");
+                // No success message - just reload silently
                 await LoadTaskAsync();
             }
             else

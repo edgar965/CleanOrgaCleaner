@@ -815,7 +815,7 @@ public class ApiService
             var data = new { name = name, beschreibung = beschreibung ?? "" };
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"/api/problem/{problemId}/update/", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"/api/mobile/problem/{problemId}/update/", content).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
