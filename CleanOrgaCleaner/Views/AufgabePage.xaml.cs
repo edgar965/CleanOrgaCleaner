@@ -22,6 +22,7 @@ public partial class AufgabePage : ContentPage
     private bool _deleteFromDetailPopup; // Track if delete was triggered from detail popup
     private Problem? _currentProblemDetail; // For problem detail popup
     private int? _editingProblemId; // null = creating new, int = editing existing
+    private int? _editingBildId; // null = creating new, int = editing existing
 
     public string TaskId
     {
@@ -794,22 +795,35 @@ public partial class AufgabePage : ContentPage
     private async void ShowBildDetail(BildStatus bild)
     {
         _currentBildDetail = bild;
+        _editingBildId = bild.Id;
 
-        // Popup befüllen
-        BildDetailDatum.Text = $"Erstellt: {bild.ErstelltAm}";
-        BildDetailNotizEditor.Text = bild.Notiz ?? "";
-        BildDetailImage.Source = null; // Clear previous
+        // Use same popup as Add Note but in edit mode
+        AnmerkungPopupTitle.Text = LocalizationManager.GetString("edit_note");
+        AnmerkungNotizEditor.Text = bild.Notiz ?? "";
+        _selectedBildPath = null;
+        _selectedBildBytes = null;
 
-        // Popup anzeigen
-        BildDetailPopupOverlay.IsVisible = true;
-
-        // Load image with authentication
+        // Show existing image if available
         var imageUrl = bild.FullUrl ?? bild.ThumbnailUrl ?? bild.Url;
-        var imageSource = await _apiService.GetImageAsync(imageUrl);
-        if (imageSource != null)
+        if (!string.IsNullOrEmpty(imageUrl))
         {
-            BildDetailImage.Source = imageSource;
+            var imageSource = await _apiService.GetImageAsync(imageUrl);
+            if (imageSource != null)
+            {
+                AnmerkungPreviewImage.Source = imageSource;
+                AnmerkungPreviewBorder.IsVisible = true;
+            }
+            else
+            {
+                AnmerkungPreviewBorder.IsVisible = false;
+            }
         }
+        else
+        {
+            AnmerkungPreviewBorder.IsVisible = false;
+        }
+
+        AnmerkungPopupOverlay.IsVisible = true;
     }
 
     private void OnBildDetailPopupBackgroundTapped(object sender, EventArgs e)
@@ -918,6 +932,8 @@ public partial class AufgabePage : ContentPage
 
     private void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
+        _editingBildId = null;
+        AnmerkungPopupTitle.Text = LocalizationManager.GetString("add_note");
         _selectedBildPath = null;
         _selectedBildBytes = null;
         AnmerkungPreviewBorder.IsVisible = false;
@@ -1018,8 +1034,9 @@ public partial class AufgabePage : ContentPage
     {
         var notiz = AnmerkungNotizEditor.Text?.Trim() ?? "";
 
-        // Mindestens Notiz oder Bild erforderlich
-        if (string.IsNullOrEmpty(notiz) && (_selectedBildBytes == null || _selectedBildBytes.Length == 0))
+        // Bei neuem Eintrag: Mindestens Notiz oder Bild erforderlich
+        // Bei Bearbeitung: Notiz reicht
+        if (!_editingBildId.HasValue && string.IsNullOrEmpty(notiz) && (_selectedBildBytes == null || _selectedBildBytes.Length == 0))
         {
             await DisplayAlertAsync("Fehler", "Bitte gib eine Notiz ein oder wähle ein Bild aus", "OK");
             return;
@@ -1031,31 +1048,44 @@ public partial class AufgabePage : ContentPage
 
         try
         {
-            System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Start Upload");
-            var fileName = _selectedBildPath ?? $"note_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-            var response = await _apiService.UploadBildStatusBytesAsync(_taskId, _selectedBildBytes, fileName, notiz);
+            ApiResponse response;
+            if (_editingBildId.HasValue)
+            {
+                // Update existing note
+                System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Update Bild {_editingBildId.Value}");
+                response = await _apiService.UpdateBildStatusAsync(_editingBildId.Value, notiz);
+            }
+            else
+            {
+                // Create new note
+                System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Start Upload");
+                var fileName = _selectedBildPath ?? $"note_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                response = await _apiService.UploadBildStatusBytesAsync(_taskId, _selectedBildBytes, fileName, notiz);
+            }
 
             if (response.Success)
             {
                 AnmerkungPopupOverlay.IsVisible = false;
                 _selectedBildBytes = null;
                 _selectedBildPath = null;
-                await DisplayAlertAsync("Gespeichert", "Anmerkung wurde gespeichert", "OK");
+                _editingBildId = null;
+                await DisplayAlertAsync("Gespeichert", "Notiz wurde gespeichert", "OK");
                 await LoadTaskAsync();
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Upload fehlgeschlagen - {response.Error}");
+                System.Diagnostics.Debug.WriteLine($"OnSaveAnmerkungClicked: Speichern fehlgeschlagen - {response.Error}");
                 await DisplayAlertAsync("Fehler", response.Error ?? "Speichern fehlgeschlagen", "OK");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Upload Anmerkung error: {ex.Message}\n{ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"Save Anmerkung error: {ex.Message}\n{ex.StackTrace}");
             await DisplayAlertAsync("Fehler", $"Fehler: {ex.Message}", "OK");
         }
         finally
         {
+            _editingBildId = null;
             SaveAnmerkungButton.Text = "Speichern";
             SaveAnmerkungButton.IsEnabled = true;
         }
