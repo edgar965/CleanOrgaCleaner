@@ -102,75 +102,65 @@
             </HorizontalStackLayout>
         </Border>
 
-        <!-- Menu Overlay - Full screen dark blue background -->
+        <!-- Menu Overlay -->
         <Grid x:Name="MenuOverlayGrid"
               Grid.RowSpan="2"
               IsVisible="False"
-              BackgroundColor="#1a3a5c"
-              ZIndex="1000"
-              Margin="0,0,0,-2000">
+              ZIndex="1000">
 
-            <BoxView Color="#1a3a5c" VerticalOptions="Fill" HorizontalOptions="Fill">
+            <BoxView Color="Transparent">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnOverlayTapped"/>
                 </BoxView.GestureRecognizers>
             </BoxView>
 
             <Border StrokeShape="RoundRectangle 12"
-                    Stroke="#2a5a8c"
-                    StrokeThickness="1"
+                    Stroke="Transparent"
                     BackgroundColor="#1a3a5c"
                     Padding="0"
-                    Margin="40,80,40,0"
-                    VerticalOptions="Start"
-                    HorizontalOptions="Center"
-                    MinimumWidthRequest="280">
+                    Margin="60,95,60,0"
+                    VerticalOptions="Start">
                 <Border.Shadow>
-                    <Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.4"/>
+                    <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="0">
                     <Button x:Name="MenuTodayButton" Text="🏠 Heute"
                             BackgroundColor="Transparent"
                             TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            Padding="25,18"
+                            FontSize="16"
+                            Padding="20,15"
                             HorizontalOptions="Fill"
                             Clicked="OnMenuTodayClicked"/>
-                    <BoxView HeightRequest="1" Color="#3a6a9c" Margin="15,0"/>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
                     <Button x:Name="MenuChatButton" Text="💬 Chat"
                             BackgroundColor="Transparent"
                             TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            Padding="25,18"
+                            FontSize="16"
+                            Padding="20,15"
                             HorizontalOptions="Fill"
                             Clicked="OnMenuChatClicked"/>
-                    <BoxView HeightRequest="1" Color="#3a6a9c" Margin="15,0"/>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
                     <Button x:Name="MenuAuftragButton" Text="📋 Auftrag"
                             BackgroundColor="Transparent"
                             TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            Padding="25,18"
+                            FontSize="16"
+                            Padding="20,15"
                             HorizontalOptions="Fill"
                             Clicked="OnMenuAuftragClicked"/>
-                    <BoxView HeightRequest="1" Color="#3a6a9c" Margin="15,0"/>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
                     <Button x:Name="MenuSettingsButton" Text="⚙️ Einstellungen"
                             BackgroundColor="Transparent"
                             TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            Padding="25,18"
+                            FontSize="16"
+                            Padding="20,15"
                             HorizontalOptions="Fill"
                             Clicked="OnMenuSettingsClicked"/>
-                    <BoxView HeightRequest="1" Color="#3a6a9c" Margin="15,0"/>
+                    <BoxView HeightRequest="1" Color="#ffffff33"/>
                     <Button x:Name="MenuLogoutButton" Text="🚪 Logout"
                             BackgroundColor="Transparent"
                             TextColor="White"
-                            FontSize="18"
-                            FontAttributes="Bold"
-                            Padding="25,18"
+                            FontSize="16"
+                            Padding="20,15"
                             HorizontalOptions="Fill"
                             Clicked="OnLogoutClicked"/>
                 </VerticalStackLayout>

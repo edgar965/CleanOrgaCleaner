@@ -103,15 +103,6 @@
             </Button>
         </Border>
 
-        <!-- Menu Overlay (page level for proper ZIndex) -->
-        <Grid x:Name="PageMenuOverlay" IsVisible="False" BackgroundColor="#1a3a5c" ZIndex="500" Grid.RowSpan="3">
-            <BoxView Color="#1a3a5c" VerticalOptions="Fill" HorizontalOptions="Fill">
-                <BoxView.GestureRecognizers>
-                    <TapGestureRecognizer Tapped="OnPageMenuOverlayTapped"/>
-                </BoxView.GestureRecognizers>
-            </BoxView>
-        </Grid>
-
         <!-- Problem Popup -->
         <Grid x:Name="ProblemPopupOverlay" IsVisible="False" BackgroundColor="#801a3a5c" ZIndex="1000" Grid.RowSpan="3">
             <BoxView Color="Transparent">

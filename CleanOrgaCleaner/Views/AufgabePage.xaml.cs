@@ -47,28 +47,8 @@ public partial class AufgabePage : ContentPage
         _ = Header.InitializeAsync();
         Header.SetPageTitle("today");
 
-        // Subscribe to menu visibility for page-level overlay
-        Header.MenuVisibilityChanged += OnMenuVisibilityChanged;
-
         ApplyTranslations();
         _ = LoadTaskAsync();
-    }
-
-    protected override void OnDisappearing()
-    {
-        base.OnDisappearing();
-        Header.MenuVisibilityChanged -= OnMenuVisibilityChanged;
-    }
-
-    private void OnMenuVisibilityChanged(object? sender, bool isVisible)
-    {
-        PageMenuOverlay.IsVisible = isVisible;
-    }
-
-    private void OnPageMenuOverlayTapped(object sender, EventArgs e)
-    {
-        Header.HideMenu();
-        PageMenuOverlay.IsVisible = false;
     }
 
     private void ApplyTranslations()
