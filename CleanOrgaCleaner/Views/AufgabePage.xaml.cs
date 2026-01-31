@@ -514,7 +514,7 @@ public partial class AufgabePage : ContentPage
         _editingProblemId = problem.Id;
 
         // Use same popup as Add Problem but in edit mode
-        ProblemPopupTitle.Text = Translations.Get["edit_problem"];
+        ProblemPopupTitle.Text = Translations.Get("edit_problem");
         ProblemNameEntry.Text = problem.Name ?? "";
         ProblemDescriptionEditor.Text = problem.Beschreibung ?? "";
         CharCountLabel.Text = $"{(problem.Beschreibung?.Length ?? 0)} / 300";
@@ -539,7 +539,7 @@ public partial class AufgabePage : ContentPage
     private void OnAddProblemClicked(object sender, EventArgs e)
     {
         _editingProblemId = null;
-        ProblemPopupTitle.Text = Translations.Get["report_problem"];
+        ProblemPopupTitle.Text = Translations.Get("report_problem");
         ProblemNameEntry.Text = ""; ProblemDescriptionEditor.Text = "";
         _selectedPhotos.Clear(); UpdatePhotoPreview(); CharCountLabel.Text = "0 / 300";
         ProblemPopupOverlay.IsVisible = true;
@@ -667,20 +667,25 @@ public partial class AufgabePage : ContentPage
         ProblemPopupOverlay.IsVisible = false;
         try
         {
-            ApiResponse response;
+            bool success;
+            string? error;
             if (_editingProblemId.HasValue)
             {
                 // Update existing problem
-                response = await _apiService.UpdateProblemAsync(_editingProblemId.Value, name, beschreibung);
-                if (response.Success) { await DisplayAlertAsync("Gespeichert", "Problem wurde aktualisiert", "OK"); await LoadTaskAsync(); }
-                else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Aktualisieren", "OK");
+                var response = await _apiService.UpdateProblemAsync(_editingProblemId.Value, name, beschreibung);
+                success = response.Success;
+                error = response.Error;
+                if (success) { await DisplayAlertAsync("Gespeichert", "Problem wurde aktualisiert", "OK"); await LoadTaskAsync(); }
+                else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Aktualisieren", "OK");
             }
             else
             {
                 // Create new problem
-                response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
-                if (response.Success) { await DisplayAlertAsync("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
-                else await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Melden", "OK");
+                var response = await _apiService.ReportProblemWithBytesAsync(_taskId, name, beschreibung, _selectedPhotos);
+                success = response.Success;
+                error = response.Error;
+                if (success) { await DisplayAlertAsync("Gemeldet", "Problem wurde gemeldet", "OK"); await LoadTaskAsync(); }
+                else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Melden", "OK");
             }
         }
         catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"Save problem error: {ex.Message}"); await DisplayAlertAsync("Fehler", "Problem konnte nicht gespeichert werden", "OK"); }
@@ -799,7 +804,7 @@ public partial class AufgabePage : ContentPage
         _editingBildId = bild.Id;
 
         // Use same popup as Add Note but in edit mode
-        AnmerkungPopupTitle.Text = Translations.Get["edit_note"];
+        AnmerkungPopupTitle.Text = Translations.Get("edit_note");
         AnmerkungNotizEditor.Text = bild.Notiz ?? "";
         _selectedBildPath = null;
         _selectedBildBytes = null;
@@ -934,7 +939,7 @@ public partial class AufgabePage : ContentPage
     private void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
         _editingBildId = null;
-        AnmerkungPopupTitle.Text = Translations.Get["add_note"];
+        AnmerkungPopupTitle.Text = Translations.Get("add_note");
         _selectedBildPath = null;
         _selectedBildBytes = null;
         AnmerkungPreviewBorder.IsVisible = false;
