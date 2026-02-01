@@ -521,8 +521,31 @@ public partial class AuftragPage : ContentPage
             var photo = await MediaPicker.Default.CapturePhotoAsync();
             if (photo != null)
             {
-                _selectedImageFile = photo;
-                ImagePreviewImage.Source = ImageSource.FromFile(photo.FullPath);
+                // Read photo bytes for annotation
+                using var stream = await photo.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+
+                // Open annotation page
+                var annotationPage = new ImageAnnotationPage(bytes);
+                await Navigation.PushModalAsync(annotationPage);
+
+                var tcs = new TaskCompletionSource<bool>();
+                annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
+                await tcs.Task;
+
+                // Use annotated image if saved, otherwise original
+                var finalBytes = annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null
+                    ? annotationPage.AnnotatedImageBytes
+                    : bytes;
+
+                // Save to temp file for preview
+                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"annotated_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
+                await File.WriteAllBytesAsync(tempPath, finalBytes);
+
+                _selectedImageFile = new FileResult(tempPath);
+                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
                 ImagePreviewBorder.IsVisible = true;
                 SaveImageButton.IsEnabled = true;
             }
@@ -561,19 +584,32 @@ public partial class AuftragPage : ContentPage
             var result = await FilePicker.Default.PickAsync(options);
             if (result != null)
             {
-                // Read the file and create a temporary copy for preview
+                // Read the file bytes
                 using var stream = await result.OpenReadAsync();
                 using var memoryStream = new MemoryStream();
                 await stream.CopyToAsync(memoryStream);
                 var bytes = memoryStream.ToArray();
 
+                // Open annotation page
+                var annotationPage = new ImageAnnotationPage(bytes);
+                await Navigation.PushModalAsync(annotationPage);
+
+                var tcs = new TaskCompletionSource<bool>();
+                annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
+                await tcs.Task;
+
+                // Use annotated image if saved, otherwise original
+                var finalBytes = annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null
+                    ? annotationPage.AnnotatedImageBytes
+                    : bytes;
+
                 // Save to temp file for ImageSource
-                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"temp_image_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-                await File.WriteAllBytesAsync(tempPath, bytes);
+                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"annotated_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
+                await File.WriteAllBytesAsync(tempPath, finalBytes);
 
                 // Create a FileResult-like object for _selectedImageFile
                 _selectedImageFile = new FileResult(tempPath);
-                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
+                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
                 ImagePreviewBorder.IsVisible = true;
                 SaveImageButton.IsEnabled = true;
             }
@@ -677,6 +713,51 @@ public partial class AuftragPage : ContentPage
         else
         {
             await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+        }
+    }
+
+    private async void OnEditImageDetailClicked(object sender, EventArgs e)
+    {
+        if (_selectedDetailImage == null || _currentTask == null) return;
+
+        try
+        {
+            // Download image from server
+            using var httpClient = new HttpClient();
+            var imageBytes = await httpClient.GetByteArrayAsync(_selectedDetailImage.Url);
+
+            // Open annotation page
+            var annotationPage = new ImageAnnotationPage(imageBytes);
+            await Navigation.PushModalAsync(annotationPage);
+
+            var tcs = new TaskCompletionSource<bool>();
+            annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
+            await tcs.Task;
+
+            // If saved with annotations, upload the new image
+            if (annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null)
+            {
+                // Delete old image and upload new one
+                await _apiService.DeleteTaskImageAsync(_selectedDetailImage.Id);
+                using var uploadStream = new MemoryStream(annotationPage.AnnotatedImageBytes);
+                var fileName = $"edited_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, uploadStream, fileName, ImageDetailNotizEditor.Text);
+
+                if (result.Success)
+                {
+                    ImageDetailPopupOverlay.IsVisible = false;
+                    LoadTaskImages(_currentTask.Id);
+                }
+                else
+                {
+                    await DisplayAlert(Translations.Get("error"), result.Error ?? "Upload fehlgeschlagen", Translations.Get("ok"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Edit image error: {ex.Message}");
+            await DisplayAlert("Fehler", "Bild konnte nicht bearbeitet werden", "OK");
         }
     }
 

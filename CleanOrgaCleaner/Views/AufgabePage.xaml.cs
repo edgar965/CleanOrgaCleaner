@@ -18,6 +18,7 @@ public partial class AufgabePage : ContentPage
     // ImageListDescriptionDialog state
     private string _currentItemType = "problem"; // "problem" or "anmerkung"
     private int? _editingItemId; // null = creating new, int = editing existing
+    private ImageListDescription? _editingItem; // Full item for accessing existing photos
     private List<(string FileName, byte[] Bytes)> _selectedPhotos = new();
 
     public string TaskId
@@ -329,6 +330,7 @@ public partial class AufgabePage : ContentPage
     {
         _currentItemType = "problem";
         _editingItemId = null;
+        _editingItem = null;
         ImageListDescriptionDialogTitle.Text = Translations.Get("report_problem");
         ImageListDescriptionDialogNameEntry.Text = "";
         ImageListDescriptionDialogDescEditor.Text = "";
@@ -362,6 +364,7 @@ public partial class AufgabePage : ContentPage
     {
         _currentItemType = "anmerkung";
         _editingItemId = null;
+        _editingItem = null;
         ImageListDescriptionDialogTitle.Text = Translations.Get("add_note");
         ImageListDescriptionDialogNameEntry.Text = "";
         ImageListDescriptionDialogDescEditor.Text = "";
@@ -459,6 +462,7 @@ public partial class AufgabePage : ContentPage
     {
         _currentItemType = item.Type;
         _editingItemId = item.Id;
+        _editingItem = item;
         ImageListDescriptionDialogTitle.Text = item.IsProblem ? Translations.Get("edit_problem") : Translations.Get("edit_note");
         ImageListDescriptionDialogNameEntry.Text = item.Name ?? "";
         ImageListDescriptionDialogDescEditor.Text = item.Description ?? "";
@@ -617,7 +621,11 @@ public partial class AufgabePage : ContentPage
     private void UpdateDialogPhotoPreview()
     {
         ImageListDescriptionDialogPhotoPreviewStack.Children.Clear();
-        if (_selectedPhotos.Count == 0)
+
+        int existingCount = _editingItem?.Photos?.Count ?? 0;
+        int totalCount = existingCount + _selectedPhotos.Count;
+
+        if (totalCount == 0)
         {
             ImageListDescriptionDialogPhotoPreviewStack.IsVisible = false;
             ImageListDescriptionDialogPhotoCountLabel.IsVisible = false;
@@ -626,8 +634,44 @@ public partial class AufgabePage : ContentPage
 
         ImageListDescriptionDialogPhotoPreviewStack.IsVisible = true;
         ImageListDescriptionDialogPhotoCountLabel.IsVisible = true;
-        ImageListDescriptionDialogPhotoCountLabel.Text = $"{_selectedPhotos.Count} Foto(s)";
+        ImageListDescriptionDialogPhotoCountLabel.Text = $"{totalCount} Foto(s)";
 
+        // Show existing photos from server (with edit button)
+        if (_editingItem?.Photos != null)
+        {
+            foreach (var photo in _editingItem.Photos)
+            {
+                var photoCopy = photo;
+                var grid = new Grid { WidthRequest = 70, HeightRequest = 70 };
+                var imageContainer = new Border { StrokeShape = new RoundRectangle { CornerRadius = 8 }, Stroke = Color.FromArgb("#2196F3"), StrokeThickness = 2 };
+                var image = new Image { Aspect = Aspect.AspectFill };
+
+                // Load image async
+                _ = Task.Run(async () =>
+                {
+                    var imageSource = await _apiService.GetImageAsync(photoCopy.ThumbnailUrl ?? photoCopy.Url);
+                    if (imageSource != null)
+                        MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
+                });
+
+                imageContainer.Content = image;
+
+                // Tap to edit
+                var tapGesture = new TapGestureRecognizer();
+                tapGesture.Tapped += async (s, e) => await EditExistingPhotoAsync(photoCopy);
+                imageContainer.GestureRecognizers.Add(tapGesture);
+
+                grid.Children.Add(imageContainer);
+
+                // Edit icon overlay
+                var editLabel = new Label { Text = "✏", FontSize = 12, TextColor = Colors.White, BackgroundColor = Color.FromArgb("#FF9800"), Padding = new Thickness(4, 2), HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = new Thickness(0, 0, 2, 2) };
+                grid.Children.Add(editLabel);
+
+                ImageListDescriptionDialogPhotoPreviewStack.Children.Add(grid);
+            }
+        }
+
+        // Show newly added photos (with delete button)
         for (int i = 0; i < _selectedPhotos.Count; i++)
         {
             var photo = _selectedPhotos[i];
@@ -640,6 +684,52 @@ public partial class AufgabePage : ContentPage
             deleteBtn.Clicked += (s, e) => { _selectedPhotos.RemoveAt(index); UpdateDialogPhotoPreview(); };
             grid.Children.Add(deleteBtn);
             ImageListDescriptionDialogPhotoPreviewStack.Children.Add(grid);
+        }
+    }
+
+    private async Task EditExistingPhotoAsync(ImageListDescriptionPhoto photo)
+    {
+        if (string.IsNullOrEmpty(photo.Url)) return;
+
+        try
+        {
+            // Download image from server
+            using var httpClient = new HttpClient();
+            var imageBytes = await httpClient.GetByteArrayAsync(photo.Url);
+
+            // Open annotation page
+            var annotationPage = new ImageAnnotationPage(imageBytes);
+            await Navigation.PushModalAsync(annotationPage);
+
+            var tcs = new TaskCompletionSource<bool>();
+            annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
+            await tcs.Task;
+
+            // If saved with annotations, delete old and add as new photo
+            if (annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null)
+            {
+                // Delete old photo via API
+                var deleteResult = await _apiService.DeleteImageListPhotoAsync(photo.Id);
+                if (!deleteResult.Success)
+                {
+                    await DisplayAlertAsync("Fehler", deleteResult.Error ?? "Foto konnte nicht ersetzt werden", "OK");
+                    return;
+                }
+
+                // Add annotated version as new photo
+                var fileName = $"edited_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                _selectedPhotos.Add((fileName, annotationPage.AnnotatedImageBytes));
+
+                // Remove from _editingItem.Photos to update UI
+                _editingItem?.Photos?.Remove(photo);
+
+                UpdateDialogPhotoPreview();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Edit photo error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Bild konnte nicht bearbeitet werden", "OK");
         }
     }
 

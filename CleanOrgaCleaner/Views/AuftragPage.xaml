@@ -111,14 +111,16 @@
                         <Button Grid.Column="1" Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="20" WidthRequest="40" HeightRequest="40" Clicked="OnClosePopupClicked"/>
                     </Grid>
 
-                    <!-- Tabs -->
-                    <HorizontalStackLayout Grid.Row="1" Spacing="0" Padding="0,0,0,5">
-                        <Button x:Name="TabDetails" Text="Details" BackgroundColor="Transparent" TextColor="#2196F3" FontSize="13" FontAttributes="Bold" Padding="12,8" Clicked="OnTabDetailsClicked"/>
-                        <Button x:Name="TabImages" Text="Bilder" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabImagesClicked"/>
-                        <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAssignClicked"/>
-                        <Button x:Name="TabStatus" Text="Status" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabStatusClicked"/>
-                        <Button x:Name="TabLogs" Text="Protokoll" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabLogsClicked"/>
-                    </HorizontalStackLayout>
+                    <!-- Tabs (scrollable) -->
+                    <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Padding="0,0,0,5">
+                        <HorizontalStackLayout Spacing="0">
+                            <Button x:Name="TabDetails" Text="Details" BackgroundColor="Transparent" TextColor="#2196F3" FontSize="13" FontAttributes="Bold" Padding="12,8" Clicked="OnTabDetailsClicked"/>
+                            <Button x:Name="TabImages" Text="Bilder" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabImagesClicked"/>
+                            <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAssignClicked"/>
+                            <Button x:Name="TabStatus" Text="Status" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabStatusClicked"/>
+                            <Button x:Name="TabLogs" Text="Protokoll" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabLogsClicked"/>
+                        </HorizontalStackLayout>
+                    </ScrollView>
 
                     <!-- Tab Contents (Scrollable) -->
                     <ScrollView Grid.Row="2" Padding="20,0" MaximumHeightRequest="400">
@@ -291,10 +293,11 @@
                         </VerticalStackLayout>
                     </ScrollView>
                     <!-- Footer Buttons -->
-                    <Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*" ColumnSpacing="10" BackgroundColor="#f8f9fa">
+                    <Grid Grid.Row="2" Padding="15" ColumnDefinitions="*,*,*,*" ColumnSpacing="8" BackgroundColor="#f8f9fa">
                         <Button x:Name="DeleteImageButton" Text="Loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteImageDetailClicked"/>
-                        <Button x:Name="CloseImageButton" Grid.Column="1" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseImageDetailClicked"/>
-                        <Button x:Name="SaveImageDetailButton" Grid.Column="2" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveImageDetailClicked"/>
+                        <Button x:Name="EditImageButton" Grid.Column="1" Text="Bearbeiten" BackgroundColor="#FF9800" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnEditImageDetailClicked"/>
+                        <Button x:Name="CloseImageButton" Grid.Column="2" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" CornerRadius="10" HeightRequest="45" Clicked="OnCloseImageDetailClicked"/>
+                        <Button x:Name="SaveImageDetailButton" Grid.Column="3" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnSaveImageDetailClicked"/>
                     </Grid>
                 </Grid>
             </Border>

@@ -679,6 +679,8 @@ public class ApiService
         return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
     }
 
+    #endregion
+
     #region ImageListDescription API
 
     /// <summary>
