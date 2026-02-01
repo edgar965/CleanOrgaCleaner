@@ -513,7 +513,7 @@ public class ApiService
         // forceRefresh=true by default to ensure images are loaded
         if (!forceRefresh && _taskCache.TryGetValue(taskId, out var cachedTask))
         {
-            System.Diagnostics.Debug.WriteLine($"Aufgabe from cache: {taskId}, Bilder: {cachedTask.Bilder?.Count ?? 0}");
+            System.Diagnostics.Debug.WriteLine($"Aufgabe from cache: {taskId}, Problems: {cachedTask.Problems?.Count ?? 0}, Anmerkungen: {cachedTask.Anmerkungen?.Count ?? 0}");
             return cachedTask;
         }
 
@@ -525,7 +525,7 @@ public class ApiService
             var todayData = await GetTodayDataAsync().ConfigureAwait(false);
             if (_taskCache.TryGetValue(taskId, out var task))
             {
-                System.Diagnostics.Debug.WriteLine($"Aufgabe loaded: {taskId}, Bilder: {task.Bilder?.Count ?? 0}");
+                System.Diagnostics.Debug.WriteLine($"Aufgabe loaded: {taskId}, Problems: {task.Problems?.Count ?? 0}, Anmerkungen: {task.Anmerkungen?.Count ?? 0}");
                 return task;
             }
         }
@@ -679,21 +679,121 @@ public class ApiService
         return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
     }
 
+    #region ImageListDescription API
+
     /// <summary>
-    /// Upload BildStatus with byte array (for offline queue)
+    /// Create ImageListDescription (problem or anmerkung) with byte array photos
     /// </summary>
-    public async Task<ApiResponse> UploadBildStatusAsync(int taskId, byte[] imageBytes, string fileName, string? notiz)
+    public async Task<ImageListDescriptionResponse> CreateImageListItemAsync(int taskId, string itemType, string name, string? description, List<(string FileName, byte[] Bytes)>? photos)
     {
-        return await UploadBildStatusBytesAsync(taskId, imageBytes, fileName, notiz ?? "").ConfigureAwait(false);
+        try
+        {
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(name), "name");
+            if (!string.IsNullOrEmpty(description))
+                formData.Add(new StringContent(description), "description");
+
+            if (photos != null)
+            {
+                foreach (var photo in photos)
+                {
+                    var fileContent = new ByteArrayContent(photo.Bytes);
+                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                    formData.Add(fileContent, "images", photo.FileName);
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[CreateImageListItem] POST /api/task/{taskId}/items/{itemType}/create/ with {photos?.Count ?? 0} photos");
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/items/{itemType}/create/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[CreateImageListItem] Response: {response.StatusCode} - {responseText.Substring(0, Math.Min(200, responseText.Length))}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ImageListDescriptionResponse { Success = false, Error = $"Server error {(int)response.StatusCode}: {responseText.Substring(0, Math.Min(100, responseText.Length))}" };
+            }
+
+            return JsonSerializer.Deserialize<ImageListDescriptionResponse>(responseText, _jsonOptions)
+                ?? new ImageListDescriptionResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CreateImageListItem] Exception: {ex.Message}");
+            return new ImageListDescriptionResponse { Success = false, Error = ex.Message };
+        }
     }
 
     /// <summary>
-    /// Report problem with byte array photos (for offline queue)
+    /// Update ImageListDescription item
     /// </summary>
-    public async Task<ProblemResponse> ReportProblemAsync(int taskId, string name, string? description, List<(string, byte[])>? photos)
+    public async Task<ImageListDescriptionResponse> UpdateImageListItemAsync(int itemId, string name, string? description)
     {
-        return await ReportProblemWithBytesAsync(taskId, name, description, photos).ConfigureAwait(false);
+        try
+        {
+            var data = new { name = name, description = description ?? "" };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            System.Diagnostics.Debug.WriteLine($"[UpdateImageListItem] POST /api/image-list/{itemId}/update/");
+            var response = await _httpClient.PostAsync($"/api/image-list/{itemId}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[UpdateImageListItem] Response: {response.StatusCode} - {responseText}");
+
+            return JsonSerializer.Deserialize<ImageListDescriptionResponse>(responseText, _jsonOptions)
+                ?? new ImageListDescriptionResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[UpdateImageListItem] Exception: {ex.Message}");
+            return new ImageListDescriptionResponse { Success = false, Error = ex.Message };
+        }
     }
+
+    /// <summary>
+    /// Delete ImageListDescription item
+    /// </summary>
+    public async Task<ImageListDescriptionDeleteResponse> DeleteImageListItemAsync(int itemId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListItem] POST /api/image-list/{itemId}/delete/");
+            var response = await _httpClient.PostAsync($"/api/image-list/{itemId}/delete/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListItem] Response: {response.StatusCode} - {responseText}");
+
+            return JsonSerializer.Deserialize<ImageListDescriptionDeleteResponse>(responseText, _jsonOptions)
+                ?? new ImageListDescriptionDeleteResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListItem] Exception: {ex.Message}");
+            return new ImageListDescriptionDeleteResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Delete a photo from ImageListDescription
+    /// </summary>
+    public async Task<ApiResponse> DeleteImageListPhotoAsync(int photoId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListPhoto] POST /api/image-list/photo/{photoId}/delete/");
+            var response = await _httpClient.PostAsync($"/api/image-list/photo/{photoId}/delete/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListPhoto] Response: {response.StatusCode} - {responseText}");
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[DeleteImageListPhoto] Exception: {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    #endregion
 
     public async Task<ApiResponse> SaveTaskNoteAsync(int taskId, string note)
     {
@@ -715,282 +815,10 @@ public class ApiService
         }
     }
 
-    public async Task<ProblemResponse> ReportProblemAsync(int taskId, string name, string? beschreibung, List<string>? photoPaths)
-    {
-        try
-        {
-            var formData = new MultipartFormDataContent();
-            formData.Add(new StringContent(name), "name");
-            if (!string.IsNullOrEmpty(beschreibung))
-                formData.Add(new StringContent(beschreibung), "beschreibung");
-
-            if (photoPaths != null)
-            {
-                foreach (var path in photoPaths)
-                {
-                    var bytes = await File.ReadAllBytesAsync(path).ConfigureAwait(false);
-                    var fileContent = new ByteArrayContent(bytes);
-                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-                    formData.Add(fileContent, "fotos", Path.GetFileName(path));
-                }
-            }
-
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
-                ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            return new ProblemResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ProblemResponse> ReportProblemWithBytesAsync(int taskId, string name, string? beschreibung, List<(string FileName, byte[] Bytes)>? photos)
-    {
-        try
-        {
-            var formData = new MultipartFormDataContent();
-            formData.Add(new StringContent(name), "name");
-            if (!string.IsNullOrEmpty(beschreibung))
-                formData.Add(new StringContent(beschreibung), "beschreibung");
-
-            if (photos != null)
-            {
-                foreach (var photo in photos)
-                {
-                    var fileContent = new ByteArrayContent(photo.Bytes);
-                    fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
-                    formData.Add(fileContent, "fotos", photo.FileName);
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine($"[ReportProblem] POST /api/task/{taskId}/problem/create/ with {photos?.Count ?? 0} photos");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/problem/create/", formData).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"[ReportProblem] Response: {response.StatusCode} - {responseText.Substring(0, Math.Min(200, responseText.Length))}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ProblemResponse { Success = false, Error = $"Server error {(int)response.StatusCode}: {responseText.Substring(0, Math.Min(100, responseText.Length))}" };
-            }
-
-            // Check if response is JSON
-            if (string.IsNullOrEmpty(responseText) || (!responseText.TrimStart().StartsWith("{") && !responseText.TrimStart().StartsWith("[")))
-            {
-                return new ProblemResponse { Success = false, Error = $"Invalid response: {responseText.Substring(0, Math.Min(100, responseText.Length))}" };
-            }
-
-            return JsonSerializer.Deserialize<ProblemResponse>(responseText, _jsonOptions)
-                ?? new ProblemResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[ReportProblem] Exception: {ex.Message}");
-            return new ProblemResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> DeleteProblemAsync(int problemId)
-    {
-        try
-        {
-            var response = await _httpClient.PostAsync($"/api/problem/{problemId}/delete/", null).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> UpdateProblemAsync(int problemId, string name, string? beschreibung)
-    {
-        try
-        {
-            var data = new { name = name, beschreibung = beschreibung ?? "" };
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            var response = await _httpClient.PostAsync($"/api/mobile/problem/{problemId}/update/", content).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    #endregion
-
-    #region BildStatus
-
     public async Task<ApiResponse> UpdateTaskNotesAsync(int taskId, string notes)
     {
         return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
     }
-
-    public async Task<ApiResponse> UploadBildStatusAsync(int taskId, string imagePath, string notiz)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Start - TaskId={taskId}, Path={imagePath}");
-
-            if (!File.Exists(imagePath))
-            {
-                System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Datei existiert nicht: {imagePath}");
-                return new ApiResponse { Success = false, Error = "Bilddatei nicht gefunden" };
-            }
-
-            var formData = new MultipartFormDataContent();
-            var bytes = await File.ReadAllBytesAsync(imagePath).ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Datei gelesen, {bytes.Length} bytes");
-
-            var fileContent = new ByteArrayContent(bytes);
-
-            // Content-Type basierend auf Dateiendung
-            var extension = Path.GetExtension(imagePath).ToLowerInvariant();
-            var contentType = extension switch
-            {
-                ".png" => "image/png",
-                ".gif" => "image/gif",
-                ".webp" => "image/webp",
-                _ => "image/jpeg"
-            };
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-
-            formData.Add(fileContent, "image", Path.GetFileName(imagePath));
-            if (!string.IsNullOrEmpty(notiz))
-                formData.Add(new StringContent(notiz), "notiz");
-
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: Sende POST zu /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatus: EXCEPTION - {ex.Message}\n{ex.StackTrace}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> UploadBildStatusBytesAsync(int taskId, byte[]? imageBytes, string fileName, string notiz)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: Start - TaskId={taskId}, FileName={fileName}, Size={imageBytes?.Length ?? 0}");
-
-            var formData = new MultipartFormDataContent();
-
-            // Bild nur hinzufügen wenn vorhanden
-            if (imageBytes != null && imageBytes.Length > 0)
-            {
-                var fileContent = new ByteArrayContent(imageBytes);
-
-                // Content-Type basierend auf Dateiendung
-                var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
-                var contentType = extension switch
-                {
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".webp" => "image/webp",
-                    _ => "image/jpeg"
-                };
-                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-                formData.Add(fileContent, "image", fileName);
-            }
-
-            // Notiz immer hinzufügen
-            formData.Add(new StringContent(notiz ?? ""), "notiz");
-
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: POST /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadBildStatusBytes: EXCEPTION - {ex.Message}\n{ex.StackTrace}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> DeleteBildStatusAsync(int bildId)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: Lösche Bild {bildId}");
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/delete/", new StringContent("{}")).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteBildStatus: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> UpdateBildStatusAsync(int bildId, string notiz)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: Update Bild {bildId} mit Notiz");
-            var data = new { notiz = notiz };
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{bildId}/update/", content).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateBildStatus: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    #endregion
 
     #region Task Logs
 
@@ -1406,12 +1234,14 @@ public class ApiService
             };
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
 
-            formData.Add(fileContent, "image", fileName);
+            // Neue unified API - photos statt image, description statt notiz
+            formData.Add(fileContent, "photos", fileName);
+            formData.Add(new StringContent("Anmerkung"), "name");
             if (!string.IsNullOrEmpty(note))
-                formData.Add(new StringContent(note), "notiz");
+                formData.Add(new StringContent(note), "description");
 
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /api/task/{taskId}/bilder/upload/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/bilder/upload/", formData).ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /api/task/{taskId}/items/anmerkung/create/");
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/items/anmerkung/create/", formData).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"UploadTaskImage: {response.StatusCode} - {responseText}");
 
@@ -1435,13 +1265,14 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: Update image {imageId}");
-            var data = new { notiz = note ?? "" };
+            // Neue unified API - description statt notiz
+            var data = new { description = note ?? "" };
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/update/", content).ConfigureAwait(false);
+            var response = await _httpClient.PostAsync($"/api/image-list/{imageId}/update/", content).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: /api/bildstatus/{imageId}/update/ - {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: /api/image-list/{imageId}/update/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -1463,9 +1294,10 @@ public class ApiService
         try
         {
             System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: Delete image {imageId}");
-            var response = await _httpClient.PostAsync($"/api/bildstatus/{imageId}/delete/", new StringContent("{}")).ConfigureAwait(false);
+            // Neue unified API
+            var response = await _httpClient.PostAsync($"/api/image-list/{imageId}/delete/", new StringContent("{}")).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: /api/bildstatus/{imageId}/delete/ - {response.StatusCode} - {responseText}");
+            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: /api/image-list/{imageId}/delete/ - {response.StatusCode} - {responseText}");
 
             if (!response.IsSuccessStatusCode)
             {

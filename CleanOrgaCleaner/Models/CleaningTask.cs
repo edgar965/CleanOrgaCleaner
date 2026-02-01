@@ -54,11 +54,11 @@ public class CleaningTask
     [JsonPropertyName("checklist_status")]
     public Dictionary<string, bool>? ChecklistStatus { get; set; }
 
-    [JsonPropertyName("bilder")]
-    public List<BildStatus>? Bilder { get; set; }
+    [JsonPropertyName("problems")]
+    public List<ImageListDescription>? Problems { get; set; }
 
-    [JsonPropertyName("probleme")]
-    public List<Problem>? Probleme { get; set; }
+    [JsonPropertyName("anmerkungen")]
+    public List<ImageListDescription>? Anmerkungen { get; set; }
 
     [JsonPropertyName("owner_id")]
     public int? OwnerId { get; set; }
@@ -152,12 +152,22 @@ public class CleaningTask
     /// <summary>
     /// Does this task have problems reported?
     /// </summary>
-    public bool HasProblems => Probleme != null && Probleme.Count > 0;
+    public bool HasProblems => Problems != null && Problems.Count > 0;
 
     /// <summary>
     /// Number of problems
     /// </summary>
-    public int ProblemCount => Probleme?.Count ?? 0;
+    public int ProblemCount => Problems?.Count ?? 0;
+
+    /// <summary>
+    /// Does this task have notes (Anmerkungen)?
+    /// </summary>
+    public bool HasAnmerkungen => Anmerkungen != null && Anmerkungen.Count > 0;
+
+    /// <summary>
+    /// Number of notes (Anmerkungen)
+    /// </summary>
+    public int AnmerkungCount => Anmerkungen?.Count ?? 0;
 
     /// <summary>
     /// Does this task have a task description?

@@ -140,20 +140,21 @@ public class OfflineQueueService : IDisposable
     }
 
     /// <summary>
-    /// Enqueue a problem report
+    /// Enqueue an ImageListDescription item (problem or anmerkung)
     /// </summary>
-    public async Task EnqueueProblemReportAsync(int taskId, string name, string? description, List<byte[]>? photos)
+    public async Task EnqueueImageListItemAsync(int taskId, string itemType, string name, string? description, List<byte[]>? photos)
     {
         var photoBase64List = photos?.Select(p => Convert.ToBase64String(p)).ToList();
         var payload = JsonSerializer.Serialize(new
         {
             taskId,
+            itemType,
             name,
             description,
             photos = photoBase64List,
             timestamp = DateTime.UtcNow
         });
-        await EnqueueAsync("problem", payload, priority: 2).ConfigureAwait(false);
+        await EnqueueAsync("image_list_item", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -315,8 +316,8 @@ public class OfflineQueueService : IDisposable
                 return await ProcessChecklistAsync(item, apiService);
             case "notes":
                 return await ProcessNotesAsync(item, apiService);
-            case "problem":
-                return await ProcessProblemAsync(item, apiService);
+            case "image_list_item":
+                return await ProcessImageListItemAsync(item, apiService);
             case "task_create":
                 return await ProcessTaskCreateAsync(item, apiService);
             case "task_update":
@@ -366,7 +367,8 @@ public class OfflineQueueService : IDisposable
         if (string.IsNullOrEmpty(imageBase64)) return true;
 
         var imageBytes = Convert.FromBase64String(imageBase64);
-        var response = await api.UploadBildStatusAsync(taskId, imageBytes, "offline_image.jpg", notes).ConfigureAwait(false);
+        var photos = new List<(string, byte[])> { ("offline_image.jpg", imageBytes) };
+        var response = await api.CreateImageListItemAsync(taskId, "anmerkung", notes ?? "Anmerkung", null, photos).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -391,10 +393,11 @@ public class OfflineQueueService : IDisposable
         return response.Success;
     }
 
-    private async Task<bool> ProcessProblemAsync(OfflineQueueItem item, ApiService api)
+    private async Task<bool> ProcessImageListItemAsync(OfflineQueueItem item, ApiService api)
     {
         var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
         var taskId = data.GetProperty("taskId").GetInt32();
+        var itemType = data.GetProperty("itemType").GetString() ?? "problem";
         var name = data.GetProperty("name").GetString() ?? "";
         var description = data.TryGetProperty("description", out var descEl) ? descEl.GetString() : null;
 
@@ -406,7 +409,7 @@ public class OfflineQueueService : IDisposable
                 .ToList();
         }
 
-        var response = await api.ReportProblemAsync(taskId, name, description, photos).ConfigureAwait(false);
+        var response = await api.CreateImageListItemAsync(taskId, itemType, name, description, photos).ConfigureAwait(false);
         return response.Success;
     }
 

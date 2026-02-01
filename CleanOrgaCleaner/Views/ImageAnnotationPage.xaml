@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:skia="clr-namespace:SkiaSharp.Views.Maui.Controls;assembly=SkiaSharp.Views.Maui.Controls"
+             x:Class="CleanOrgaCleaner.Views.ImageAnnotationPage"
+             Title="Bild bearbeiten"
+             BackgroundColor="#1a1a1a">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header with tools -->
+        <Grid Grid.Row="0" BackgroundColor="#333" Padding="10" ColumnDefinitions="*,Auto">
+            <HorizontalStackLayout Spacing="10">
+                <Button x:Name="BtnFreehand" Text="Stift" BackgroundColor="#E91E63" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" Clicked="OnToolSelected" ClassId="freehand"/>
+                <Button x:Name="BtnCircle" Text="Kreis" BackgroundColor="#555" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" Clicked="OnToolSelected" ClassId="circle"/>
+                <Button x:Name="BtnArrow" Text="Pfeil" BackgroundColor="#555" TextColor="White"
+                        CornerRadius="8" HeightRequest="40" Clicked="OnToolSelected" ClassId="arrow"/>
+            </HorizontalStackLayout>
+            <Button Grid.Column="1" x:Name="BtnUndo" Text="Undo" BackgroundColor="#FF9800" TextColor="White"
+                    CornerRadius="8" HeightRequest="40" Clicked="OnUndoClicked"/>
+        </Grid>
+
+        <!-- Canvas area -->
+        <Grid Grid.Row="1" x:Name="CanvasContainer">
+            <Image x:Name="BackgroundImage" Aspect="AspectFit"/>
+            <skia:SKCanvasView x:Name="CanvasView"
+                               PaintSurface="OnPaintSurface"
+                               EnableTouchEvents="True"
+                               Touch="OnTouch"/>
+        </Grid>
+
+        <!-- Bottom buttons -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="10" Padding="15" BackgroundColor="#333">
+            <Button Text="Abbrechen" BackgroundColor="#666" TextColor="White"
+                    CornerRadius="12" HeightRequest="50" Clicked="OnCancelClicked"/>
+            <Button Grid.Column="1" Text="Speichern" BackgroundColor="#4CAF50" TextColor="White"
+                    FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveClicked"/>
+        </Grid>
+    </Grid>
+</ContentPage>

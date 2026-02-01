@@ -3,41 +3,41 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// Models - exakt wie im Android Client
-public class BildStatus
+// Models - new unified ImageListDescription model
+public class ImageListDescriptionPhoto
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
 
-    [JsonPropertyName("notiz")]
-    public string Notiz { get; set; } = "";
-
-    [JsonPropertyName("erstellt_am")]
-    public string ErstelltAm { get; set; } = "";
+    [JsonPropertyName("url")]
+    public string? Url { get; set; }
 
     [JsonPropertyName("thumbnail_url")]
     public string? ThumbnailUrl { get; set; }
-
-    [JsonPropertyName("full_url")]
-    public string? FullUrl { get; set; }
 }
 
-public class Problem
+public class ImageListDescription
 {
     [JsonPropertyName("id")]
     public int Id { get; set; }
+
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "";
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
-    [JsonPropertyName("beschreibung")]
-    public string? Beschreibung { get; set; }
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = "";
 
-    [JsonPropertyName("status")]
-    public string? Status { get; set; }
+    [JsonPropertyName("photos")]
+    public List<ImageListDescriptionPhoto>? Photos { get; set; }
 
     [JsonPropertyName("erstellt_am")]
     public string? ErstelltAm { get; set; }
+
+    [JsonPropertyName("erledigt")]
+    public bool Erledigt { get; set; }
 }
 
 public class CleaningTask
@@ -48,11 +48,11 @@ public class CleaningTask
     [JsonPropertyName("apartment_name")]
     public string ApartmentName { get; set; } = "";
 
-    [JsonPropertyName("bilder")]
-    public List<BildStatus>? Bilder { get; set; }
+    [JsonPropertyName("problems")]
+    public List<ImageListDescription>? Problems { get; set; }
 
-    [JsonPropertyName("probleme")]
-    public List<Problem>? Probleme { get; set; }
+    [JsonPropertyName("anmerkungen")]
+    public List<ImageListDescription>? Anmerkungen { get; set; }
 }
 
 public class TodayDataResponse
@@ -65,43 +65,33 @@ class Program
 {
     static void Main()
     {
-        // Test JSON - exakt wie vom Server
-        var json = @"{""tasks"": [{""id"": 1546, ""apartment_name"": ""02"", ""bilder"": [{""id"": 43, ""notiz"": """", ""erstellt_am"": ""11.01.2026 10:08"", ""thumbnail_url"": ""/media/bildstatus/2026/01/gallery_20260111_110809.jpg"", ""full_url"": ""/media/bildstatus/2026/01/gallery_20260111_110809.jpg""}, {""id"": 42, ""notiz"": """", ""erstellt_am"": ""11.01.2026 09:07"", ""thumbnail_url"": ""/media/bildstatus/2026/01/gallery_20260111_100748.jpg"", ""full_url"": ""/media/bildstatus/2026/01/gallery_20260111_100748.jpg""}], ""probleme"": [{""id"": 1, ""name"": ""Testproblem"", ""beschreibung"": ""Test"", ""status"": ""open"", ""erstellt_am"": ""11.01.2026 10:00""}]}]}";
+        // Test JSON - new unified format from server
+        var json = @"{""tasks"": [{""id"": 1546, ""apartment_name"": ""02"", ""problems"": [{""id"": 1, ""type"": ""problem"", ""name"": ""Testproblem"", ""description"": ""Test"", ""erledigt"": false, ""erstellt_am"": ""11.01.2026 10:00"", ""photos"": [{""id"": 1, ""url"": ""/media/image_list/test.jpg"", ""thumbnail_url"": ""/media/image_list/test_thumb.jpg""}]}], ""anmerkungen"": [{""id"": 2, ""type"": ""anmerkung"", ""name"": ""Notiz"", ""description"": """", ""erledigt"": false, ""erstellt_am"": ""11.01.2026 10:08"", ""photos"": []}]}]}";
 
-        Console.WriteLine("=== Test 1: OHNE JsonSerializerOptions ===");
-        var data1 = JsonSerializer.Deserialize<TodayDataResponse>(json);
-        Console.WriteLine($"Tasks: {data1?.Tasks?.Count ?? 0}");
-        if (data1?.Tasks?.Count > 0)
-        {
-            var task = data1.Tasks[0];
-            Console.WriteLine($"Task {task.Id}: Bilder={task.Bilder?.Count ?? -1} (null={task.Bilder == null}), Probleme={task.Probleme?.Count ?? -1} (null={task.Probleme == null})");
-        }
-
-        Console.WriteLine();
-        Console.WriteLine("=== Test 2: MIT PropertyNameCaseInsensitive ===");
+        Console.WriteLine("=== Test: ImageListDescription JSON Parsing ===");
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
         };
-        var data2 = JsonSerializer.Deserialize<TodayDataResponse>(json, options);
-        Console.WriteLine($"Tasks: {data2?.Tasks?.Count ?? 0}");
-        if (data2?.Tasks?.Count > 0)
+        var data = JsonSerializer.Deserialize<TodayDataResponse>(json, options);
+        Console.WriteLine($"Tasks: {data?.Tasks?.Count ?? 0}");
+        if (data?.Tasks?.Count > 0)
         {
-            var task = data2.Tasks[0];
-            Console.WriteLine($"Task {task.Id}: Bilder={task.Bilder?.Count ?? -1} (null={task.Bilder == null}), Probleme={task.Probleme?.Count ?? -1} (null={task.Probleme == null})");
+            var task = data.Tasks[0];
+            Console.WriteLine($"Task {task.Id}: Problems={task.Problems?.Count ?? 0}, Anmerkungen={task.Anmerkungen?.Count ?? 0}");
 
-            if (task.Bilder != null)
+            if (task.Problems != null)
             {
-                foreach (var b in task.Bilder)
+                foreach (var p in task.Problems)
                 {
-                    Console.WriteLine($"  Bild {b.Id}: {b.FullUrl}");
+                    Console.WriteLine($"  Problem {p.Id}: {p.Name} (photos: {p.Photos?.Count ?? 0})");
                 }
             }
-            if (task.Probleme != null)
+            if (task.Anmerkungen != null)
             {
-                foreach (var p in task.Probleme)
+                foreach (var a in task.Anmerkungen)
                 {
-                    Console.WriteLine($"  Problem {p.Id}: {p.Name}");
+                    Console.WriteLine($"  Anmerkung {a.Id}: {a.Name} (photos: {a.Photos?.Count ?? 0})");
                 }
             }
         }
