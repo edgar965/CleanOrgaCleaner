@@ -230,8 +230,8 @@ public partial class AuftragPage : ContentPage
         {
             c.IsAssigned = _assignments.Cleaning?.Contains(c.Id) ?? false;
         }
-        CleanersList.ItemsSource = null;
-        CleanersList.ItemsSource = _cleaners;
+        BindableLayout.SetItemsSource(CleanersList, null);
+        BindableLayout.SetItemsSource(CleanersList, _cleaners);
     }
 
     private void ShowTab(string tab)

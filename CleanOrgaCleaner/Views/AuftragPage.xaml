@@ -152,11 +152,8 @@
                             <!-- Assign Tab -->
                             <VerticalStackLayout x:Name="AssignTabContent" IsVisible="False" Spacing="10">
                                 <Label x:Name="LabelAssignCleaners" Text="Cleaner zuweisen" FontSize="14" FontAttributes="Bold"/>
-                                <CollectionView x:Name="CleanersList" SelectionMode="None" ItemSizingStrategy="MeasureFirstItem">
-                                    <CollectionView.ItemsLayout>
-                                        <LinearItemsLayout Orientation="Vertical" ItemSpacing="5"/>
-                                    </CollectionView.ItemsLayout>
-                                    <CollectionView.ItemTemplate>
+                                <VerticalStackLayout x:Name="CleanersList" Spacing="5" BindableLayout.ItemsSource="{x:Null}">
+                                    <BindableLayout.ItemTemplate>
                                         <DataTemplate>
                                             <Border Padding="12" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10" HeightRequest="64">
                                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
@@ -176,8 +173,8 @@
                                                 </Grid>
                                             </Border>
                                         </DataTemplate>
-                                    </CollectionView.ItemTemplate>
-                                </CollectionView>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
                             </VerticalStackLayout>
 
                             <!-- Status Tab -->
