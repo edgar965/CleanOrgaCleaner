@@ -205,8 +205,14 @@ public static class Translations
             ["delete_image"] = "Bild löschen",
             ["confirm_delete_image"] = "Möchtest du dieses Bild wirklich löschen?",
 
+            // Validation messages
+            ["name_required"] = "Bitte gib einen Namen ein",
+            ["note_saved"] = "Anmerkung wurde gespeichert",
+            ["name"] = "Name",
+
             // Log translations
             ["log_note_added"] = "Anmerkung hinzugefügt",
+            ["log_note_created"] = "Anmerkung erstellt",
             ["log_image_deleted"] = "Bild gelöscht",
             ["log_problem_reported"] = "Problem gemeldet",
             ["log_problem_deleted"] = "Problem gelöscht",
@@ -426,8 +432,14 @@ public static class Translations
             ["delete_image"] = "Delete image",
             ["confirm_delete_image"] = "Do you really want to delete this image?",
 
+            // Validation messages
+            ["name_required"] = "Please enter a name",
+            ["note_saved"] = "Note was saved",
+            ["name"] = "Name",
+
             // Log translations
             ["log_note_added"] = "Note added",
+            ["log_note_created"] = "Note created",
             ["log_image_deleted"] = "Image deleted",
             ["log_problem_reported"] = "Problem reported",
             ["log_problem_deleted"] = "Problem deleted",

@@ -738,7 +738,7 @@ public partial class AufgabePage : ContentPage
         var name = ImageListDescriptionDialogNameEntry.Text?.Trim();
         if (string.IsNullOrEmpty(name))
         {
-            await DisplayAlertAsync("Fehler", "Bitte gib einen Namen ein", "OK");
+            await DisplayAlertAsync(Translations.Get("error"), Translations.Get("name_required"), Translations.Get("ok"));
             return;
         }
 
@@ -769,8 +769,11 @@ public partial class AufgabePage : ContentPage
 
                 if (success)
                 {
-                    string confirmMsg = _currentItemType == "problem" ? "Problem wurde gemeldet" : "Anmerkung wurde gespeichert";
-                    await DisplayAlertAsync("Gespeichert", confirmMsg, "OK");
+                    // Only show confirmation for problems, not for anmerkungen
+                    if (_currentItemType == "problem")
+                    {
+                        await DisplayAlertAsync(Translations.Get("saved"), Translations.Get("problem_reported"), Translations.Get("ok"));
+                    }
                     await LoadTaskAsync();
                 }
                 else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Speichern", "OK");
@@ -796,6 +799,7 @@ public partial class AufgabePage : ContentPage
         var translations = new Dictionary<string, string>
         {
             { "Anmerkung hinzugefügt", Translations.Get("log_note_added") },
+            { "Anmerkung erstellt", Translations.Get("log_note_created") },
             { "Bild gelöscht", Translations.Get("log_image_deleted") },
             { "Problem gemeldet", Translations.Get("log_problem_reported") },
             { "Problem gelöscht", Translations.Get("log_problem_deleted") },

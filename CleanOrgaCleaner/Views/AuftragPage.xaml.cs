@@ -335,22 +335,9 @@ public partial class AuftragPage : ContentPage
 
         if (result.Success)
         {
-            // If new task was created and we got the task_id, switch to edit mode
-            if (_isNewTask && result.TaskId.HasValue)
-            {
-                _isNewTask = false;
-                _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
-                PopupTitle.Text = Translations.Get("edit_task");
-                BtnDelete.IsVisible = true;
-                LoadTaskImages(result.TaskId.Value);
-                // Refresh tasks list in background
-                _ = LoadDataAsync();
-            }
-            else
-            {
-                TaskPopupOverlay.IsVisible = false;
-                await LoadDataAsync();
-            }
+            // Close dialog and refresh data for all cases
+            TaskPopupOverlay.IsVisible = false;
+            await LoadDataAsync();
         }
         else
         {
@@ -482,12 +469,41 @@ public partial class AuftragPage : ContentPage
         }
     }
 
-    private void OnAddImageClicked(object sender, EventArgs e)
+    private async void OnAddImageClicked(object sender, EventArgs e)
     {
+        // If new task, save it first automatically
         if (_isNewTask)
         {
-            DisplayAlert(Translations.Get("info"), Translations.Get("save_task_first"), Translations.Get("ok"));
-            return;
+            var name = TaskNameEntry.Text?.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
+                return;
+            }
+
+            var plannedDate = $"{TaskDatePicker.Date:yyyy-MM-dd}";
+            int? apartmentId = (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id;
+            int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
+            var hinweis = TaskHinweisEditor.Text;
+
+            var status = "imported";
+            if (StatusAssigned.IsChecked) status = "assigned";
+            else if (StatusCleaned.IsChecked) status = "cleaned";
+            else if (StatusChecked.IsChecked) status = "checked";
+
+            var result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+            if (!result.Success || !result.TaskId.HasValue)
+            {
+                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_create_error"), Translations.Get("ok"));
+                return;
+            }
+
+            // Switch to edit mode
+            _isNewTask = false;
+            _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
+            PopupTitle.Text = Translations.Get("edit_task");
+            BtnDelete.IsVisible = true;
+            _ = LoadDataAsync();
         }
 
         _selectedImageFile = null;
@@ -787,7 +803,10 @@ public class CleanerAssignmentInfo : INotifyPropertyChanged
 {
     public int Id { get; set; }
     public string Name { get; set; } = "";
+    public string? Avatar { get; set; }
     public string Initial => Name.Length > 0 ? Name.Substring(0, 1).ToUpper() : "?";
+    public bool HasAvatar => !string.IsNullOrEmpty(Avatar);
+    public bool HasNoAvatar => string.IsNullOrEmpty(Avatar);
 
     private bool _isAssigned;
     public bool IsAssigned
@@ -803,6 +822,7 @@ public class CleanerAssignmentInfo : INotifyPropertyChanged
     {
         Id = cleaner.Id;
         Name = cleaner.Name;
+        Avatar = cleaner.Avatar;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
