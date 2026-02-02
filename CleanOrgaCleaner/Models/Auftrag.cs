@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using CleanOrgaCleaner.Localization;
 
 namespace CleanOrgaCleaner.Models;
 
@@ -45,10 +46,10 @@ public class Auftrag
     /// </summary>
     public string StatusDisplay => Status switch
     {
-        "imported" => "Nicht zugewiesen",
-        "assigned" => "Zugewiesen",
-        "cleaned" => "Geputzt",
-        "checked" => "Gecheckt",
+        "imported" => Translations.Get("status_imported"),
+        "assigned" => Translations.Get("status_assigned"),
+        "cleaned" => Translations.Get("status_cleaned"),
+        "checked" => Translations.Get("status_checked"),
         _ => Status
     };
 
