@@ -106,6 +106,16 @@ public partial class App : Application
             Log("WebSocketService.ConnectAsync START");
             await WebSocketService.Instance.ConnectAsync().ConfigureAwait(false);
             Log("WebSocketService.ConnectAsync DONE");
+
+            // Warm up TTS engine in background (Android needs initialization time)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await TextToSpeech.Default.SpeakAsync(" ", new SpeechOptions { Volume = 0 });
+                }
+                catch { }
+            });
         }
         catch (Exception ex)
         {
@@ -155,19 +165,8 @@ public partial class App : Application
             CancelSpeech();
             _speechCancellation = new CancellationTokenSource();
 
-            // Get available locales and pick German if available
-            var locales = await TextToSpeech.Default.GetLocalesAsync();
-            var germanLocale = locales.FirstOrDefault(l => l.Language.StartsWith("de"))
-                            ?? locales.FirstOrDefault();
-
-            var options = new SpeechOptions
-            {
-                Pitch = 1.0f,
-                Volume = 1.0f,
-                Locale = germanLocale
-            };
-
-            await TextToSpeech.Default.SpeakAsync(text, options, _speechCancellation.Token);
+            // Simple speak without locale lookup (faster)
+            await TextToSpeech.Default.SpeakAsync(text, cancelToken: _speechCancellation.Token);
         }
         catch (OperationCanceledException)
         {
@@ -176,12 +175,6 @@ public partial class App : Application
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex.Message}");
-            // Try simple speak without options as fallback
-            try
-            {
-                await TextToSpeech.Default.SpeakAsync(text);
-            }
-            catch { }
         }
     }
 

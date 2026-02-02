@@ -202,4 +202,37 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         TranslationPreview.IsVisible = false;
     }
+
+    private async void OnTtsClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Read all messages aloud
+            if (_messages.Count == 0)
+            {
+                await DisplayAlertAsync("Info", Translations.Get("no_messages"), "OK");
+                return;
+            }
+
+            TtsButton.IsEnabled = false;
+            TtsButton.BackgroundColor = Color.FromArgb("#999999");
+
+            foreach (var message in _messages)
+            {
+                var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+                var sender_name = message.FromCurrentUser ? Translations.Get("you") : message.Sender;
+                var ttsText = $"{sender_name}: {messageText}";
+                await App.SpeakTextAsync(ttsText);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex.Message}");
+        }
+        finally
+        {
+            TtsButton.IsEnabled = true;
+            TtsButton.BackgroundColor = Color.FromArgb("#FF9800");
+        }
+    }
 }

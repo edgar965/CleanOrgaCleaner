@@ -18,7 +18,7 @@
 
             <!-- Messages -->
             <CollectionView Grid.Row="0" x:Name="MessagesCollection"
-                            Margin="10,5,10,5"
+                            Margin="10,5,10,150"
                             ItemsUpdatingScrollMode="KeepLastItemInView">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -56,23 +56,31 @@
             </CollectionView>
 
             <!-- INPUT AREA - inside content grid, at bottom -->
-            <Grid Grid.Row="1" BackgroundColor="White" Padding="10" HeightRequest="60"
-                  ColumnDefinitions="40,*,40,40" ColumnSpacing="8">
-                <Button Grid.Column="0" x:Name="BackButton" Text="&#x2190;" FontSize="16"
-                        BackgroundColor="#666" TextColor="White" CornerRadius="20"
-                        WidthRequest="40" HeightRequest="40" Clicked="OnCancelClicked"/>
+            <VerticalStackLayout Grid.Row="1" VerticalOptions="End" BackgroundColor="White">
+                <Grid Padding="10" HeightRequest="60"
+                      ColumnDefinitions="40,*,40,40,40" ColumnSpacing="8">
+                    <Button Grid.Column="0" x:Name="BackButton" Text="&#x2190;" FontSize="16"
+                            BackgroundColor="#666" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Clicked="OnCancelClicked"/>
 
-                <Entry Grid.Column="1" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
-                       BackgroundColor="#f0f0f0" VerticalOptions="Center" HeightRequest="40"/>
+                    <Entry Grid.Column="1" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
+                           BackgroundColor="#f0f0f0" VerticalOptions="Center" HeightRequest="40"/>
 
-                <Button Grid.Column="2" x:Name="SendButton" Text="&#x27A4;" FontSize="16"
-                        BackgroundColor="#25D366" TextColor="White" CornerRadius="20"
-                        WidthRequest="40" HeightRequest="40" Clicked="OnSendClicked"/>
+                    <Button Grid.Column="2" x:Name="SendButton" Text="&#x27A4;" FontSize="16"
+                            BackgroundColor="#25D366" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Clicked="OnSendClicked"/>
 
-                <Button Grid.Column="3" x:Name="PreviewButton" Text="T" FontSize="14"
-                        BackgroundColor="#2196F3" TextColor="White" CornerRadius="20"
-                        WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
-            </Grid>
+                    <Button Grid.Column="3" x:Name="PreviewButton" Text="T" FontSize="14"
+                            BackgroundColor="#2196F3" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
+
+                    <Button Grid.Column="4" x:Name="TtsButton" Text="&#x1F50A;" FontSize="14"
+                            BackgroundColor="#FF9800" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Clicked="OnTtsClicked"/>
+                </Grid>
+                <!-- Spacer below input for navigation bar -->
+                <BoxView HeightRequest="80" BackgroundColor="White"/>
+            </VerticalStackLayout>
         </Grid>
 
         <!-- TRANSLATION POPUP OVERLAY -->

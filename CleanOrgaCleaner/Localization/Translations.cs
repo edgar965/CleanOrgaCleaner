@@ -53,6 +53,7 @@ public static class Translations
             ["no"] = "Nein",
             ["cancel"] = "Abbrechen",
             ["ok"] = "OK",
+            ["you"] = "Du",
 
             // Arbeitszeit
             ["end_work_question"] = "Möchtest du die Arbeitszeit beenden?",
@@ -285,6 +286,7 @@ public static class Translations
             ["no"] = "No",
             ["cancel"] = "Cancel",
             ["ok"] = "OK",
+            ["you"] = "You",
 
             ["end_work_question"] = "Do you want to end working time?",
             ["work_ended"] = "Work time ended!",
