@@ -43,7 +43,7 @@
 
             <!-- Messages List -->
             <CollectionView x:Name="MessagesCollection" Grid.Row="1"
-                            Margin="10,5,10,130"
+                            Margin="10,5,10,150"
                             ItemsUpdatingScrollMode="KeepLastItemInView">
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
@@ -120,8 +120,8 @@
                             BackgroundColor="#FF9800" TextColor="White" CornerRadius="20"
                             WidthRequest="40" HeightRequest="40" Clicked="OnTtsClicked"/>
                 </Grid>
-                <!-- Spacer below input to push it up -->
-                <BoxView HeightRequest="60" BackgroundColor="White"/>
+                <!-- Spacer below input for navigation bar -->
+                <BoxView HeightRequest="80" BackgroundColor="White"/>
             </VerticalStackLayout>
         </Grid>
 

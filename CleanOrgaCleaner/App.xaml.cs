@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Services;
 
@@ -145,28 +146,42 @@ public partial class App : Application
     /// </summary>
     public static async Task SpeakTextAsync(string text)
     {
+        if (string.IsNullOrWhiteSpace(text))
+            return;
+
         try
         {
             // Cancel any ongoing speech
             CancelSpeech();
-
             _speechCancellation = new CancellationTokenSource();
+
+            // Get available locales and pick German if available
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+            var germanLocale = locales.FirstOrDefault(l => l.Language.StartsWith("de"))
+                            ?? locales.FirstOrDefault();
 
             var options = new SpeechOptions
             {
                 Pitch = 1.0f,
-                Volume = 1.0f
+                Volume = 1.0f,
+                Locale = germanLocale
             };
 
             await TextToSpeech.Default.SpeakAsync(text, options, _speechCancellation.Token);
         }
         catch (OperationCanceledException)
         {
-            // Speech was cancelled - that's ok
+            // Speech was cancelled - ok
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex.Message}");
+            // Try simple speak without options as fallback
+            try
+            {
+                await TextToSpeech.Default.SpeakAsync(text);
+            }
+            catch { }
         }
     }
 
@@ -199,8 +214,26 @@ public partial class App : Application
                 PendingChatMessage = message;
 
                 // Play notification with TTS (reads message aloud)
-                var ttsText = $"Nachricht von {message.Sender}: {message.Text}";
-                await PlayNotificationSoundAsync(ttsText);
+                // Use DisplayText if available (translated), otherwise Text
+                var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+                var messageFrom = Translations.Get("message_from");
+                var ttsText = $"{messageFrom} {message.Sender}: {messageText}";
+
+                // Start TTS in background (fire and forget - don't block UI)
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SpeakTextAsync(ttsText);
+                    }
+                    catch { }
+                });
+
+                // Small delay to let TTS start before potential popup
+                await Task.Delay(200);
+
+                // Haptic feedback
+                try { HapticFeedback.Default.Perform(HapticFeedbackType.LongPress); } catch { }
 
                 // Vibrate
                 try { Vibration.Vibrate(TimeSpan.FromMilliseconds(200)); } catch { }
