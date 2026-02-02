@@ -289,33 +289,35 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     }
 
     /// <summary>
-    /// Read recent messages from partner aloud using TTS
+    /// Read the last message aloud using TTS
     /// </summary>
     private async void OnTtsClicked(object sender, EventArgs e)
     {
         try
         {
-            // Get the last few messages from partner (not from current user)
-            var recentPartnerMessages = _messages
-                .Where(m => !m.FromCurrentUser)
-                .TakeLast(3)
-                .ToList();
-
-            if (recentPartnerMessages.Count == 0)
+            if (_messages.Count == 0)
             {
-                await DisplayAlertAsync("Hinweis", "Keine Nachrichten zum Vorlesen", "OK");
+                await DisplayAlertAsync("Info", Translations.Get("no_messages"), "OK");
                 return;
             }
 
-            // Build text to speak
-            var textToSpeak = string.Join(". ", recentPartnerMessages.Select(m => m.DisplayText ?? m.Text));
+            TtsButton.IsEnabled = false;
+            TtsButton.BackgroundColor = Color.FromArgb("#999999");
 
-            // Speak using App's TTS
-            await App.SpeakTextAsync(textToSpeak);
+            var message = _messages.Last();
+            var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+            var sender_name = message.FromCurrentUser ? Translations.Get("you") : _partnerName;
+            var ttsText = $"{sender_name}: {messageText}";
+            await App.SpeakTextAsync(ttsText);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
+        }
+        finally
+        {
+            TtsButton.IsEnabled = true;
+            TtsButton.BackgroundColor = Color.FromArgb("#FF9800");
         }
     }
 }

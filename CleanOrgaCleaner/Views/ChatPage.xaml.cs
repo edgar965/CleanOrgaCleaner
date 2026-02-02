@@ -207,7 +207,7 @@ public partial class ChatPage : ContentPage, IQueryAttributable
     {
         try
         {
-            // Read all messages aloud
+            // Read only the last message aloud
             if (_messages.Count == 0)
             {
                 await DisplayAlertAsync("Info", Translations.Get("no_messages"), "OK");
@@ -217,13 +217,11 @@ public partial class ChatPage : ContentPage, IQueryAttributable
             TtsButton.IsEnabled = false;
             TtsButton.BackgroundColor = Color.FromArgb("#999999");
 
-            foreach (var message in _messages)
-            {
-                var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
-                var sender_name = message.FromCurrentUser ? Translations.Get("you") : message.Sender;
-                var ttsText = $"{sender_name}: {messageText}";
-                await App.SpeakTextAsync(ttsText);
-            }
+            var message = _messages.Last();
+            var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+            var sender_name = message.FromCurrentUser ? Translations.Get("you") : message.Sender;
+            var ttsText = $"{sender_name}: {messageText}";
+            await App.SpeakTextAsync(ttsText);
         }
         catch (Exception ex)
         {
