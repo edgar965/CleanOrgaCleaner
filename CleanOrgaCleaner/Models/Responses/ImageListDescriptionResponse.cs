@@ -37,3 +37,18 @@ public class ImageListDescriptionDeleteResponse
     [JsonPropertyName("error")]
     public string? Error { get; set; }
 }
+
+/// <summary>
+/// Response from get task items/anmerkung API
+/// </summary>
+public class ImageListItemsResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("items")]
+    public List<ImageListDescription>? Items { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+}

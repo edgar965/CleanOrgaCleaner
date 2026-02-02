@@ -66,6 +66,9 @@ public class CleaningTask
     [JsonPropertyName("is_own_task")]
     public bool IsOwnTask { get; set; }
 
+    [JsonPropertyName("assignments")]
+    public TaskAssignments? Assignments { get; set; }
+
     #region Computed Properties for UI
 
     /// <summary>
@@ -175,4 +178,19 @@ public class CleaningTask
     public bool HasAufgabe => !string.IsNullOrEmpty(Aufgabe);
 
     #endregion
+}
+
+/// <summary>
+/// Task assignments for cleaning, check and repair roles
+/// </summary>
+public class TaskAssignments
+{
+    [JsonPropertyName("cleaning")]
+    public List<int>? Cleaning { get; set; }
+
+    [JsonPropertyName("check")]
+    public int? Check { get; set; }
+
+    [JsonPropertyName("repare")]
+    public List<int>? Repare { get; set; }
 }

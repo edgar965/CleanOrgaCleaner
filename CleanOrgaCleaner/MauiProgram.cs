@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Plugin.Maui.Audio;
 using SkiaSharp.Views.Maui.Controls.Hosting;
 
 namespace CleanOrgaCleaner;
@@ -17,9 +16,6 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
-
-		// Register audio service
-		builder.Services.AddSingleton(AudioManager.Current);
 
 #if DEBUG
 		builder.Logging.AddDebug();

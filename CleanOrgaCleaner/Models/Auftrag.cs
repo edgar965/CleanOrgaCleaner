@@ -41,6 +41,9 @@ public class Auftrag
     [JsonPropertyName("assignments")]
     public TaskAssignments? Assignments { get; set; }
 
+    [JsonPropertyName("anmerkungen")]
+    public List<ImageListDescription>? Anmerkungen { get; set; }
+
     /// <summary>
     /// Display text for status
     /// </summary>
@@ -66,20 +69,7 @@ public class Auftrag
     };
 }
 
-/// <summary>
-/// Task assignments for cleaning, check and repair roles
-/// </summary>
-public class TaskAssignments
-{
-    [JsonPropertyName("cleaning")]
-    public List<int>? Cleaning { get; set; }
-
-    [JsonPropertyName("check")]
-    public int? Check { get; set; }
-
-    [JsonPropertyName("repare")]
-    public List<int>? Repare { get; set; }
-}
+// TaskAssignments is defined in CleaningTask.cs
 
 /// <summary>
 /// Response for my tasks list

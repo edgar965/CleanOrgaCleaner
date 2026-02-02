@@ -287,4 +287,35 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
     }
+
+    /// <summary>
+    /// Read recent messages from partner aloud using TTS
+    /// </summary>
+    private async void OnTtsClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Get the last few messages from partner (not from current user)
+            var recentPartnerMessages = _messages
+                .Where(m => !m.FromCurrentUser)
+                .TakeLast(3)
+                .ToList();
+
+            if (recentPartnerMessages.Count == 0)
+            {
+                await DisplayAlertAsync("Hinweis", "Keine Nachrichten zum Vorlesen", "OK");
+                return;
+            }
+
+            // Build text to speak
+            var textToSpeak = string.Join(". ", recentPartnerMessages.Select(m => m.DisplayText ?? m.Text));
+
+            // Speak using App's TTS
+            await App.SpeakTextAsync(textToSpeak);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
+        }
+    }
 }

@@ -1316,6 +1316,152 @@ public class ApiService
         }
     }
 
+    /// <summary>
+    /// Get anmerkungen (ImageListDescription items) for a task
+    /// </summary>
+    public async Task<List<ImageListDescription>> GetTaskAnmerkungenAsync(int taskId)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskAnmerkungen: Loading anmerkungen for task {taskId}");
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/items/anmerkung/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"GetTaskAnmerkungen: /api/task/{taskId}/items/anmerkung/ - {response.StatusCode} - {responseText}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<ImageListItemsResponse>(responseText, _jsonOptions);
+                if (result?.Items != null)
+                {
+                    // Fix photo URLs
+                    foreach (var item in result.Items)
+                    {
+                        if (item.Photos != null)
+                        {
+                            foreach (var photo in item.Photos)
+                            {
+                                if (!string.IsNullOrEmpty(photo.Url) && !photo.Url.StartsWith("http"))
+                                    photo.Url = $"{BaseUrl}{photo.Url}";
+                                if (!string.IsNullOrEmpty(photo.ThumbnailUrl) && !photo.ThumbnailUrl.StartsWith("http"))
+                                    photo.ThumbnailUrl = $"{BaseUrl}{photo.ThumbnailUrl}";
+                            }
+                        }
+                    }
+                    return result.Items;
+                }
+            }
+            return new List<ImageListDescription>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetTaskAnmerkungen: EXCEPTION - {ex.Message}");
+            return new List<ImageListDescription>();
+        }
+    }
+
+    /// <summary>
+    /// Create a new anmerkung for a task
+    /// </summary>
+    public async Task<ApiResponse> CreateTaskAnmerkungAsync(int taskId, string name, string description, List<byte[]> photos)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateTaskAnmerkung: Create for task {taskId}");
+
+            var formData = new MultipartFormDataContent();
+            formData.Add(new StringContent(name), "name");
+            formData.Add(new StringContent(description), "description");
+
+            for (int i = 0; i < photos.Count; i++)
+            {
+                var fileContent = new ByteArrayContent(photos[i]);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                formData.Add(fileContent, "photos", $"photo_{i}.jpg");
+            }
+
+            var response = await _httpClient.PostAsync($"/api/task/{taskId}/items/anmerkung/create/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"CreateTaskAnmerkung: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"CreateTaskAnmerkung: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Update an existing ImageListDescription
+    /// </summary>
+    public async Task<ApiResponse> UpdateImageListDescriptionAsync(int id, string name, string description)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateImageListDescription: Update {id}");
+            var data = new { name, description };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync($"/api/image-list/{id}/update/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"UpdateImageListDescription: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UpdateImageListDescription: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Add a photo to an existing ImageListDescription
+    /// </summary>
+    public async Task<ApiResponse> AddPhotoToImageListDescriptionAsync(int id, byte[] photoBytes)
+    {
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"AddPhotoToImageListDescription: Add photo to {id}");
+
+            var formData = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(photoBytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            formData.Add(fileContent, "photo", "photo.jpg");
+
+            var response = await _httpClient.PostAsync($"/api/image-list/{id}/add-photo/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"AddPhotoToImageListDescription: {response.StatusCode} - {responseText}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"AddPhotoToImageListDescription: EXCEPTION - {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
     #region Heartbeat / Online Status

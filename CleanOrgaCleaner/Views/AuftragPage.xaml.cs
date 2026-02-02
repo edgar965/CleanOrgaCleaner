@@ -19,10 +19,10 @@ public partial class AuftragPage : ContentPage
     private bool _isNewTask = true;
     private TaskAssignments _assignments = new() { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
 
-    // Image handling
-    private List<TaskImageInfo> _taskImages = new();
-    private FileResult? _selectedImageFile;
-    private TaskImageInfo? _selectedDetailImage;
+    // Anmerkung handling
+    private List<ImageListDescription> _anmerkungen = new();
+    private ImageListDescription? _currentAnmerkung;
+    private List<byte[]> _pendingAnmerkungPhotos = new();
 
     public AuftragPage()
     {
@@ -46,7 +46,7 @@ public partial class AuftragPage : ContentPage
         NewTaskButton.Text = "+ " + t("create_task");
         EmptyLabel.Text = t("no_my_tasks");
         TabDetails.Text = t("details_tab");
-        TabImages.Text = t("images_tab");
+        TabAnmerkungen.Text = t("notes_tab");
         TabAssign.Text = t("assign_tab");
         TabStatus.Text = t("status_tab");
         LabelTaskName.Text = t("task_name_required");
@@ -61,11 +61,19 @@ public partial class AuftragPage : ContentPage
         StatusAssigned.Content = t("status_assigned");
         StatusCleaned.Content = t("status_cleaned");
         StatusChecked.Content = t("status_checked");
-        LabelImages.Text = t("images_tab");
-        AddImageButton.Text = t("add_image");
+        AddAnmerkungButton.Text = t("add_note");
+        NoAnmerkungenLabel.Text = t("no_notes");
         BtnCancel.Text = t("cancel");
         BtnSave.Text = t("save");
         BtnDelete.Text = t("delete_task");
+        // ImageListDescriptionDialog translations
+        ImageListDescriptionDialogNameLabel.Text = t("name") + " *";
+        ImageListDescriptionDialogDescLabel.Text = t("description");
+        ImageListDescriptionDialogPhotosLabel.Text = t("photos");
+        ImageListDescriptionDialogTakePhotoButton.Text = t("camera");
+        ImageListDescriptionDialogPickPhotoButton.Text = t("gallery");
+        CancelImageListDescriptionDialogButton.Text = t("cancel");
+        SaveImageListDescriptionDialogButton.Text = t("save");
     }
 
     private async Task LoadDataAsync()
@@ -148,7 +156,7 @@ public partial class AuftragPage : ContentPage
         _isNewTask = true;
         _currentTask = null;
         _assignments = new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
-        _taskImages.Clear();
+        _anmerkungen.Clear();
 
         PopupTitle.Text = Translations.Get("new_task");
         TaskNameEntry.Text = "";
@@ -160,7 +168,7 @@ public partial class AuftragPage : ContentPage
         BtnDelete.IsVisible = false;
 
         UpdateCleanersList();
-        UpdateImagesDisplay();
+        UpdateAnmerkungenDisplay();
         ShowTab("details");
         TaskPopupOverlay.IsVisible = true;
     }
@@ -216,8 +224,8 @@ public partial class AuftragPage : ContentPage
         // Show delete button for existing tasks
         BtnDelete.IsVisible = true;
 
-        // Load images
-        LoadTaskImages(task.Id);
+        // Load anmerkungen
+        LoadAnmerkungen(task.Id);
 
         UpdateCleanersList();
         ShowTab("details");
@@ -237,22 +245,25 @@ public partial class AuftragPage : ContentPage
     private void ShowTab(string tab)
     {
         DetailsTabContent.IsVisible = tab == "details";
-        ImagesTabContent.IsVisible = tab == "images";
+        AnmerkungenTabContent.IsVisible = tab == "anmerkungen";
         AssignTabContent.IsVisible = tab == "assign";
         StatusTabContent.IsVisible = tab == "status";
+        LogsTabContent.IsVisible = tab == "logs";
 
         TabDetails.TextColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabDetails.FontAttributes = tab == "details" ? FontAttributes.Bold : FontAttributes.None;
-        TabImages.TextColor = tab == "images" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
-        TabImages.FontAttributes = tab == "images" ? FontAttributes.Bold : FontAttributes.None;
+        TabAnmerkungen.TextColor = tab == "anmerkungen" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabAnmerkungen.FontAttributes = tab == "anmerkungen" ? FontAttributes.Bold : FontAttributes.None;
         TabAssign.TextColor = tab == "assign" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabAssign.FontAttributes = tab == "assign" ? FontAttributes.Bold : FontAttributes.None;
         TabStatus.TextColor = tab == "status" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabStatus.FontAttributes = tab == "status" ? FontAttributes.Bold : FontAttributes.None;
+        TabLogs.TextColor = tab == "logs" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabLogs.FontAttributes = tab == "logs" ? FontAttributes.Bold : FontAttributes.None;
     }
 
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
-    private void OnTabImagesClicked(object sender, EventArgs e) => ShowTab("images");
+    private void OnTabAnmerkungenClicked(object sender, EventArgs e) => ShowTab("anmerkungen");
     private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
     private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
     private void OnTabLogsClicked(object sender, EventArgs e) => ShowTab("logs");
@@ -409,67 +420,130 @@ public partial class AuftragPage : ContentPage
 
     #endregion
 
-    #region Image Handling
+    #region Anmerkung Handling
 
-    private async void LoadTaskImages(int taskId)
+    private async void LoadAnmerkungen(int taskId)
     {
-        _taskImages.Clear();
+        _anmerkungen.Clear();
         try
         {
-            var images = await _apiService.GetTaskImagesAsync(taskId);
-            if (images != null)
+            var anmerkungen = await _apiService.GetTaskAnmerkungenAsync(taskId);
+            if (anmerkungen != null)
             {
-                _taskImages = images;
+                _anmerkungen = anmerkungen;
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"LoadTaskImages error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"LoadAnmerkungen error: {ex.Message}");
         }
-        UpdateImagesDisplay();
+        UpdateAnmerkungenDisplay();
     }
 
-    private void UpdateImagesDisplay()
+    private void UpdateAnmerkungenDisplay()
     {
-        ImagesStack.Children.Clear();
+        AnmerkungenStack.Children.Clear();
+        NoAnmerkungenLabel.IsVisible = _anmerkungen.Count == 0;
 
-        if (_taskImages.Count == 0)
+        foreach (var item in _anmerkungen)
         {
-            ImagesCountLabel.Text = Translations.Get("no_images");
-        }
-        else
-        {
-            ImagesCountLabel.Text = $"{_taskImages.Count} {Translations.Get("images")}";
-
-            foreach (var img in _taskImages)
+            var border = new Border
             {
-                var border = new Border
+                Padding = 10,
+                BackgroundColor = Color.FromArgb("#f8f9fa"),
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
+                Stroke = Color.FromArgb("#e0e0e0")
+            };
+
+            var grid = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitionCollection
                 {
-                    WidthRequest = 80,
-                    HeightRequest = 80,
-                    Margin = new Thickness(0, 0, 8, 8),
-                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 },
-                    Stroke = Color.FromArgb("#e0e0e0")
-                };
+                    new ColumnDefinition(new GridLength(50)),
+                    new ColumnDefinition(GridLength.Star),
+                    new ColumnDefinition(GridLength.Auto)
+                },
+                ColumnSpacing = 10
+            };
 
-                var image = new Image
+            // Thumbnail or icon
+            if (item.Photos != null && item.Photos.Count > 0)
+            {
+                var photo = item.Photos[0];
+                var img = new Image
                 {
-                    Source = img.ThumbnailUrl ?? img.Url,
-                    Aspect = Aspect.AspectFill
+                    Source = photo.ThumbnailUrl ?? photo.Url,
+                    Aspect = Aspect.AspectFill,
+                    WidthRequest = 50,
+                    HeightRequest = 50
                 };
-
-                border.Content = image;
-
-                var tapGesture = new TapGestureRecognizer();
-                tapGesture.Tapped += (s, e) => OpenImageDetail(img);
-                border.GestureRecognizers.Add(tapGesture);
-
-                ImagesStack.Children.Add(border);
+                var imgBorder = new Border
+                {
+                    Content = img,
+                    StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
+                    Stroke = Colors.Transparent
+                };
+                Grid.SetColumn(imgBorder, 0);
+                grid.Children.Add(imgBorder);
             }
+            else
+            {
+                var iconLabel = new Label
+                {
+                    Text = "\U0001F4DD", // Memo emoji
+                    FontSize = 24,
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center
+                };
+                Grid.SetColumn(iconLabel, 0);
+                grid.Children.Add(iconLabel);
+            }
+
+            // Name and description
+            var textStack = new VerticalStackLayout { Spacing = 2, VerticalOptions = LayoutOptions.Center };
+            textStack.Children.Add(new Label
+            {
+                Text = item.Name ?? Translations.Get("note"),
+                FontSize = 14,
+                FontAttributes = FontAttributes.Bold,
+                TextColor = Color.FromArgb("#333")
+            });
+            if (!string.IsNullOrEmpty(item.Description))
+            {
+                var desc = item.Description.Length > 50 ? item.Description[..50] + "..." : item.Description;
+                textStack.Children.Add(new Label
+                {
+                    Text = desc,
+                    FontSize = 12,
+                    TextColor = Color.FromArgb("#666")
+                });
+            }
+            Grid.SetColumn(textStack, 1);
+            grid.Children.Add(textStack);
+
+            // Arrow
+            var arrow = new Label
+            {
+                Text = ">",
+                FontSize = 16,
+                TextColor = Color.FromArgb("#999"),
+                VerticalOptions = LayoutOptions.Center
+            };
+            Grid.SetColumn(arrow, 2);
+            grid.Children.Add(arrow);
+
+            border.Content = grid;
+
+            var tapGesture = new TapGestureRecognizer();
+            var currentItem = item;
+            tapGesture.Tapped += (s, e) => OpenAnmerkungDialog(currentItem);
+            border.GestureRecognizers.Add(tapGesture);
+
+            AnmerkungenStack.Children.Add(border);
         }
     }
 
-    private async void OnAddImageClicked(object sender, EventArgs e)
+    private async void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
         // If new task, save it first automatically
         if (_isNewTask)
@@ -506,43 +580,130 @@ public partial class AuftragPage : ContentPage
             _ = LoadDataAsync();
         }
 
-        _selectedImageFile = null;
-        ImagePreviewBorder.IsVisible = false;
-        ImageNotizEditor.Text = "";
-        SaveImageButton.IsEnabled = false;
-        ImagePopupOverlay.IsVisible = true;
+        OpenAnmerkungDialog(null);
     }
 
-    private async void OnImageTakePhotoClicked(object sender, EventArgs e)
+    private void OpenAnmerkungDialog(ImageListDescription? anmerkung)
+    {
+        _currentAnmerkung = anmerkung;
+        _pendingAnmerkungPhotos.Clear();
+
+        ImageListDescriptionDialogNameEntry.Text = anmerkung?.Name ?? "";
+        ImageListDescriptionDialogDescEditor.Text = anmerkung?.Description ?? "";
+        UpdateImageListDescriptionDialogCharCount();
+        ImageListDescriptionDialogPhotoPreviewStack.Children.Clear();
+        ImageListDescriptionDialogPhotoPreviewStack.IsVisible = false;
+        ImageListDescriptionDialogPhotoCountLabel.IsVisible = false;
+
+        if (anmerkung != null)
+        {
+            ImageListDescriptionDialogTitle.Text = Translations.Get("edit_note");
+            // Show existing photos
+            if (anmerkung.Photos != null && anmerkung.Photos.Count > 0)
+            {
+                ImageListDescriptionDialogPhotoPreviewStack.IsVisible = true;
+                foreach (var photo in anmerkung.Photos)
+                {
+                    var img = new Image
+                    {
+                        Source = photo.ThumbnailUrl ?? photo.Url,
+                        Aspect = Aspect.AspectFill,
+                        WidthRequest = 60,
+                        HeightRequest = 60
+                    };
+                    var imgBorder = new Border
+                    {
+                        Content = img,
+                        StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
+                        Stroke = Colors.Transparent,
+                        Margin = new Thickness(0, 0, 5, 5)
+                    };
+                    ImageListDescriptionDialogPhotoPreviewStack.Children.Add(imgBorder);
+                }
+            }
+        }
+        else
+        {
+            ImageListDescriptionDialogTitle.Text = Translations.Get("add_note");
+        }
+
+        ImageListDescriptionDialog.IsVisible = true;
+    }
+
+    private void OnImageListDescriptionDialogDescTextChanged(object sender, TextChangedEventArgs e)
+    {
+        UpdateImageListDescriptionDialogCharCount();
+    }
+
+    private void UpdateImageListDescriptionDialogCharCount()
+    {
+        var len = ImageListDescriptionDialogDescEditor.Text?.Length ?? 0;
+        ImageListDescriptionDialogCharCountLabel.Text = $"{len} / 300";
+    }
+
+    private async void OnImageListDescriptionDialogTakePhotoClicked(object sender, EventArgs e)
+    {
+        await CaptureOrPickPhotoForAnmerkung(true);
+    }
+
+    private async void OnImageListDescriptionDialogPickPhotoClicked(object sender, EventArgs e)
+    {
+        await CaptureOrPickPhotoForAnmerkung(false);
+    }
+
+    private async Task CaptureOrPickPhotoForAnmerkung(bool useCamera)
     {
         try
         {
-            if (!MediaPicker.Default.IsCaptureSupported)
-            {
-                await DisplayAlert("Fehler", "Kamera nicht verfuegbar", "OK");
-                return;
-            }
+            byte[]? bytes = null;
 
-            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
-            if (cameraStatus != PermissionStatus.Granted)
+            if (useCamera)
             {
-                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (!MediaPicker.Default.IsCaptureSupported)
+                {
+                    await DisplayAlert(Translations.Get("error"), "Kamera nicht verfuegbar", Translations.Get("ok"));
+                    return;
+                }
+
+                var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
                 if (cameraStatus != PermissionStatus.Granted)
                 {
-                    await OfferOpenSettingsAsync("Kamera");
-                    return;
+                    cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                    if (cameraStatus != PermissionStatus.Granted)
+                    {
+                        await OfferOpenSettingsAsync("Kamera");
+                        return;
+                    }
+                }
+
+                var photo = await MediaPicker.Default.CapturePhotoAsync();
+                if (photo != null)
+                {
+                    using var stream = await photo.OpenReadAsync();
+                    using var memoryStream = new MemoryStream();
+                    await stream.CopyToAsync(memoryStream);
+                    bytes = memoryStream.ToArray();
+                }
+            }
+            else
+            {
+                var options = new PickOptions
+                {
+                    PickerTitle = "Bild auswaehlen",
+                    FileTypes = FilePickerFileType.Images
+                };
+                var result = await FilePicker.Default.PickAsync(options);
+                if (result != null)
+                {
+                    using var stream = await result.OpenReadAsync();
+                    using var memoryStream = new MemoryStream();
+                    await stream.CopyToAsync(memoryStream);
+                    bytes = memoryStream.ToArray();
                 }
             }
 
-            var photo = await MediaPicker.Default.CapturePhotoAsync();
-            if (photo != null)
+            if (bytes != null)
             {
-                // Read photo bytes for annotation
-                using var stream = await photo.OpenReadAsync();
-                using var memoryStream = new MemoryStream();
-                await stream.CopyToAsync(memoryStream);
-                var bytes = memoryStream.ToArray();
-
                 // Open annotation page
                 var annotationPage = new ImageAnnotationPage(bytes);
                 await Navigation.PushModalAsync(annotationPage);
@@ -556,14 +717,10 @@ public partial class AuftragPage : ContentPage
                     ? annotationPage.AnnotatedImageBytes
                     : bytes;
 
-                // Save to temp file for preview
-                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"annotated_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-                await File.WriteAllBytesAsync(tempPath, finalBytes);
-
-                _selectedImageFile = new FileResult(tempPath);
-                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
-                ImagePreviewBorder.IsVisible = true;
-                SaveImageButton.IsEnabled = true;
+                // Compress
+                var compressedBytes = await ImageHelper.CompressImageAsync(finalBytes);
+                _pendingAnmerkungPhotos.Add(compressedBytes);
+                UpdatePendingPhotosPreview();
             }
         }
         catch (PermissionException)
@@ -572,7 +729,8 @@ public partial class AuftragPage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlert("Fehler", ex.Message, "OK");
+            System.Diagnostics.Debug.WriteLine($"Photo error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), ex.Message, Translations.Get("ok"));
         }
     }
 
@@ -587,202 +745,91 @@ public partial class AuftragPage : ContentPage
         }
     }
 
-    private async void OnImagePickPhotoClicked(object sender, EventArgs e)
+    private void UpdatePendingPhotosPreview()
     {
-        try
+        // Add new pending photos to preview
+        foreach (var photoBytes in _pendingAnmerkungPhotos.Skip(ImageListDescriptionDialogPhotoPreviewStack.Children.Count - (_currentAnmerkung?.Photos?.Count ?? 0)))
         {
-            // Use FilePicker for better Android Scoped Storage support
-            var options = new PickOptions
+            var img = new Image
             {
-                PickerTitle = "Bild auswaehlen",
-                FileTypes = FilePickerFileType.Images
+                Source = ImageSource.FromStream(() => new MemoryStream(photoBytes)),
+                Aspect = Aspect.AspectFill,
+                WidthRequest = 60,
+                HeightRequest = 60
             };
-            var result = await FilePicker.Default.PickAsync(options);
-            if (result != null)
+            var imgBorder = new Border
             {
-                // Read the file bytes
-                using var stream = await result.OpenReadAsync();
-                using var memoryStream = new MemoryStream();
-                await stream.CopyToAsync(memoryStream);
-                var bytes = memoryStream.ToArray();
-
-                // Open annotation page
-                var annotationPage = new ImageAnnotationPage(bytes);
-                await Navigation.PushModalAsync(annotationPage);
-
-                var tcs = new TaskCompletionSource<bool>();
-                annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
-                await tcs.Task;
-
-                // Use annotated image if saved, otherwise original
-                var finalBytes = annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null
-                    ? annotationPage.AnnotatedImageBytes
-                    : bytes;
-
-                // Save to temp file for ImageSource
-                var tempPath = System.IO.Path.Combine(FileSystem.CacheDirectory, $"annotated_{DateTime.Now:yyyyMMdd_HHmmss}.jpg");
-                await File.WriteAllBytesAsync(tempPath, finalBytes);
-
-                // Create a FileResult-like object for _selectedImageFile
-                _selectedImageFile = new FileResult(tempPath);
-                ImagePreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
-                ImagePreviewBorder.IsVisible = true;
-                SaveImageButton.IsEnabled = true;
-            }
+                Content = img,
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
+                Stroke = Colors.Transparent,
+                Margin = new Thickness(0, 0, 5, 5)
+            };
+            ImageListDescriptionDialogPhotoPreviewStack.Children.Add(imgBorder);
         }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.GetType().Name}: {ex.Message}");
-            await DisplayAlert("Galerie-Fehler", $"{ex.GetType().Name}: {ex.Message}", "OK");
-        }
+
+        ImageListDescriptionDialogPhotoPreviewStack.IsVisible = ImageListDescriptionDialogPhotoPreviewStack.Children.Count > 0;
+        ImageListDescriptionDialogPhotoCountLabel.Text = $"{_pendingAnmerkungPhotos.Count} neue(s) Foto(s)";
+        ImageListDescriptionDialogPhotoCountLabel.IsVisible = _pendingAnmerkungPhotos.Count > 0;
     }
 
-    private async void OnSaveImageClicked(object sender, EventArgs e)
+    private async void OnSaveImageListDescriptionDialogClicked(object sender, EventArgs e)
     {
-        if (_selectedImageFile == null || _currentTask == null) return;
+        var name = ImageListDescriptionDialogNameEntry.Text?.Trim();
+        if (string.IsNullOrEmpty(name))
+        {
+            await DisplayAlert(Translations.Get("error"), Translations.Get("name_required"), Translations.Get("ok"));
+            return;
+        }
+
+        if (_currentTask == null) return;
 
         try
         {
-            // Read original bytes
-            using var originalStream = await _selectedImageFile.OpenReadAsync();
-            using var memoryStream = new MemoryStream();
-            await originalStream.CopyToAsync(memoryStream);
-            var originalBytes = memoryStream.ToArray();
+            var description = ImageListDescriptionDialogDescEditor.Text ?? "";
 
-            // Compress to max 2000px
-            var compressedBytes = await ImageHelper.CompressImageAsync(originalBytes);
-
-            // Upload compressed image
-            using var uploadStream = new MemoryStream(compressedBytes);
-            var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, uploadStream, _selectedImageFile.FileName, ImageNotizEditor.Text);
-
-            if (result.Success)
+            if (_currentAnmerkung != null)
             {
-                ImagePopupOverlay.IsVisible = false;
-                LoadTaskImages(_currentTask.Id);
+                // Update existing
+                var result = await _apiService.UpdateImageListDescriptionAsync(_currentAnmerkung.Id, name, description);
+                if (!result.Success)
+                {
+                    await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
+                    return;
+                }
+
+                // Upload new photos
+                foreach (var photoBytes in _pendingAnmerkungPhotos)
+                {
+                    await _apiService.AddPhotoToImageListDescriptionAsync(_currentAnmerkung.Id, photoBytes);
+                }
             }
             else
             {
-                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("upload_error"), Translations.Get("ok"));
+                // Create new
+                var result = await _apiService.CreateTaskAnmerkungAsync(_currentTask.Id, name, description, _pendingAnmerkungPhotos);
+                if (!result.Success)
+                {
+                    await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("create_error"), Translations.Get("ok"));
+                    return;
+                }
             }
+
+            ImageListDescriptionDialog.IsVisible = false;
+            LoadAnmerkungen(_currentTask.Id);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Upload error: {ex.Message}");
-            await DisplayAlert(Translations.Get("error"), Translations.Get("upload_error"), Translations.Get("ok"));
+            System.Diagnostics.Debug.WriteLine($"Save anmerkung error: {ex.Message}");
+            await DisplayAlert(Translations.Get("error"), Translations.Get("save_error"), Translations.Get("ok"));
         }
     }
 
-    private void OnCancelImageClicked(object sender, EventArgs e)
+    private void OnCancelImageListDescriptionDialogClicked(object sender, EventArgs e)
     {
-        ImagePopupOverlay.IsVisible = false;
+        ImageListDescriptionDialog.IsVisible = false;
     }
 
-    private void OnImagePopupBackgroundTapped(object sender, EventArgs e)
-    {
-        // Don't close on background tap
-    }
-
-    private void OpenImageDetail(TaskImageInfo img)
-    {
-        _selectedDetailImage = img;
-        ImageDetailImage.Source = img.Url;
-        ImageDetailDatum.Text = img.CreatedAt;
-        ImageDetailNotizEditor.Text = img.Note ?? "";
-        ImageDetailPopupOverlay.IsVisible = true;
-    }
-
-    private async void OnSaveImageDetailClicked(object sender, EventArgs e)
-    {
-        if (_selectedDetailImage == null) return;
-
-        var result = await _apiService.UpdateTaskImageAsync(_selectedDetailImage.Id, ImageDetailNotizEditor.Text);
-        if (result.Success)
-        {
-            _selectedDetailImage.Note = ImageDetailNotizEditor.Text;
-            ImageDetailPopupOverlay.IsVisible = false;
-        }
-        else
-        {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
-        }
-    }
-
-    private async void OnDeleteImageDetailClicked(object sender, EventArgs e)
-    {
-        if (_selectedDetailImage == null || _currentTask == null) return;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("delete_image"),
-            Translations.Get("confirm_delete_image"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm) return;
-
-        var result = await _apiService.DeleteTaskImageAsync(_selectedDetailImage.Id);
-        if (result.Success)
-        {
-            ImageDetailPopupOverlay.IsVisible = false;
-            LoadTaskImages(_currentTask.Id);
-        }
-        else
-        {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
-        }
-    }
-
-    private async void OnEditImageDetailClicked(object sender, EventArgs e)
-    {
-        if (_selectedDetailImage == null || _currentTask == null) return;
-
-        try
-        {
-            // Download image from server
-            using var httpClient = new HttpClient();
-            var imageBytes = await httpClient.GetByteArrayAsync(_selectedDetailImage.Url);
-
-            // Open annotation page
-            var annotationPage = new ImageAnnotationPage(imageBytes);
-            await Navigation.PushModalAsync(annotationPage);
-
-            var tcs = new TaskCompletionSource<bool>();
-            annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
-            await tcs.Task;
-
-            // If saved with annotations, upload the new image
-            if (annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null)
-            {
-                // Delete old image and upload new one
-                await _apiService.DeleteTaskImageAsync(_selectedDetailImage.Id);
-                using var uploadStream = new MemoryStream(annotationPage.AnnotatedImageBytes);
-                var fileName = $"edited_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
-                var result = await _apiService.UploadTaskImageAsync(_currentTask.Id, uploadStream, fileName, ImageDetailNotizEditor.Text);
-
-                if (result.Success)
-                {
-                    ImageDetailPopupOverlay.IsVisible = false;
-                    LoadTaskImages(_currentTask.Id);
-                }
-                else
-                {
-                    await DisplayAlert(Translations.Get("error"), result.Error ?? "Upload fehlgeschlagen", Translations.Get("ok"));
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"Edit image error: {ex.Message}");
-            await DisplayAlert("Fehler", "Bild konnte nicht bearbeitet werden", "OK");
-        }
-    }
-
-    private void OnCloseImageDetailClicked(object sender, EventArgs e)
-    {
-        ImageDetailPopupOverlay.IsVisible = false;
-    }
-
-    private void OnImageDetailPopupBackgroundTapped(object sender, EventArgs e)
+    private void OnImageListDescriptionDialogBackgroundTapped(object sender, EventArgs e)
     {
         // Don't close on background tap
     }

@@ -20,6 +20,7 @@ namespace CleanOrgaCleaner.Json;
 [JsonSerializable(typeof(ChatMessagesResponse))]
 [JsonSerializable(typeof(ImageListDescriptionResponse))]
 [JsonSerializable(typeof(ImageListDescriptionDeleteResponse))]
+[JsonSerializable(typeof(ImageListItemsResponse))]
 [JsonSerializable(typeof(WorkTimeResponse))]
 [JsonSerializable(typeof(TodayDataResponse))]
 [JsonSerializable(typeof(LoginResponse))]

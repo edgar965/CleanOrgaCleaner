@@ -1,6 +1,5 @@
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Services;
-using Plugin.Maui.Audio;
 
 namespace CleanOrgaCleaner;
 
@@ -115,20 +114,76 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Play notification sound
+    /// Play notification feedback (haptic + optional TTS)
     /// </summary>
-    private async Task PlayNotificationSoundAsync()
+    private async Task PlayNotificationSoundAsync(string? messageToSpeak = null)
     {
         try
         {
-            var audioManager = AudioManager.Current;
-            var player = audioManager.CreatePlayer(await FileSystem.OpenAppPackageFileAsync("notification.wav"));
-            player.Play();
+            // Haptic feedback
+            HapticFeedback.Default.Perform(HapticFeedbackType.LongPress);
+
+            // Text-to-Speech if message provided (uses MAUI built-in, no background mode needed)
+            if (!string.IsNullOrEmpty(messageToSpeak) && TtsEnabled)
+            {
+                await SpeakTextAsync(messageToSpeak);
+            }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[App] Sound error: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"[App] Notification error: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// TTS enabled setting
+    /// </summary>
+    public static bool TtsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Speak text using MAUI built-in TextToSpeech (no background audio mode required)
+    /// </summary>
+    public static async Task SpeakTextAsync(string text)
+    {
+        try
+        {
+            // Cancel any ongoing speech
+            CancelSpeech();
+
+            _speechCancellation = new CancellationTokenSource();
+
+            var options = new SpeechOptions
+            {
+                Pitch = 1.0f,
+                Volume = 1.0f
+            };
+
+            await TextToSpeech.Default.SpeakAsync(text, options, _speechCancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // Speech was cancelled - that's ok
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[TTS] Error: {ex.Message}");
+        }
+    }
+
+    private static CancellationTokenSource? _speechCancellation;
+
+    /// <summary>
+    /// Cancel ongoing speech
+    /// </summary>
+    public static void CancelSpeech()
+    {
+        try
+        {
+            _speechCancellation?.Cancel();
+            _speechCancellation?.Dispose();
+            _speechCancellation = null;
+        }
+        catch { }
     }
 
     /// <summary>
@@ -143,8 +198,9 @@ public partial class App : Application
                 // Store message for ChatPage
                 PendingChatMessage = message;
 
-                // Play notification sound
-                await PlayNotificationSoundAsync();
+                // Play notification with TTS (reads message aloud)
+                var ttsText = $"Nachricht von {message.Sender}: {message.Text}";
+                await PlayNotificationSoundAsync(ttsText);
 
                 // Vibrate
                 try { Vibration.Vibrate(TimeSpan.FromMilliseconds(200)); } catch { }
