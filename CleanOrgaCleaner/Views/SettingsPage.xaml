@@ -209,16 +209,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <!-- Exit App Button -->
-                <Button x:Name="ExitButton"
-                        Text="App beenden"
-                        BackgroundColor="#e0e0e0"
-                        TextColor="#333"
-                        FontSize="16"
-                        CornerRadius="15"
-                        Padding="20,15"
-                        Clicked="OnExitClicked"/>
-
             </VerticalStackLayout>
         </ScrollView>
 

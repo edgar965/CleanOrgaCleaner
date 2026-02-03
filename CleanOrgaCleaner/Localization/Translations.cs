@@ -156,6 +156,8 @@ public static class Translations
 
             // Neue Aufgabe / My Tasks
             ["new_task"] = "Neue Aufgabe",
+            ["create_auftrag"] = "Auftrag erstellen",
+            ["edit_auftrag"] = "Auftrag bearbeiten",
             ["my_tasks"] = "Meine Aufgaben",
             ["back"] = "Zurück",
             ["chat_list"] = "Chat Übersicht",
@@ -394,6 +396,8 @@ public static class Translations
 
             // Neue Aufgabe / My Tasks
             ["new_task"] = "New Task",
+            ["create_auftrag"] = "Create Order",
+            ["edit_auftrag"] = "Edit Order",
             ["my_tasks"] = "My Tasks",
             ["back"] = "Back",
             ["chat_list"] = "Chat Overview",
@@ -579,6 +583,9 @@ public static class Translations
             ["x_of_y_completed"] = "completado",
             ["problems"] = "Problemas",
             ["report_problem"] = "Reportar problema",
+            ["edit_problem"] = "Editar problema",
+            ["edit_note"] = "Editar nota",
+            ["name"] = "Nombre",
             ["delete"] = "Eliminar",
             ["no_problems"] = "Sin problemas reportados",
             ["problem_name"] = "Nombre del problema",
@@ -636,6 +643,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Nueva Tarea",
+            ["create_auftrag"] = "Crear Pedido",
+            ["edit_auftrag"] = "Editar Pedido",
             ["my_tasks"] = "Mis Tareas",
             ["back"] = "Volver",
             ["chat_list"] = "Lista de Chats",
@@ -815,6 +824,9 @@ public static class Translations
             ["x_of_y_completed"] = "finalizat",
             ["problems"] = "Probleme",
             ["report_problem"] = "Raportează problemă",
+            ["edit_problem"] = "Editează problemă",
+            ["edit_note"] = "Editează notă",
+            ["name"] = "Nume",
             ["delete"] = "Șterge",
             ["no_problems"] = "Nicio problemă raportată",
             ["problem_name"] = "Numele problemei",
@@ -872,6 +884,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Sarcină Nouă",
+            ["create_auftrag"] = "Creare Comandă",
+            ["edit_auftrag"] = "Editare Comandă",
             ["my_tasks"] = "Sarcinile Mele",
             ["back"] = "Înapoi",
             ["chat_list"] = "Lista Chaturi",
@@ -1051,6 +1065,9 @@ public static class Translations
             ["x_of_y_completed"] = "ukończono",
             ["problems"] = "Problemy",
             ["report_problem"] = "Zgłoś problem",
+            ["edit_problem"] = "Edytuj problem",
+            ["edit_note"] = "Edytuj notatkę",
+            ["name"] = "Nazwa",
             ["delete"] = "Usuń",
             ["no_problems"] = "Brak zgłoszonych problemów",
             ["problem_name"] = "Nazwa problemu",
@@ -1108,6 +1125,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Nowe Zadanie",
+            ["create_auftrag"] = "Utwórz Zlecenie",
+            ["edit_auftrag"] = "Edytuj Zlecenie",
             ["my_tasks"] = "Moje Zadania",
             ["back"] = "Wstecz",
             ["chat_list"] = "Lista Czatów",
@@ -1287,6 +1306,9 @@ public static class Translations
             ["x_of_y_completed"] = "выполнено",
             ["problems"] = "Проблемы",
             ["report_problem"] = "Сообщить о проблеме",
+            ["edit_problem"] = "Редактировать проблему",
+            ["edit_note"] = "Редактировать заметку",
+            ["name"] = "Название",
             ["delete"] = "Удалить",
             ["no_problems"] = "Нет проблем",
             ["problem_name"] = "Название проблемы",
@@ -1344,6 +1366,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Новая Задача",
+            ["create_auftrag"] = "Создать Заказ",
+            ["edit_auftrag"] = "Редактировать Заказ",
             ["my_tasks"] = "Мои Задачи",
             ["back"] = "Назад",
             ["chat_list"] = "Список Чатов",
@@ -1523,6 +1547,9 @@ public static class Translations
             ["x_of_y_completed"] = "виконано",
             ["problems"] = "Проблеми",
             ["report_problem"] = "Повідомити про проблему",
+            ["edit_problem"] = "Редагувати проблему",
+            ["edit_note"] = "Редагувати нотатку",
+            ["name"] = "Назва",
             ["delete"] = "Видалити",
             ["no_problems"] = "Немає проблем",
             ["problem_name"] = "Назва проблеми",
@@ -1580,6 +1607,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Нове Завдання",
+            ["create_auftrag"] = "Створити Замовлення",
+            ["edit_auftrag"] = "Редагувати Замовлення",
             ["my_tasks"] = "Мої Завдання",
             ["back"] = "Назад",
             ["chat_list"] = "Список Чатів",
@@ -1759,6 +1788,9 @@ public static class Translations
             ["x_of_y_completed"] = "hoàn thành",
             ["problems"] = "Vấn đề",
             ["report_problem"] = "Báo cáo vấn đề",
+            ["edit_problem"] = "Chỉnh sửa vấn đề",
+            ["edit_note"] = "Chỉnh sửa ghi chú",
+            ["name"] = "Tên",
             ["delete"] = "Xóa",
             ["no_problems"] = "Không có vấn đề",
             ["problem_name"] = "Tên vấn đề",
@@ -1816,6 +1848,8 @@ public static class Translations
 
             // My Tasks
             ["new_task"] = "Công việc mới",
+            ["create_auftrag"] = "Tạo Đơn hàng",
+            ["edit_auftrag"] = "Sửa Đơn hàng",
             ["my_tasks"] = "Công việc của tôi",
             ["back"] = "Quay lại",
             ["chat_list"] = "Danh sách Chat",

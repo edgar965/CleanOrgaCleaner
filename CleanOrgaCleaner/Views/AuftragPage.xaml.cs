@@ -44,7 +44,7 @@ public partial class AuftragPage : ContentPage
     {
         var t = Translations.Get;
         // Page-specific translations (header handled by AppHeader)
-        NewTaskButton.Text = "+ " + t("create_task");
+        NewTaskButton.Text = "+ " + t("create_auftrag");
         EmptyLabel.Text = t("no_my_tasks");
         TabDetails.Text = t("details_tab");
         TabAnmerkungen.Text = t("notes_tab");
@@ -156,7 +156,7 @@ public partial class AuftragPage : ContentPage
         _assignments = new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
         _anmerkungen.Clear();
 
-        PopupTitle.Text = Translations.Get("new_task");
+        PopupTitle.Text = Translations.Get("create_auftrag");
         TaskNameEntry.Text = "";
         ApartmentPicker.SelectedIndex = -1;
         TaskDatePicker.Date = DateTime.Today;
@@ -177,7 +177,7 @@ public partial class AuftragPage : ContentPage
         _currentTask = task;
         _assignments = task.Assignments ?? new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
 
-        PopupTitle.Text = Translations.Get("edit_task");
+        PopupTitle.Text = Translations.Get("edit_auftrag");
         TaskNameEntry.Text = task.Name;
 
         // Set apartment
@@ -241,13 +241,18 @@ public partial class AuftragPage : ContentPage
         AssignTabContent.IsVisible = tab == "assign";
         LogsTabContent.IsVisible = tab == "logs";
 
-        TabDetails.TextColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        // Update tab button styling (colored background for active, gray for inactive)
+        TabDetails.BackgroundColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#e0e0e0");
+        TabDetails.TextColor = tab == "details" ? Colors.White : Color.FromArgb("#666");
         TabDetails.FontAttributes = tab == "details" ? FontAttributes.Bold : FontAttributes.None;
-        TabAnmerkungen.TextColor = tab == "anmerkungen" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabAnmerkungen.BackgroundColor = tab == "anmerkungen" ? Color.FromArgb("#2196F3") : Color.FromArgb("#e0e0e0");
+        TabAnmerkungen.TextColor = tab == "anmerkungen" ? Colors.White : Color.FromArgb("#666");
         TabAnmerkungen.FontAttributes = tab == "anmerkungen" ? FontAttributes.Bold : FontAttributes.None;
-        TabAssign.TextColor = tab == "assign" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabAssign.BackgroundColor = tab == "assign" ? Color.FromArgb("#2196F3") : Color.FromArgb("#e0e0e0");
+        TabAssign.TextColor = tab == "assign" ? Colors.White : Color.FromArgb("#666");
         TabAssign.FontAttributes = tab == "assign" ? FontAttributes.Bold : FontAttributes.None;
-        TabLogs.TextColor = tab == "logs" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
+        TabLogs.BackgroundColor = tab == "logs" ? Color.FromArgb("#2196F3") : Color.FromArgb("#e0e0e0");
+        TabLogs.TextColor = tab == "logs" ? Colors.White : Color.FromArgb("#666");
         TabLogs.FontAttributes = tab == "logs" ? FontAttributes.Bold : FontAttributes.None;
     }
 
@@ -557,7 +562,7 @@ public partial class AuftragPage : ContentPage
             // Switch to edit mode
             _isNewTask = false;
             _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
-            PopupTitle.Text = Translations.Get("edit_task");
+            PopupTitle.Text = Translations.Get("edit_auftrag");
             BtnDelete.IsVisible = true;
             _ = LoadDataAsync();
         }

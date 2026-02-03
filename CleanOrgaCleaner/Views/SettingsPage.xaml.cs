@@ -99,9 +99,6 @@ public partial class SettingsPage : ContentPage
         VersionLabel.Text = t("version");
         VersionValueLabel.Text = Main.Version;
         ServerLabel.Text = t("server");
-
-        // Buttons
-        ExitButton.Text = t("exit_app");
     }
 
     private void LoadUserInfo()
@@ -161,24 +158,6 @@ public partial class SettingsPage : ContentPage
             System.Diagnostics.Debug.WriteLine($"SetLanguage error: {ex.Message}");
             await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
         }
-    }
-
-    private async void OnExitClicked(object? sender, EventArgs e)
-    {
-        var t = Translations.Get;
-        var confirm = await DisplayAlertAsync(
-            t("exit_app"),
-            t("exit_app_question"),
-            t("yes"), t("no"));
-
-        if (!confirm)
-            return;
-
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
-
-        // Exit the application
-        Application.Current?.Quit();
     }
 
     private async void OnChangeAvatarClicked(object? sender, EventArgs e)

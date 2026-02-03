@@ -130,12 +130,12 @@ public partial class AppHeader : ContentView
     {
         if (_isWorking)
         {
-            WorkToggleButton.Text = "Stop";
+            WorkToggleButton.Text = Translations.Get("stop");
             WorkToggleButton.BackgroundColor = Color.FromArgb("#E91E63");
         }
         else
         {
-            WorkToggleButton.Text = "Start";
+            WorkToggleButton.Text = Translations.Get("start");
             WorkToggleButton.BackgroundColor = Color.FromArgb("#4CAF50");
         }
     }

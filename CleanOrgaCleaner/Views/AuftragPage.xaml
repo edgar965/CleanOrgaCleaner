@@ -77,12 +77,12 @@
             </RefreshView>
         </Grid>
 
-        <!-- Task Edit Popup (Bottom Sheet Style) -->
+        <!-- Task Edit Popup (Centered Modal Style like Problem melden) -->
         <Grid x:Name="TaskPopupOverlay"
               Grid.RowSpan="2"
               IsVisible="False"
               ZIndex="2000"
-              BackgroundColor="#80000000">
+              BackgroundColor="#801a3a5c">
 
             <BoxView Color="Transparent">
                 <BoxView.GestureRecognizers>
@@ -90,124 +90,114 @@
                 </BoxView.GestureRecognizers>
             </BoxView>
 
-            <Border StrokeShape="RoundRectangle 20,20,0,0"
+            <Border StrokeShape="RoundRectangle 20"
                     Stroke="Transparent"
                     BackgroundColor="White"
                     Padding="0"
-                    VerticalOptions="End"
-                    Margin="0,80,0,0">
-                <Border.Shadow><Shadow Brush="Black" Offset="0,-5" Radius="20" Opacity="0.3"/></Border.Shadow>
+                    VerticalOptions="Center"
+                    Margin="20"
+                    MaximumWidthRequest="400"
+                    MaximumHeightRequest="650">
+                <Border.Shadow><Shadow Brush="Black" Offset="0,5" Radius="20" Opacity="0.3"/></Border.Shadow>
 
-                <Grid RowDefinitions="Auto,Auto,*,Auto">
-                    <Grid.Padding>
-                        <OnPlatform x:TypeArguments="Thickness">
-                            <On Platform="iOS" Value="0,0,0,35"/>
-                            <On Platform="Android" Value="0,0,0,50"/>
-                        </OnPlatform>
-                    </Grid.Padding>
-                    <!-- Popup Header -->
-                    <Grid Grid.Row="0" Padding="20,15,15,10" ColumnDefinitions="*,Auto">
-                        <Label x:Name="PopupTitle" Grid.Column="0" Text="Neue Aufgabe" FontSize="18" FontAttributes="Bold"/>
-                        <Button Grid.Column="1" Text="X" BackgroundColor="Transparent" TextColor="#999" FontSize="20" WidthRequest="40" HeightRequest="40" Clicked="OnClosePopupClicked"/>
+                <Grid RowDefinitions="Auto,*">
+                    <!-- Popup Header (Blue like Problem melden) -->
+                    <Grid Grid.Row="0" Padding="20,15,15,15" BackgroundColor="#1a3a5c">
+                        <Label x:Name="PopupTitle" Text="Auftrag erstellen" FontSize="20" FontAttributes="Bold" TextColor="White" VerticalOptions="Center"/>
+                        <Button Text="X" BackgroundColor="Transparent" TextColor="White" FontSize="18" FontAttributes="Bold" WidthRequest="40" HeightRequest="40" HorizontalOptions="End" Clicked="OnClosePopupClicked"/>
                     </Grid>
 
-                    <!-- Tabs (scrollable) -->
-                    <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Padding="0,0,0,5">
-                        <HorizontalStackLayout Spacing="0">
-                            <Button x:Name="TabDetails" Text="Details" BackgroundColor="Transparent" TextColor="#2196F3" FontSize="13" FontAttributes="Bold" Padding="12,8" Clicked="OnTabDetailsClicked"/>
-                            <Button x:Name="TabAnmerkungen" Text="Notiz" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAnmerkungenClicked"/>
-                            <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAssignClicked"/>
-                            <Button x:Name="TabLogs" Text="Protokoll" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabLogsClicked"/>
-                        </HorizontalStackLayout>
-                    </ScrollView>
+                    <!-- Scrollable Content -->
+                    <ScrollView Grid.Row="1" Padding="20,10,20,20">
+                        <VerticalStackLayout Spacing="15">
+                            <!-- Tabs (scrollable) -->
+                            <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                                <HorizontalStackLayout Spacing="5">
+                                    <Button x:Name="TabDetails" Text="Details" BackgroundColor="#2196F3" TextColor="White" FontSize="13" FontAttributes="Bold" Padding="12,8" CornerRadius="8" Clicked="OnTabDetailsClicked"/>
+                                    <Button x:Name="TabAnmerkungen" Text="Notiz" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="13" Padding="12,8" CornerRadius="8" Clicked="OnTabAnmerkungenClicked"/>
+                                    <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="13" Padding="12,8" CornerRadius="8" Clicked="OnTabAssignClicked"/>
+                                    <Button x:Name="TabLogs" Text="Log" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="13" Padding="12,8" CornerRadius="8" Clicked="OnTabLogsClicked"/>
+                                </HorizontalStackLayout>
+                            </ScrollView>
 
-                    <!-- Tab Contents (Scrollable) -->
-                    <ScrollView Grid.Row="2" Padding="20,0" MaximumHeightRequest="400">
-                        <Grid>
-                            <!-- Details Tab -->
-                            <VerticalStackLayout x:Name="DetailsTabContent" IsVisible="True" Spacing="12">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold"/>
-                                    <Entry x:Name="TaskNameEntry" Placeholder="Name" FontSize="16"/>
+                            <!-- Tab Contents -->
+                            <Grid>
+                                <!-- Details Tab -->
+                                <VerticalStackLayout x:Name="DetailsTabContent" IsVisible="True" Spacing="12">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <Entry x:Name="TaskNameEntry" Placeholder="Name" FontSize="16" BackgroundColor="#f5f5f5"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <Picker x:Name="ApartmentPicker" FontSize="16"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label x:Name="LabelDate" Text="Datum *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <DatePicker x:Name="TaskDatePicker" FontSize="16"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label x:Name="LabelTaskType" Text="Aufgabenart" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <Picker x:Name="AufgabenartPicker" FontSize="16" SelectedIndexChanged="OnAufgabenartChanged"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label x:Name="LabelHint" Text="Hinweis" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <Editor x:Name="TaskHinweisEditor" Placeholder="Optionaler Hinweis..." FontSize="16" HeightRequest="60" BackgroundColor="#f5f5f5"/>
+                                    </VerticalStackLayout>
                                 </VerticalStackLayout>
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold"/>
-                                    <Picker x:Name="ApartmentPicker" FontSize="16"/>
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="LabelDate" Text="Datum *" FontSize="14" FontAttributes="Bold"/>
-                                    <DatePicker x:Name="TaskDatePicker" FontSize="16"/>
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="LabelTaskType" Text="Aufgabenart" FontSize="14" FontAttributes="Bold"/>
-                                    <Picker x:Name="AufgabenartPicker" FontSize="16" SelectedIndexChanged="OnAufgabenartChanged"/>
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="LabelHint" Text="Hinweis" FontSize="14" FontAttributes="Bold"/>
-                                    <Editor x:Name="TaskHinweisEditor" Placeholder="Optionaler Hinweis..." FontSize="16" HeightRequest="60"/>
-                                </VerticalStackLayout>
-                            </VerticalStackLayout>
 
-                            <!-- Assign Tab -->
-                            <VerticalStackLayout x:Name="AssignTabContent" IsVisible="False" Spacing="10">
-                                <Label x:Name="LabelAssignCleaners" Text="Cleaner zuweisen" FontSize="14" FontAttributes="Bold"/>
-                                <VerticalStackLayout x:Name="CleanersList" Spacing="5" BindableLayout.ItemsSource="{x:Null}">
-                                    <BindableLayout.ItemTemplate>
-                                        <DataTemplate>
-                                            <Border Padding="12" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10" HeightRequest="64">
-                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                                                    <!-- Avatar: Emoji if available, otherwise Initial -->
-                                                    <Grid Grid.Column="0" WidthRequest="44" HeightRequest="44">
-                                                        <!-- Initial fallback (visible when no avatar) -->
-                                                        <Border StrokeShape="RoundRectangle 22" BackgroundColor="#4CAF50" WidthRequest="44" HeightRequest="44" IsVisible="{Binding HasNoAvatar}">
-                                                            <Label Text="{Binding Initial}" TextColor="White" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
-                                                        </Border>
-                                                        <!-- Avatar emoji (shown when available) -->
-                                                        <Border StrokeShape="RoundRectangle 22" BackgroundColor="#E8F5E9" WidthRequest="44" HeightRequest="44" IsVisible="{Binding HasAvatar}">
-                                                            <Label Text="{Binding Avatar}" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
-                                                        </Border>
+                                <!-- Assign Tab -->
+                                <VerticalStackLayout x:Name="AssignTabContent" IsVisible="False" Spacing="10">
+                                    <Label x:Name="LabelAssignCleaners" Text="Cleaner zuweisen" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                    <VerticalStackLayout x:Name="CleanersList" Spacing="5" BindableLayout.ItemsSource="{x:Null}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="12" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10" HeightRequest="64">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                                        <!-- Avatar: Emoji if available, otherwise Initial -->
+                                                        <Grid Grid.Column="0" WidthRequest="44" HeightRequest="44">
+                                                            <!-- Initial fallback (visible when no avatar) -->
+                                                            <Border StrokeShape="RoundRectangle 22" BackgroundColor="#4CAF50" WidthRequest="44" HeightRequest="44" IsVisible="{Binding HasNoAvatar}">
+                                                                <Label Text="{Binding Initial}" TextColor="White" FontSize="18" FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                                            </Border>
+                                                            <!-- Avatar emoji (shown when available) -->
+                                                            <Border StrokeShape="RoundRectangle 22" BackgroundColor="#E8F5E9" WidthRequest="44" HeightRequest="44" IsVisible="{Binding HasAvatar}">
+                                                                <Label Text="{Binding Avatar}" FontSize="24" HorizontalOptions="Center" VerticalOptions="Center"/>
+                                                            </Border>
+                                                        </Grid>
+                                                        <Label Grid.Column="1" Text="{Binding Name}" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
+                                                        <Button Grid.Column="2" Text="Zuweisen" BackgroundColor="{Binding AssignBgColor}" TextColor="{Binding AssignTextColor}" BorderColor="#2196F3" BorderWidth="2" FontSize="12" Padding="12,6" CornerRadius="8" Clicked="OnAssignToggled" CommandParameter="{Binding Id}"/>
                                                     </Grid>
-                                                    <Label Grid.Column="1" Text="{Binding Name}" FontSize="15" FontAttributes="Bold" VerticalOptions="Center"/>
-                                                    <Button Grid.Column="2" Text="Zuweisen" BackgroundColor="{Binding AssignBgColor}" TextColor="{Binding AssignTextColor}" BorderColor="#2196F3" BorderWidth="2" FontSize="12" Padding="12,6" CornerRadius="8" Clicked="OnAssignToggled" CommandParameter="{Binding Id}"/>
-                                                </Grid>
-                                            </Border>
-                                        </DataTemplate>
-                                    </BindableLayout.ItemTemplate>
+                                                </Border>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
                                 </VerticalStackLayout>
-                            </VerticalStackLayout>
 
-                            <!-- Anmerkungen Tab -->
-                            <VerticalStackLayout x:Name="AnmerkungenTabContent" IsVisible="False" Spacing="10">
-                                <Button x:Name="AddAnmerkungButton" Text="Anmerkung hinzufuegen" BackgroundColor="#2196F3" TextColor="White" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnAddAnmerkungClicked"/>
-                                <VerticalStackLayout x:Name="AnmerkungenStack" Spacing="10"/>
-                                <Label x:Name="NoAnmerkungenLabel" Text="Keine Anmerkungen vorhanden" FontSize="14" TextColor="#888" HorizontalOptions="Center" IsVisible="True"/>
-                            </VerticalStackLayout>
-
-                            <!-- Logs Tab -->
-                            <VerticalStackLayout x:Name="LogsTabContent" IsVisible="False" Spacing="10">
-                                <Label x:Name="LabelLogs" Text="Protokoll" FontSize="14" FontAttributes="Bold"/>
-                                <VerticalStackLayout x:Name="LogsStack" Spacing="8">
-                                    <Label x:Name="NoLogsLabel" Text="Keine Protokolleintraege vorhanden" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
+                                <!-- Anmerkungen Tab -->
+                                <VerticalStackLayout x:Name="AnmerkungenTabContent" IsVisible="False" Spacing="10">
+                                    <Button x:Name="AddAnmerkungButton" Text="Anmerkung hinzufuegen" BackgroundColor="#2196F3" TextColor="White" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnAddAnmerkungClicked"/>
+                                    <VerticalStackLayout x:Name="AnmerkungenStack" Spacing="10"/>
+                                    <Label x:Name="NoAnmerkungenLabel" Text="Keine Anmerkungen vorhanden" FontSize="14" TextColor="#888" HorizontalOptions="Center" IsVisible="True"/>
                                 </VerticalStackLayout>
-                            </VerticalStackLayout>
-                        </Grid>
+
+                                <!-- Logs Tab -->
+                                <VerticalStackLayout x:Name="LogsTabContent" IsVisible="False" Spacing="10">
+                                    <Label x:Name="LabelLogs" Text="Log" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                    <VerticalStackLayout x:Name="LogsStack" Spacing="8">
+                                        <Label x:Name="NoLogsLabel" Text="Keine Protokolleintraege vorhanden" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Grid>
+
+                            <!-- Footer Buttons -->
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,10,0,0">
+                                <Button x:Name="BtnCancel" Grid.Column="0" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelClicked"/>
+                                <Button x:Name="BtnSave" Grid.Column="1" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveClicked"/>
+                            </Grid>
+                            <Button x:Name="BtnDelete" Text="Aufgabe loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontSize="14" FontAttributes="Bold" CornerRadius="12" HeightRequest="45" Clicked="OnDeleteTaskClicked" IsVisible="False"/>
+                        </VerticalStackLayout>
                     </ScrollView>
-
-                    <!-- Footer Buttons - Always visible -->
-                    <VerticalStackLayout Grid.Row="3" Padding="15,10,15,0" Spacing="8">
-                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                            <Button x:Name="BtnCancel" Grid.Column="0" Text="Abbrechen" BackgroundColor="#e0e0e0" TextColor="#666" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnCancelClicked"/>
-                            <Button x:Name="BtnSave" Grid.Column="1" Text="Speichern" TextColor="White" FontSize="16" FontAttributes="Bold" CornerRadius="10" HeightRequest="50" Clicked="OnSaveClicked">
-                                <Button.Background>
-                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#2196F3" Offset="0"/>
-                                        <GradientStop Color="#1976D2" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Button.Background>
-                            </Button>
-                        </Grid>
-                        <Button x:Name="BtnDelete" Text="Aufgabe loeschen" BackgroundColor="White" TextColor="#f44336" BorderColor="#f44336" BorderWidth="2" FontSize="14" FontAttributes="Bold" CornerRadius="10" HeightRequest="45" Clicked="OnDeleteTaskClicked" IsVisible="False"/>
-                    </VerticalStackLayout>
                 </Grid>
             </Border>
         </Grid>
