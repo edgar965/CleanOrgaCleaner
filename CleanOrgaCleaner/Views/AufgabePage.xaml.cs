@@ -170,7 +170,7 @@ public partial class AufgabePage : ContentPage
                 return;
             }
 
-            TaskNameLabel.Text = $"{_task.ApartmentName} {_task.DisplayName}";
+            TaskNameLabel.Text = $"{_task.ApartmentName} {TranslateTaskType(_task.DisplayName)}";
 
             string aufgabeText = GetTranslatedAufgabe();
             if (!string.IsNullOrEmpty(aufgabeText))
@@ -228,6 +228,29 @@ public partial class AufgabePage : ContentPage
         if (_task.AufgabeTranslated != null && _task.AufgabeTranslated.TryGetValue(currentLang, out string? cached) && !string.IsNullOrEmpty(cached))
             return cached;
         return _task.Aufgabe ?? string.Empty;
+    }
+
+    private string TranslateTaskType(string taskType)
+    {
+        if (string.IsNullOrEmpty(taskType)) return taskType;
+
+        // Map German task types to translation keys
+        var taskTypeMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "Reinigung", "cleaning" },
+            { "Check", "check_task" },
+            { "Reparatur", "repair" },
+            { "Putzen", "cleaning" }
+        };
+
+        if (taskTypeMap.TryGetValue(taskType, out var key))
+        {
+            var translated = Translations.Get(key);
+            // Return translated if different from key, otherwise original
+            return !string.IsNullOrEmpty(translated) && translated != key ? translated : taskType;
+        }
+
+        return taskType;
     }
 
     private async void OnStartStopClicked(object sender, EventArgs e)

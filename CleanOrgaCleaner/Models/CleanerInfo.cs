@@ -18,6 +18,9 @@ public class CleanerInfo
 
     public string Initial => string.IsNullOrEmpty(Name) ? "?" : Name[0].ToString().ToUpper();
 
+    // Display name with capitalized first letter
+    public string DisplayName => string.IsNullOrEmpty(Name) ? "" : char.ToUpper(Name[0]) + Name.Substring(1);
+
     // Display Avatar if available, otherwise Initial
     public string DisplayAvatar => !string.IsNullOrEmpty(Avatar) ? Avatar : Initial;
 

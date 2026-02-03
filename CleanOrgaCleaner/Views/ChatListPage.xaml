@@ -19,10 +19,7 @@
 
                 <!-- Header Card -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
-                    <VerticalStackLayout Spacing="5">
-                        <Label x:Name="MessagesLabel" Text="Nachrichten" FontSize="20" FontAttributes="Bold" TextColor="#333"/>
-                        <Label x:Name="SelectContactLabel" Text="Waehle einen Kontakt" FontSize="14" TextColor="#666"/>
-                    </VerticalStackLayout>
+                    <Label x:Name="MessagesLabel" Text="Nachrichten" FontSize="20" FontAttributes="Bold" TextColor="#333"/>
                 </Border>
 
                 <!-- Admin Section -->
@@ -36,10 +33,7 @@
                                 <Label x:Name="AdminAvatarLabel" Text="&#x1F468;&#x200D;&#x1F4BC;" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
                             </Border>
 
-                            <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
-                                <Label Text="Admin" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
-                                <Label x:Name="AdminRoleLabel" Text="office_admin" FontSize="13" TextColor="#888"/>
-                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="Admin" FontSize="16" FontAttributes="Bold" TextColor="#333" Margin="15,0,0,0" VerticalOptions="Center"/>
 
                             <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" Clicked="OnAdminChatTapped"/>
                         </Grid>
@@ -68,10 +62,7 @@
                                                    VerticalOptions="Center"/>
                                         </Border>
 
-                                        <VerticalStackLayout Grid.Column="1" Margin="15,0,0,0" VerticalOptions="Center">
-                                            <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
-                                            <Label Text="cleaner_role" FontSize="13" TextColor="#888"/>
-                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" FontAttributes="Bold" TextColor="#333" Margin="15,0,0,0" VerticalOptions="Center"/>
 
                                         <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" CommandParameter="{Binding .}" Clicked="OnCleanerChatTapped"/>
                                     </Grid>

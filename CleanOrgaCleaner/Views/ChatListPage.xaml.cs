@@ -36,7 +36,6 @@ public partial class ChatListPage : ContentPage
     {
         var t = Translations.Get;
         MessagesLabel.Text = t("messages");
-        SelectContactLabel.Text = t("select_contact");
         AdminSectionLabel.Text = t("administration").ToUpper();
         ColleaguesSectionLabel.Text = t("colleagues").ToUpper();
     }
