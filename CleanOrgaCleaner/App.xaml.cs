@@ -203,57 +203,65 @@ public partial class App : Application
         {
             try
             {
+                // Check if this is our own message - don't read aloud or notify
+                var currentUsername = Preferences.Get("username", "");
+                var isOwnMessage = !string.IsNullOrEmpty(currentUsername) &&
+                    message.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true;
+
                 // Store message for ChatPage
                 PendingChatMessage = message;
 
-                // Play notification with TTS (reads message aloud)
-                // Use DisplayText if available (translated), otherwise Text
-                var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
-                var messageFrom = Translations.Get("message_from");
-                var ttsText = $"{messageFrom} {message.Sender}: {messageText}";
-
-                // Start TTS in background (fire and forget - don't block UI)
-                _ = Task.Run(async () =>
+                // Only play TTS for incoming messages (not our own)
+                if (!isOwnMessage)
                 {
-                    try
+                    // Play notification with TTS (reads message aloud)
+                    // Use DisplayText if available (translated), otherwise Text
+                    var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+                    var messageFrom = Translations.Get("message_from");
+                    var ttsText = $"{messageFrom} {message.Sender}: {messageText}";
+
+                    // Start TTS in background (fire and forget - don't block UI)
+                    _ = Task.Run(async () =>
                     {
-                        await SpeakTextAsync(ttsText);
+                        try
+                        {
+                            await SpeakTextAsync(ttsText);
+                        }
+                        catch { }
+                    });
+
+                    // Small delay to let TTS start before potential popup
+                    await Task.Delay(200);
+                    // Haptic feedback
+                    try { HapticFeedback.Default.Perform(HapticFeedbackType.LongPress); } catch { }
+
+                    // Vibrate
+                    try { Vibration.Vibrate(TimeSpan.FromMilliseconds(200)); } catch { }
+
+                    // Check if we're already on the chat page
+                    var currentPage = Shell.Current?.CurrentPage;
+                    var pageName = currentPage?.GetType().Name;
+                    if (pageName == "ChatPage" || pageName == "ChatCurrentPage")
+                    {
+                        // Already on chat page, don't show popup
+                        return;
                     }
-                    catch { }
-                });
 
-                // Small delay to let TTS start before potential popup
-                await Task.Delay(200);
+                    // Show notification popup
+                    currentPage = Shell.Current?.CurrentPage;
+                    if (currentPage == null) return;
+                    var result = await currentPage.DisplayAlertAsync(
+                        $"Neue Nachricht von {message.Sender}",
+                        message.Text,
+                        "Zum Chat",
+                        "Schliessen");
 
-                // Haptic feedback
-                try { HapticFeedback.Default.Perform(HapticFeedbackType.LongPress); } catch { }
-
-                // Vibrate
-                try { Vibration.Vibrate(TimeSpan.FromMilliseconds(200)); } catch { }
-
-                // Check if we're already on the chat page
-                var currentPage = Shell.Current?.CurrentPage;
-                var pageName = currentPage?.GetType().Name;
-                if (pageName == "ChatPage" || pageName == "ChatCurrentPage")
-                {
-                    // Already on chat page, don't show popup
-                    return;
-                }
-
-                // Show notification popup
-                currentPage = Shell.Current?.CurrentPage;
-                if (currentPage == null) return;
-                var result = await currentPage.DisplayAlertAsync(
-                    $"Neue Nachricht von {message.Sender}",
-                    message.Text,
-                    "Zum Chat",
-                    "Schliessen");
-
-                if (result)
-                {
-                    // Navigate to chat page
-                    if (Shell.Current != null)
-                        await Shell.Current.GoToAsync("//MainTabs/ChatPage");
+                    if (result)
+                    {
+                        // Navigate to chat page
+                        if (Shell.Current != null)
+                            await Shell.Current.GoToAsync("//MainTabs/ChatPage");
+                    }
                 }
             }
             catch (Exception ex)
