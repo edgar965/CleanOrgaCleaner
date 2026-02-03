@@ -11,7 +11,7 @@ public static class Main
     /// <summary>
     /// App version number
     /// </summary>
-    public const string Version = "1.33";
+    public const string Version = "1.34";
 
     /// <summary>
     /// Server URL
