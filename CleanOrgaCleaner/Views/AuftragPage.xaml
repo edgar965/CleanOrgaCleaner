@@ -115,9 +115,8 @@
                     <ScrollView Grid.Row="1" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Padding="0,0,0,5">
                         <HorizontalStackLayout Spacing="0">
                             <Button x:Name="TabDetails" Text="Details" BackgroundColor="Transparent" TextColor="#2196F3" FontSize="13" FontAttributes="Bold" Padding="12,8" Clicked="OnTabDetailsClicked"/>
-                            <Button x:Name="TabAnmerkungen" Text="Anmerkung" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAnmerkungenClicked"/>
+                            <Button x:Name="TabAnmerkungen" Text="Notiz" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAnmerkungenClicked"/>
                             <Button x:Name="TabAssign" Text="Zuweisen" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabAssignClicked"/>
-                            <Button x:Name="TabStatus" Text="Status" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabStatusClicked"/>
                             <Button x:Name="TabLogs" Text="Protokoll" BackgroundColor="Transparent" TextColor="#666" FontSize="13" Padding="12,8" Clicked="OnTabLogsClicked"/>
                         </HorizontalStackLayout>
                     </ScrollView>
@@ -175,15 +174,6 @@
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                 </VerticalStackLayout>
-                            </VerticalStackLayout>
-
-                            <!-- Status Tab -->
-                            <VerticalStackLayout x:Name="StatusTabContent" IsVisible="False" Spacing="10">
-                                <Label x:Name="LabelSelectStatus" Text="Status waehlen" FontSize="14" FontAttributes="Bold"/>
-                                <RadioButton x:Name="StatusImported" Content="Nicht zugewiesen" GroupName="Status" IsChecked="True"/>
-                                <RadioButton x:Name="StatusAssigned" Content="Zugewiesen" GroupName="Status"/>
-                                <RadioButton x:Name="StatusCleaned" Content="Geputzt" GroupName="Status"/>
-                                <RadioButton x:Name="StatusChecked" Content="Gecheckt" GroupName="Status"/>
                             </VerticalStackLayout>
 
                             <!-- Anmerkungen Tab -->

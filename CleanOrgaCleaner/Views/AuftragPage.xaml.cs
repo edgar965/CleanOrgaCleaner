@@ -17,6 +17,7 @@ public partial class AuftragPage : ContentPage
     private List<CleanerAssignmentInfo> _cleaners = new();
     private Auftrag? _currentTask;
     private bool _isNewTask = true;
+    private string _currentStatus = "imported";
     private TaskAssignments _assignments = new() { Cleaning = new List<int>(), Check = null, Repare = new List<int>() };
 
     // Anmerkung handling
@@ -48,7 +49,9 @@ public partial class AuftragPage : ContentPage
         TabDetails.Text = t("details_tab");
         TabAnmerkungen.Text = t("notes_tab");
         TabAssign.Text = t("assign_tab");
-        TabStatus.Text = t("status_tab");
+        TabLogs.Text = t("log");
+        LabelLogs.Text = t("log");
+        NoLogsLabel.Text = t("no_logs");
         LabelTaskName.Text = t("task_name_required");
         LabelApartment.Text = t("apartment");
         LabelDate.Text = t("date_required");
@@ -56,11 +59,6 @@ public partial class AuftragPage : ContentPage
         LabelHint.Text = t("note_hint");
         TaskHinweisEditor.Placeholder = t("optional_hint");
         LabelAssignCleaners.Text = t("assign_cleaners");
-        LabelSelectStatus.Text = t("select_status");
-        StatusImported.Content = t("status_imported");
-        StatusAssigned.Content = t("status_assigned");
-        StatusCleaned.Content = t("status_cleaned");
-        StatusChecked.Content = t("status_checked");
         AddAnmerkungButton.Text = t("add_note");
         NoAnmerkungenLabel.Text = t("no_notes");
         BtnCancel.Text = t("cancel");
@@ -164,7 +162,7 @@ public partial class AuftragPage : ContentPage
         TaskDatePicker.Date = DateTime.Today;
         AufgabenartPicker.SelectedIndex = -1;
         TaskHinweisEditor.Text = "";
-        StatusImported.IsChecked = true;
+        _currentStatus = "imported";
         BtnDelete.IsVisible = false;
 
         UpdateCleanersList();
@@ -213,13 +211,7 @@ public partial class AuftragPage : ContentPage
         TaskHinweisEditor.Text = task.WichtigerHinweis ?? "";
 
         // Set status
-        switch (task.Status)
-        {
-            case "assigned": StatusAssigned.IsChecked = true; break;
-            case "cleaned": StatusCleaned.IsChecked = true; break;
-            case "checked": StatusChecked.IsChecked = true; break;
-            default: StatusImported.IsChecked = true; break;
-        }
+        _currentStatus = task.Status ?? "imported";
 
         // Show delete button for existing tasks
         BtnDelete.IsVisible = true;
@@ -247,7 +239,6 @@ public partial class AuftragPage : ContentPage
         DetailsTabContent.IsVisible = tab == "details";
         AnmerkungenTabContent.IsVisible = tab == "anmerkungen";
         AssignTabContent.IsVisible = tab == "assign";
-        StatusTabContent.IsVisible = tab == "status";
         LogsTabContent.IsVisible = tab == "logs";
 
         TabDetails.TextColor = tab == "details" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
@@ -256,8 +247,6 @@ public partial class AuftragPage : ContentPage
         TabAnmerkungen.FontAttributes = tab == "anmerkungen" ? FontAttributes.Bold : FontAttributes.None;
         TabAssign.TextColor = tab == "assign" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabAssign.FontAttributes = tab == "assign" ? FontAttributes.Bold : FontAttributes.None;
-        TabStatus.TextColor = tab == "status" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
-        TabStatus.FontAttributes = tab == "status" ? FontAttributes.Bold : FontAttributes.None;
         TabLogs.TextColor = tab == "logs" ? Color.FromArgb("#2196F3") : Color.FromArgb("#666");
         TabLogs.FontAttributes = tab == "logs" ? FontAttributes.Bold : FontAttributes.None;
     }
@@ -265,7 +254,6 @@ public partial class AuftragPage : ContentPage
     private void OnTabDetailsClicked(object sender, EventArgs e) => ShowTab("details");
     private void OnTabAnmerkungenClicked(object sender, EventArgs e) => ShowTab("anmerkungen");
     private void OnTabAssignClicked(object sender, EventArgs e) => ShowTab("assign");
-    private void OnTabStatusClicked(object sender, EventArgs e) => ShowTab("status");
     private void OnTabLogsClicked(object sender, EventArgs e) => ShowTab("logs");
     private void OnAufgabenartChanged(object sender, EventArgs e)
     {
@@ -308,10 +296,7 @@ public partial class AuftragPage : ContentPage
         int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
         var hinweis = TaskHinweisEditor.Text;
 
-        var status = "imported";
-        if (StatusAssigned.IsChecked) status = "assigned";
-        else if (StatusCleaned.IsChecked) status = "cleaned";
-        else if (StatusChecked.IsChecked) status = "checked";
+        var status = _currentStatus;
 
         // Check if we're offline
         var isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
@@ -560,10 +545,7 @@ public partial class AuftragPage : ContentPage
             int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
             var hinweis = TaskHinweisEditor.Text;
 
-            var status = "imported";
-            if (StatusAssigned.IsChecked) status = "assigned";
-            else if (StatusCleaned.IsChecked) status = "cleaned";
-            else if (StatusChecked.IsChecked) status = "checked";
+            var status = _currentStatus;
 
             var result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
             if (!result.Success || !result.TaskId.HasValue)

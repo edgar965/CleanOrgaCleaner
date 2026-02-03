@@ -1548,4 +1548,42 @@ public class ApiService
 
     #endregion
 
+    #region Translation
+
+    /// <summary>
+    /// Translates text to the target language using the server API
+    /// </summary>
+    public async Task<string?> TranslateTextAsync(string text, string targetLanguage)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        try
+        {
+            var data = new { text, target_language = targetLanguage };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/api/translate-preview/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (response.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(responseText);
+                if (doc.RootElement.TryGetProperty("translated_text", out var translated))
+                {
+                    return translated.GetString() ?? text;
+                }
+            }
+            return text;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Translation] Error: {ex.Message}");
+            return text;
+        }
+    }
+
+    #endregion
+
 }

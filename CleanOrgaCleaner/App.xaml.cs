@@ -153,6 +153,7 @@ public partial class App : Application
 
     /// <summary>
     /// Speak text using MAUI built-in TextToSpeech (no background audio mode required)
+    /// Uses the user's selected language for speech
     /// </summary>
     public static async Task SpeakTextAsync(string text)
     {
@@ -165,8 +166,34 @@ public partial class App : Application
             CancelSpeech();
             _speechCancellation = new CancellationTokenSource();
 
-            // Simple speak without locale lookup (faster)
-            await TextToSpeech.Default.SpeakAsync(text, cancelToken: _speechCancellation.Token);
+            // Get user's language preference
+            var userLang = Preferences.Get("language", "de");
+
+            // Map language codes to locale codes for TTS
+            var localeCode = userLang switch
+            {
+                "en" => "en-US",
+                "es" => "es-ES",
+                "ro" => "ro-RO",
+                "pl" => "pl-PL",
+                "ru" => "ru-RU",
+                "uk" => "uk-UA",
+                "vi" => "vi-VN",
+                _ => "de-DE"
+            };
+
+            // Try to find matching locale
+            var locales = await TextToSpeech.Default.GetLocalesAsync();
+            var matchingLocale = locales.FirstOrDefault(l =>
+                l.Language.StartsWith(userLang, StringComparison.OrdinalIgnoreCase));
+
+            var options = new SpeechOptions();
+            if (matchingLocale != null)
+            {
+                options.Locale = matchingLocale;
+            }
+
+            await TextToSpeech.Default.SpeakAsync(text, options, _speechCancellation.Token);
         }
         catch (OperationCanceledException)
         {

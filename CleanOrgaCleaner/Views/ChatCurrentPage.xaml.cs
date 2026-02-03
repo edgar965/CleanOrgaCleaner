@@ -12,6 +12,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     private readonly ObservableCollection<ChatMessage> _messages;
     private string _partnerId = "admin";
     private string _partnerName = "Admin";
+    private string _partnerAvatar = "";
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -19,6 +20,14 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         {
             _partnerId = query["partner"]?.ToString() ?? "admin";
             _partnerName = _partnerId == "admin" ? "Admin" : "Kollege";
+        }
+        if (query.ContainsKey("partnerName"))
+        {
+            _partnerName = query["partnerName"]?.ToString() ?? _partnerName;
+        }
+        if (query.ContainsKey("partnerAvatar"))
+        {
+            _partnerAvatar = query["partnerAvatar"]?.ToString() ?? "";
         }
     }
 
@@ -93,7 +102,18 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     private void UpdatePartnerHeader()
     {
         PartnerNameLabel.Text = _partnerName;
-        PartnerInitial.Text = _partnerName.Length > 0 ? _partnerName.Substring(0, 1).ToUpper() : "?";
+
+        // Show avatar emoji if available, otherwise show initial
+        if (!string.IsNullOrEmpty(_partnerAvatar))
+        {
+            PartnerInitial.Text = _partnerAvatar;
+            PartnerInitial.FontSize = 28; // Larger for emoji
+        }
+        else
+        {
+            PartnerInitial.Text = _partnerName.Length > 0 ? _partnerName.Substring(0, 1).ToUpper() : "?";
+            PartnerInitial.FontSize = 20; // Normal size for letter
+        }
 
         // Set avatar color based on partner type
         if (_partnerId == "admin")

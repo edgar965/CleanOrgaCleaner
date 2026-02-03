@@ -59,8 +59,8 @@ public partial class AppHeader : ContentView
 
         // Work stop popup
         WorkStopQuestion.Text = t("cleaning_finished");
-        WorkStopYesButton.Text = "✓ " + t("yes");
-        WorkStopNoButton.Text = "✗ " + t("no");
+        WorkStopYesButton.Text = t("yes");
+        WorkStopNoButton.Text = t("no");
         WorkStopCancelButton.Text = t("cancel");
 
         // Offline label

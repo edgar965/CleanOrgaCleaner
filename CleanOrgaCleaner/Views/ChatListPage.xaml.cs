@@ -91,7 +91,9 @@ public partial class ChatListPage : ContentPage
     {
         if (sender is Button btn && btn.CommandParameter is CleanerInfo cleaner)
         {
-            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}");
+            var partnerName = Uri.EscapeDataString(cleaner.Name ?? "Kollege");
+            var partnerAvatar = Uri.EscapeDataString(cleaner.Avatar ?? "");
+            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
         }
     }
 }

@@ -82,9 +82,17 @@ public partial class SettingsPage : ContentPage
         // User Info
         LoggedInAsLabel.Text = t("logged_in_as");
 
+        // Avatar
+        AvatarHintLabel.Text = t("tap_to_change");
+        ChangeAvatarButton.Text = t("change");
+
         // Language
         LanguageTitleLabel.Text = t("language");
         LanguagePicker.Title = t("select_language");
+
+        // Biometric / Security
+        BiometricTitleLabel.Text = t("security");
+        BiometricHintLabel.Text = t("biometric_hint");
 
         // App Info
         AppInfoLabel.Text = t("app_info");
@@ -126,6 +134,7 @@ public partial class SettingsPage : ContentPage
 
         var selectedLang = _languageMap.GetValueOrDefault(LanguagePicker.SelectedIndex, "de");
 
+        var t = Translations.Get;
         try
         {
             var response = await _apiService.SetLanguageAsync(selectedLang);
@@ -142,24 +151,25 @@ public partial class SettingsPage : ContentPage
             }
             else
             {
-                await DisplayAlertAsync("Fehler",
-                    response.Error ?? "Sprache konnte nicht geaendert werden",
-                    "OK");
+                await DisplayAlertAsync(t("error"),
+                    response.Error ?? t("unknown_error"),
+                    t("ok"));
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SetLanguage error: {ex.Message}");
-            await DisplayAlertAsync("Fehler", "Verbindungsfehler", "OK");
+            await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
         }
     }
 
     private async void OnExitClicked(object? sender, EventArgs e)
     {
+        var t = Translations.Get;
         var confirm = await DisplayAlertAsync(
-            "App beenden",
-            "Moechtest du die App wirklich beenden?",
-            "Ja", "Nein");
+            t("exit_app"),
+            t("exit_app_question"),
+            t("yes"), t("no"));
 
         if (!confirm)
             return;
@@ -173,16 +183,18 @@ public partial class SettingsPage : ContentPage
 
     private async void OnChangeAvatarClicked(object? sender, EventArgs e)
     {
+        var t = Translations.Get;
+
         // Build display list for action sheet (show emoji or "Logo" for empty)
         var displayOptions = _avatarOptions.Select(a => string.IsNullOrEmpty(a) ? "🏠 Logo" : a).ToArray();
 
         var result = await DisplayActionSheetAsync(
-            "Avatar waehlen",
-            "Abbrechen",
+            t("select_avatar"),
+            t("cancel"),
             null,
             displayOptions);
 
-        if (result == null || result == "Abbrechen")
+        if (result == null || result == t("cancel"))
             return;
 
         // Find the selected avatar
@@ -204,19 +216,19 @@ public partial class SettingsPage : ContentPage
                 // Update display
                 CurrentAvatarLabel.Text = string.IsNullOrEmpty(selectedAvatar) ? "🏠" : selectedAvatar;
 
-                await DisplayAlertAsync("Gespeichert", "Avatar wurde geaendert", "OK");
+                await DisplayAlertAsync(t("saved"), t("avatar_changed"), t("ok"));
             }
             else
             {
-                await DisplayAlertAsync("Fehler",
-                    response.Error ?? "Avatar konnte nicht geaendert werden",
-                    "OK");
+                await DisplayAlertAsync(t("error"),
+                    response.Error ?? t("unknown_error"),
+                    t("ok"));
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"SetAvatar error: {ex.Message}");
-            await DisplayAlertAsync("Fehler", "Verbindungsfehler", "OK");
+            await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
         }
     }
 
@@ -232,16 +244,15 @@ public partial class SettingsPage : ContentPage
                 // Show biometric section
                 BiometricSection.IsVisible = true;
 
-                // Get the biometric type name
-                var biometricType = await _biometricService.GetBiometricTypeAsync();
-                BiometricLabel.Text = biometricType;
+                // Use translated text for biometric label
+                BiometricLabel.Text = Translations.Get("biometric_login");
 
                 // Load current setting without triggering event
                 BiometricSwitch.Toggled -= OnBiometricToggled;
                 BiometricSwitch.IsToggled = _biometricService.IsBiometricLoginEnabled();
                 BiometricSwitch.Toggled += OnBiometricToggled;
 
-                System.Diagnostics.Debug.WriteLine($"[Settings] Biometric available: {biometricType}, enabled: {BiometricSwitch.IsToggled}");
+                System.Diagnostics.Debug.WriteLine($"[Settings] Biometric available, enabled: {BiometricSwitch.IsToggled}");
             }
             else
             {

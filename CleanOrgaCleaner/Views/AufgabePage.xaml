@@ -21,7 +21,7 @@
                 <Label x:Name="TaskNameLabel" Text="" FontSize="22" FontAttributes="Bold" TextColor="#1a3a5c"/>
 
                 <!-- Tab Bar (scrollable) -->
-                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,5,0,10">
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Always" Margin="0,5,0,10">
                     <HorizontalStackLayout Spacing="8">
                         <Button x:Name="TabAufgabeButton" Text="Aufgabe"
                                 BackgroundColor="White" TextColor="#1a3a5c"

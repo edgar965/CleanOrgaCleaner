@@ -202,7 +202,7 @@
                            LineHeight="1.4"/>
 
                     <Button x:Name="WorkStopYesButton"
-                            Text="✓ Ja"
+                            Text="Ja"
                             BackgroundColor="#4CAF50"
                             TextColor="White"
                             FontSize="16"
@@ -212,8 +212,8 @@
                             Clicked="OnWorkStopYesClicked"/>
 
                     <Button x:Name="WorkStopNoButton"
-                            Text="✗ Nein"
-                            BackgroundColor="#FF9800"
+                            Text="Nein"
+                            BackgroundColor="#E91E63"
                             TextColor="White"
                             FontSize="16"
                             FontAttributes="Bold"
