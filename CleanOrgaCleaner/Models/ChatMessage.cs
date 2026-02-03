@@ -47,14 +47,18 @@ public class ChatMessage
     public bool HasTranslation => !string.IsNullOrEmpty(TextTranslated) && TextTranslated != Text;
 
     /// <summary>
-    /// Text to display (translated if available)
+    /// Text to display
+    /// - Own messages: always show original text (sender doesn't need translation)
+    /// - Received messages: show translated text if available
     /// </summary>
-    public string DisplayText => HasTranslation ? TextTranslated! : Text;
+    public string DisplayText => FromCurrentUser ? Text : (HasTranslation ? TextTranslated! : Text);
 
     /// <summary>
-    /// Original text (only if translated)
+    /// Original text (only shown for received translated messages)
+    /// - Own messages: null (no need to show original)
+    /// - Received messages with translation: show original for reference
     /// </summary>
-    public string? OriginalText => HasTranslation ? Text : null;
+    public string? OriginalText => FromCurrentUser ? null : (HasTranslation ? Text : null);
 
     /// <summary>
     /// Background color based on sender
