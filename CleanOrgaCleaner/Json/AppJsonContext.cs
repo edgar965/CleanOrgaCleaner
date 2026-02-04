@@ -16,6 +16,7 @@ namespace CleanOrgaCleaner.Json;
 [JsonSerializable(typeof(LogsResponse))]
 [JsonSerializable(typeof(TaskImagesResponse))]
 [JsonSerializable(typeof(ChatSendResponse))]
+[JsonSerializable(typeof(ChatImageUploadResponse))]
 [JsonSerializable(typeof(TranslationPreviewResponse))]
 [JsonSerializable(typeof(ChatMessagesResponse))]
 [JsonSerializable(typeof(ImageListDescriptionResponse))]

@@ -83,7 +83,8 @@ public partial class ChatListPage : ContentPage
 
     private async void OnAdminChatTapped(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin");
+        var avatarEncoded = Uri.EscapeDataString(_adminAvatar);
+        await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin&partnerName=Admin&partnerAvatar={avatarEncoded}");
     }
 
     private async void OnCleanerChatTapped(object sender, EventArgs e)

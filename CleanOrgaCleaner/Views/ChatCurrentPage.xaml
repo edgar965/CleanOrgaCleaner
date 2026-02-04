@@ -55,46 +55,88 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate>
                         <Grid Margin="3,2">
-                            <!-- Eigene Nachrichten rechts -->
-                            <Border Padding="10" StrokeShape="RoundRectangle 12"
-                                   BackgroundColor="#dcf8c6" Stroke="#25D366"
-                                   HorizontalOptions="End" MaximumWidthRequest="280"
-                                   IsVisible="{Binding FromCurrentUser}">
-                                <VerticalStackLayout Spacing="3">
-                                    <!-- Original text (was ich geschrieben habe) -->
-                                    <Label Text="{Binding Text}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
-                                    <!-- Übersetzung die Empfänger sieht (mit Globe icon) -->
-                                    <Label FontSize="12" TextColor="#666" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="🌐 "/>
-                                                <Span Text="{Binding SecondaryText}"/>
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
-                                    <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
-                                </VerticalStackLayout>
-                            </Border>
-                            <!-- Nachrichten von anderen links -->
-                            <Border Padding="10" StrokeShape="RoundRectangle 12"
-                                   BackgroundColor="White" Stroke="#ccc"
-                                   HorizontalOptions="Start" MaximumWidthRequest="280"
-                                   IsVisible="{Binding IsFromOther}">
-                                <VerticalStackLayout Spacing="3">
-                                    <!-- Übersetzung in meiner Sprache -->
-                                    <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
-                                    <!-- Original des Senders (mit Globe Icon) -->
-                                    <Label FontSize="12" TextColor="#888" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
-                                        <Label.FormattedText>
-                                            <FormattedString>
-                                                <Span Text="🌐 " FontAttributes="None"/>
-                                                <Span Text="{Binding SecondaryText}" FontAttributes="Italic"/>
-                                            </FormattedString>
-                                        </Label.FormattedText>
-                                    </Label>
-                                    <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
-                                </VerticalStackLayout>
-                            </Border>
+                            <!-- Eigene Nachrichten rechts - Delete-Button LINKS außerhalb -->
+                            <Grid HorizontalOptions="End" IsVisible="{Binding FromCurrentUser}"
+                                  ColumnDefinitions="Auto,Auto" ColumnSpacing="4">
+                                <!-- Delete button LINKS vom Rahmen (nur bei Bild) -->
+                                <Button Grid.Column="0" Text="✕" FontSize="12"
+                                        BackgroundColor="#ff5252" TextColor="White"
+                                        CornerRadius="12" WidthRequest="24" HeightRequest="24"
+                                        Padding="0" VerticalOptions="Start" Margin="0,10,0,0"
+                                        IsVisible="{Binding HasPhotoVideo}"
+                                        CommandParameter="{Binding Id}"
+                                        Clicked="OnDeleteMessageImageClicked"/>
+                                <!-- Message Border -->
+                                <Border Grid.Column="1" Padding="10" StrokeShape="RoundRectangle 12"
+                                       BackgroundColor="#dcf8c6" Stroke="#25D366"
+                                       MaximumWidthRequest="280">
+                                    <VerticalStackLayout Spacing="3">
+                                        <!-- Original text (was ich geschrieben habe) -->
+                                        <Label Text="{Binding Text}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"
+                                               IsVisible="{Binding HasText}"/>
+                                        <!-- Foto/Video falls vorhanden -->
+                                        <Image Source="{Binding LinkPhotoVideoUrl}" Aspect="AspectFit"
+                                               MaximumWidthRequest="200" MaximumHeightRequest="200"
+                                               IsVisible="{Binding HasPhotoVideo}">
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenImageCommand}"
+                                                                      CommandParameter="{Binding LinkPhotoVideo}"/>
+                                            </Image.GestureRecognizers>
+                                        </Image>
+                                        <!-- Übersetzung die Empfänger sieht (mit Globe icon) -->
+                                        <Label FontSize="12" TextColor="#666" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="🌐 "/>
+                                                    <Span Text="{Binding SecondaryText}"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                            <!-- Nachrichten von anderen links - Delete-Button RECHTS außerhalb -->
+                            <Grid HorizontalOptions="Start" IsVisible="{Binding IsFromOther}"
+                                  ColumnDefinitions="Auto,Auto" ColumnSpacing="4">
+                                <!-- Message Border -->
+                                <Border Grid.Column="0" Padding="10" StrokeShape="RoundRectangle 12"
+                                       BackgroundColor="White" Stroke="#ccc"
+                                       MaximumWidthRequest="280">
+                                    <VerticalStackLayout Spacing="3">
+                                        <!-- Übersetzung in meiner Sprache -->
+                                        <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"
+                                               IsVisible="{Binding HasText}"/>
+                                        <!-- Foto/Video falls vorhanden -->
+                                        <Image Source="{Binding LinkPhotoVideoUrl}" Aspect="AspectFit"
+                                               MaximumWidthRequest="200" MaximumHeightRequest="200"
+                                               IsVisible="{Binding HasPhotoVideo}">
+                                            <Image.GestureRecognizers>
+                                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type ContentPage}}, Path=BindingContext.OpenImageCommand}"
+                                                                      CommandParameter="{Binding LinkPhotoVideo}"/>
+                                            </Image.GestureRecognizers>
+                                        </Image>
+                                        <!-- Original des Senders (mit Globe Icon) -->
+                                        <Label FontSize="12" TextColor="#888" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
+                                            <Label.FormattedText>
+                                                <FormattedString>
+                                                    <Span Text="🌐 " FontAttributes="None"/>
+                                                    <Span Text="{Binding SecondaryText}" FontAttributes="Italic"/>
+                                                </FormattedString>
+                                            </Label.FormattedText>
+                                        </Label>
+                                        <Label Text="{Binding DatumZeit}" FontSize="9" TextColor="#666" HorizontalOptions="End"/>
+                                    </VerticalStackLayout>
+                                </Border>
+                                <!-- Delete button RECHTS vom Rahmen (nur bei Bild) -->
+                                <Button Grid.Column="1" Text="✕" FontSize="12"
+                                        BackgroundColor="#ff5252" TextColor="White"
+                                        CornerRadius="12" WidthRequest="24" HeightRequest="24"
+                                        Padding="0" VerticalOptions="Start" Margin="0,10,0,0"
+                                        IsVisible="{Binding HasPhotoVideo}"
+                                        CommandParameter="{Binding Id}"
+                                        Clicked="OnDeleteMessageImageClicked"/>
+                            </Grid>
                         </Grid>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
@@ -106,24 +148,46 @@
 
             <!-- Input Area - fixed at bottom -->
             <VerticalStackLayout Grid.Row="1" VerticalOptions="End" BackgroundColor="White">
+                <!-- Image Preview (visible when image is selected) -->
+                <Border x:Name="ImagePreviewContainer" IsVisible="False" BackgroundColor="#f5f5f5"
+                        Padding="10" Margin="10,5,10,0" StrokeShape="RoundRectangle 10" Stroke="#e0e0e0">
+                    <Grid ColumnDefinitions="70,*,Auto,Auto" ColumnSpacing="10">
+                        <Image x:Name="PreviewImage" WidthRequest="60" HeightRequest="60"
+                               Aspect="AspectFill" VerticalOptions="Center"/>
+                        <Label Grid.Column="1" Text="Bild ausgewählt" FontSize="12" TextColor="#666"
+                               VerticalOptions="Center"/>
+                        <Button Grid.Column="2" x:Name="AnnotateImageButton" Text="✎" FontSize="14"
+                                BackgroundColor="#2196F3" TextColor="White" CornerRadius="18"
+                                WidthRequest="36" HeightRequest="36" Padding="0"
+                                Clicked="OnAnnotateImageClicked"/>
+                        <Button Grid.Column="3" x:Name="RemoveImageButton" Text="✕" FontSize="14"
+                                BackgroundColor="#ff5252" TextColor="White" CornerRadius="18"
+                                WidthRequest="36" HeightRequest="36" Padding="0"
+                                Clicked="OnRemoveImageClicked"/>
+                    </Grid>
+                </Border>
                 <Grid Padding="10" HeightRequest="60"
-                      ColumnDefinitions="40,*,40,40,40" ColumnSpacing="8">
+                      ColumnDefinitions="40,40,*,40,40,40" ColumnSpacing="8">
                     <Button Grid.Column="0" x:Name="BackButton" Text="&#x2190;" FontSize="16"
                             BackgroundColor="#666" TextColor="White" CornerRadius="20"
                             WidthRequest="40" HeightRequest="40" Clicked="OnBackClicked"/>
 
-                    <Entry Grid.Column="1" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
+                    <Button Grid.Column="1" x:Name="PhotoButton" Text="📷" FontSize="16"
+                            BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Clicked="OnPhotoClicked"/>
+
+                    <Entry Grid.Column="2" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
                            BackgroundColor="#f0f0f0" VerticalOptions="Center" HeightRequest="40"/>
 
-                    <Button Grid.Column="2" x:Name="SendButton" Text="&#x27A4;" FontSize="16"
+                    <Button Grid.Column="3" x:Name="SendButton" Text="&#x27A4;" FontSize="16"
                             BackgroundColor="#25D366" TextColor="White" CornerRadius="20"
                             WidthRequest="40" HeightRequest="40" Clicked="OnSendClicked"/>
 
-                    <Button Grid.Column="3" x:Name="PreviewButton" Text="T" FontSize="14"
+                    <Button Grid.Column="4" x:Name="PreviewButton" Text="T" FontSize="14"
                             BackgroundColor="#2196F3" TextColor="White" CornerRadius="20"
                             WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
 
-                    <Button Grid.Column="4" x:Name="TtsButton" Text="&#x1F50A;" FontSize="14"
+                    <Button Grid.Column="5" x:Name="TtsButton" Text="&#x1F50A;" FontSize="14"
                             BackgroundColor="#FF9800" TextColor="White" CornerRadius="20"
                             WidthRequest="40" HeightRequest="40" Clicked="OnTtsClicked"/>
                 </Grid>

@@ -20,8 +20,8 @@ public class ChatMessage
     [JsonPropertyName("text_original")]
     public string? TextOriginal { get; set; }
 
-    [JsonPropertyName("photos")]
-    public List<string>? Photos { get; set; }
+    [JsonPropertyName("link_photo_video")]
+    public string? LinkPhotoVideo { get; set; }
 
     [JsonPropertyName("timestamp")]
     public DateTime Timestamp { get; set; }
@@ -71,7 +71,26 @@ public class ChatMessage
         : !string.IsNullOrEmpty(TextOriginal) && TextOriginal != Text;
 
     [JsonIgnore]
-    public bool HasPhotos => Photos?.Count > 0;
+    public bool HasPhotoVideo => !string.IsNullOrEmpty(LinkPhotoVideo);
+
+    [JsonIgnore]
+    public bool HasText => !string.IsNullOrEmpty(Text);
+
+    /// <summary>
+    /// Full URL for the photo/video (prepends base URL if path is relative)
+    /// </summary>
+    [JsonIgnore]
+    public string? LinkPhotoVideoUrl
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(LinkPhotoVideo)) return null;
+            if (LinkPhotoVideo.StartsWith("http")) return LinkPhotoVideo;
+            // Prepend base URL for relative paths
+            var baseUrl = CleanOrgaCleaner.Services.ApiService.BaseUrl.TrimEnd('/');
+            return baseUrl + LinkPhotoVideo;
+        }
+    }
 
     /// <summary>
     /// Text für Hauptanzeige - API sendet bereits den richtigen Text im 'text' Feld

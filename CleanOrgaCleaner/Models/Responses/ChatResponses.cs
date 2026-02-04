@@ -59,3 +59,21 @@ public class ChatMessagesResponse
     // UI helper
     public int MessageCount => Messages.Count;
 }
+
+/// <summary>
+/// Response from chat image upload API
+/// </summary>
+public class ChatImageUploadResponse
+{
+    [JsonPropertyName("success")]
+    public bool Success { get; set; }
+
+    [JsonPropertyName("path")]
+    public string? Path { get; set; }
+
+    [JsonPropertyName("filename")]
+    public string? Filename { get; set; }
+
+    [JsonPropertyName("error")]
+    public string? Error { get; set; }
+}

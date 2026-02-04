@@ -13,6 +13,8 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     private string _partnerId = "admin";
     private string _partnerName = "Admin";
     private string _partnerAvatar = "";
+    private string? _selectedImagePath;
+    private string? _selectedImageLocalPath;
 
     public void ApplyQueryAttributes(IDictionary<string, object> query)
     {
@@ -184,10 +186,12 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
 
     private async void OnSendClicked(object sender, EventArgs e)
     {
-        var text = MessageEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(text))
+        var text = MessageEntry.Text?.Trim() ?? "";
+
+        // Mindestens Text oder Bild erforderlich
+        if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_selectedImagePath))
         {
-            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben", "OK");
+            await DisplayAlertAsync("Hinweis", "Bitte Nachricht eingeben oder Bild auswählen", "OK");
             return;
         }
 
@@ -195,7 +199,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
 
         try
         {
-            var response = await _apiService.SendChatMessageAsync(text, _partnerId);
+            var response = await _apiService.SendChatMessageAsync(text, _partnerId, _selectedImagePath);
 
             if (response.Success && response.Message != null)
             {
@@ -214,6 +218,9 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
                 }
                 MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
                 MessageEntry.Text = "";
+
+                // Bild zurücksetzen
+                ClearSelectedImage();
             }
             else
             {
@@ -359,4 +366,364 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         return DisplayAlert(title, message, cancel);
     }
+
+    #region Photo Handling
+
+    private byte[]? _selectedImageBytes;
+
+    private async void OnPhotoClicked(object sender, EventArgs e)
+    {
+        try
+        {
+            // Zeige Auswahl: Kamera oder Galerie
+            var action = await DisplayActionSheet(
+                Translations.Get("select_image_source") ?? "Bild auswählen",
+                Translations.Get("cancel") ?? "Abbrechen",
+                null,
+                "📷 " + (Translations.Get("camera") ?? "Kamera"),
+                "🖼️ " + (Translations.Get("gallery") ?? "Galerie"));
+
+            if (string.IsNullOrEmpty(action) || action == (Translations.Get("cancel") ?? "Abbrechen"))
+                return;
+
+            if (action.Contains("📷") || action.Contains("Kamera") || action.Contains("Camera"))
+            {
+                await TakePhotoAsync();
+            }
+            else
+            {
+                await PickPhotoFromGalleryAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Photo error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>
+    /// Kamera - identisch mit ImageListDescription Implementation
+    /// </summary>
+    private async Task TakePhotoAsync()
+    {
+        try
+        {
+            if (!MediaPicker.Default.IsCaptureSupported)
+            {
+                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
+                return;
+            }
+
+            // Explizite Berechtigung prüfen
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted)
+                {
+                    await OfferOpenSettingsAsync("Kamera");
+                    return;
+                }
+            }
+
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            if (photo != null)
+            {
+                using var stream = await photo.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+
+                // Annotation öffnen
+                await OpenAnnotationAndUploadAsync(bytes);
+            }
+        }
+        catch (FeatureNotSupportedException)
+        {
+            await DisplayAlertAsync("Fehler", "Kamera wird auf diesem Gerät nicht unterstützt", "OK");
+        }
+        catch (PermissionException)
+        {
+            await OfferOpenSettingsAsync("Kamera");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+        }
+    }
+
+    /// <summary>
+    /// Galerie - verwendet FilePicker wie in ImageListDescription (vermeidet Metadaten-Fehler)
+    /// </summary>
+    private async Task PickPhotoFromGalleryAsync()
+    {
+        try
+        {
+            var options = new PickOptions { PickerTitle = "Foto auswählen", FileTypes = FilePickerFileType.Images };
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result != null)
+            {
+                using var stream = await result.OpenReadAsync();
+                using var memoryStream = new MemoryStream();
+                await stream.CopyToAsync(memoryStream);
+                var bytes = memoryStream.ToArray();
+
+                // Annotation öffnen
+                await OpenAnnotationAndUploadAsync(bytes);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Gallery error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Galerie konnte nicht geöffnet werden", "OK");
+        }
+    }
+
+    /// <summary>
+    /// Öffnet Annotation und lädt Bild hoch
+    /// </summary>
+    private async Task OpenAnnotationAndUploadAsync(byte[] imageBytes)
+    {
+        try
+        {
+            // Annotation-Seite öffnen
+            var annotationPage = new ImageAnnotationPage(imageBytes);
+            await Navigation.PushModalAsync(annotationPage);
+
+            // Warten bis Seite geschlossen wird
+            var tcs = new TaskCompletionSource<bool>();
+            annotationPage.Disappearing += (s, ev) => tcs.TrySetResult(true);
+            await tcs.Task;
+
+            // Annotierte oder originale Bytes verwenden
+            var finalBytes = annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null
+                ? annotationPage.AnnotatedImageBytes
+                : imageBytes;
+
+            // Hochladen
+            var fileName = $"chat_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+            using var uploadStream = new MemoryStream(finalBytes);
+            var response = await _apiService.UploadChatImageAsync(uploadStream, fileName);
+
+            if (response.Success && !string.IsNullOrEmpty(response.Path))
+            {
+                _selectedImagePath = response.Path;
+                _selectedImageBytes = finalBytes;
+
+                // Vorschau anzeigen
+                PreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
+                ImagePreviewContainer.IsVisible = true;
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", response.Error ?? "Bild konnte nicht hochgeladen werden", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Annotation/Upload error: {ex.Message}");
+            // Bei Fehler trotzdem hochladen ohne Annotation
+            try
+            {
+                var fileName = $"chat_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+                using var uploadStream = new MemoryStream(imageBytes);
+                var response = await _apiService.UploadChatImageAsync(uploadStream, fileName);
+
+                if (response.Success && !string.IsNullOrEmpty(response.Path))
+                {
+                    _selectedImagePath = response.Path;
+                    _selectedImageBytes = imageBytes;
+                    PreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes));
+                    ImagePreviewContainer.IsVisible = true;
+                }
+            }
+            catch
+            {
+                await DisplayAlertAsync("Fehler", "Bild konnte nicht hochgeladen werden", "OK");
+            }
+        }
+    }
+
+    private async Task OfferOpenSettingsAsync(string permissionName)
+    {
+        var openSettings = await DisplayAlert($"{permissionName}-Berechtigung",
+            $"Die {permissionName}-Berechtigung wurde verweigert.\n\nBitte öffne die App-Einstellungen und aktiviere die Berechtigung.",
+            "Einstellungen öffnen", "Abbrechen");
+        if (openSettings)
+            Services.PermissionHelper.OpenAppSettings();
+    }
+
+    private async void OnRemoveImageClicked(object sender, EventArgs e)
+    {
+        if (!string.IsNullOrEmpty(_selectedImagePath))
+        {
+            try
+            {
+                await _apiService.DeleteChatImageAsync(_selectedImagePath);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Delete image error: {ex.Message}");
+            }
+        }
+        ClearSelectedImage();
+    }
+
+    private void ClearSelectedImage()
+    {
+        _selectedImagePath = null;
+        _selectedImageLocalPath = null;
+        PreviewImage.Source = null;
+        ImagePreviewContainer.IsVisible = false;
+    }
+
+    private async void OnAnnotateImageClicked(object sender, EventArgs e)
+    {
+        if (string.IsNullOrEmpty(_selectedImageLocalPath))
+        {
+            await DisplayAlertAsync("Fehler", "Kein Bild ausgewählt", "OK");
+            return;
+        }
+
+        try
+        {
+            AnnotateImageButton.IsEnabled = false;
+
+            // Bild laden
+            byte[] imageBytes;
+            if (_selectedImageLocalPath.StartsWith("http"))
+            {
+                // Remote image - download first
+                using var httpClient = new HttpClient();
+                imageBytes = await httpClient.GetByteArrayAsync(_selectedImageLocalPath);
+            }
+            else
+            {
+                // Local file
+                imageBytes = await File.ReadAllBytesAsync(_selectedImageLocalPath);
+            }
+
+            // Annotation-Seite öffnen
+            var annotationPage = new ImageAnnotationPage(imageBytes);
+            await Navigation.PushModalAsync(annotationPage);
+
+            // Warten bis Seite geschlossen wird
+            var tcs = new TaskCompletionSource<bool>();
+            annotationPage.Disappearing += (s, args) => tcs.TrySetResult(true);
+            await tcs.Task;
+
+            // Prüfen ob gespeichert wurde
+            if (annotationPage.WasSaved && annotationPage.AnnotatedImageBytes != null)
+            {
+                // Annotiertes Bild hochladen
+                using var stream = new MemoryStream(annotationPage.AnnotatedImageBytes);
+                var response = await _apiService.UploadChatImageAsync(stream, "annotated.jpg");
+
+                if (response.Success && !string.IsNullOrEmpty(response.Path))
+                {
+                    // Altes Bild löschen (optional)
+                    if (!string.IsNullOrEmpty(_selectedImagePath))
+                    {
+                        try { await _apiService.DeleteChatImageAsync(_selectedImagePath); }
+                        catch { /* ignore */ }
+                    }
+
+                    // Neuen Pfad setzen
+                    _selectedImagePath = response.Path;
+
+                    // Lokale Vorschau aktualisieren
+                    PreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(annotationPage.AnnotatedImageBytes));
+                }
+                else
+                {
+                    await DisplayAlertAsync("Fehler", response.Error ?? "Annotiertes Bild konnte nicht hochgeladen werden", "OK");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Annotation error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Fehler bei der Bildbearbeitung", "OK");
+        }
+        finally
+        {
+            AnnotateImageButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>
+    /// Löscht ein Bild aus einer gesendeten Nachricht
+    /// </summary>
+    private async Task DeleteMessageImageAsync(int messageId)
+    {
+        var t = Translations.Get;
+        var confirm = await DisplayAlert(
+            t("delete_image") ?? "Bild löschen",
+            t("delete_image_confirm") ?? "Bild aus dieser Nachricht entfernen?",
+            t("yes") ?? "Ja",
+            t("no") ?? "Nein");
+
+        if (!confirm) return;
+
+        try
+        {
+            var response = await _apiService.DeleteMessageImageAsync(messageId);
+            if (response.Success)
+            {
+                var message = _messages.FirstOrDefault(m => m.Id == messageId);
+                if (message != null)
+                {
+                    // Wenn Nachricht nur Bild hatte (kein Text), komplett entfernen
+                    if (string.IsNullOrEmpty(message.Text))
+                    {
+                        _messages.Remove(message);
+                    }
+                    else
+                    {
+                        // Nachricht hatte Text + Bild: nur Bild entfernen
+                        var idx = _messages.IndexOf(message);
+                        var updatedMessage = new ChatMessage
+                        {
+                            Id = message.Id,
+                            Text = message.Text,
+                            TextTranslated = message.TextTranslated,
+                            TextOriginal = message.TextOriginal,
+                            LinkPhotoVideo = null,
+                            Timestamp = message.Timestamp,
+                            IsMine = message.IsMine,
+                            IsRead = message.IsRead,
+                            Sender = message.Sender,
+                            SenderName = message.SenderName,
+                            CleanerId = message.CleanerId
+                        };
+                        _messages.RemoveAt(idx);
+                        _messages.Insert(idx, updatedMessage);
+                    }
+                }
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", response.Error ?? "Bild konnte nicht gelöscht werden", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Delete message image error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Fehler beim Löschen des Bildes", "OK");
+        }
+    }
+
+    /// <summary>
+    /// Event handler für Delete-Button auf Nachrichtenbildern
+    /// </summary>
+    public async void OnDeleteMessageImageClicked(object sender, EventArgs e)
+    {
+        if (sender is Button btn && btn.CommandParameter is int messageId)
+        {
+            await DeleteMessageImageAsync(messageId);
+        }
+    }
+
+    #endregion
 }

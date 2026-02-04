@@ -904,11 +904,11 @@ public class ApiService
         return new List<ChatMessage>();
     }
 
-    public async Task<ChatSendResponse> SendChatMessageAsync(string text, string receiverId = "admin")
+    public async Task<ChatSendResponse> SendChatMessageAsync(string text, string receiverId = "admin", string? linkPhotoVideo = null)
     {
         try
         {
-            var data = new { text = text, receiver_id = receiverId };
+            var data = new { text = text, receiver_id = receiverId, link_photo_video = linkPhotoVideo ?? "" };
             var json = JsonSerializer.Serialize(data);
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -923,6 +923,114 @@ public class ApiService
         {
             return new ChatSendResponse { Success = false, Error = ex.Message };
         }
+    }
+
+    public async Task<ChatImageUploadResponse> UploadChatImageAsync(Stream imageStream, string fileName)
+    {
+        try
+        {
+            using var formData = new MultipartFormDataContent();
+            var streamContent = new StreamContent(imageStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(GetMimeType(fileName));
+            formData.Add(streamContent, "image", fileName);
+
+            var response = await _httpClient.PostAsync("/api/chat/upload-image/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"UploadChatImage: {response.StatusCode} - {responseText}");
+
+            // Check if response is JSON (not HTML redirect/error page)
+            if (string.IsNullOrEmpty(responseText) || !responseText.TrimStart().StartsWith("{"))
+            {
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    return new ChatImageUploadResponse { Success = false, Error = "Keine Berechtigung. Bitte neu anmelden." };
+                return new ChatImageUploadResponse { Success = false, Error = $"Server-Fehler: {response.StatusCode}" };
+            }
+
+            return JsonSerializer.Deserialize<ChatImageUploadResponse>(responseText, _jsonOptions)
+                ?? new ChatImageUploadResponse { Success = false, Error = "Invalid response" };
+        }
+        catch (Exception ex)
+        {
+            return new ChatImageUploadResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    public async Task<ApiResponse> DeleteChatImageAsync(string path)
+    {
+        try
+        {
+            var data = new { path = path };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/api/chat/delete-image/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Löscht das Bild/Video aus einer bereits gesendeten Nachricht
+    /// </summary>
+    public async Task<ApiResponse> DeleteMessageImageAsync(int messageId)
+    {
+        try
+        {
+            var content = new StringContent("{}", Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync($"/api/chat/message/{messageId}/delete-image/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            System.Diagnostics.Debug.WriteLine($"[API] DeleteMessageImage response: {response.StatusCode} - {responseText.Substring(0, Math.Min(200, responseText.Length))}");
+
+            // Prüfen ob Antwort JSON ist
+            if (string.IsNullOrEmpty(responseText) || !responseText.TrimStart().StartsWith("{"))
+            {
+                // Nicht-JSON Antwort (z.B. Login-Redirect)
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return new ApiResponse { Success = false, Error = "Keine Berechtigung. Bitte neu anmelden." };
+                }
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return new ApiResponse { Success = false, Error = "Nachricht nicht gefunden." };
+                }
+                return new ApiResponse { Success = false, Error = $"Server-Fehler: {response.StatusCode}" };
+            }
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (JsonException jsonEx)
+        {
+            System.Diagnostics.Debug.WriteLine($"[API] JSON parse error: {jsonEx.Message}");
+            return new ApiResponse { Success = false, Error = "Ungültige Server-Antwort" };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[API] DeleteMessageImage error: {ex.Message}");
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    private static string GetMimeType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".mp4" => "video/mp4",
+            ".mov" => "video/quicktime",
+            _ => "application/octet-stream"
+        };
     }
 
     public async Task<TranslationPreviewResponse> PreviewTranslationAsync(string text, string? receiverId = null)

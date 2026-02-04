@@ -30,6 +30,11 @@ public static class Translations
             ["your_text"] = "Dein Text",
             ["translation_for_admin"] = "Übersetzung (für Admin)",
             ["back_translation"] = "Rückübersetzung",
+            ["delete_image"] = "Bild löschen",
+            ["delete_image_confirm"] = "Bild aus dieser Nachricht entfernen?",
+            ["select_image_source"] = "Bild auswählen",
+            ["camera"] = "Kamera",
+            ["gallery"] = "Galerie",
 
             // Einstellungen
             ["settings_title"] = "Einstellungen",
@@ -276,6 +281,11 @@ public static class Translations
             ["your_text"] = "Your text",
             ["translation_for_admin"] = "Translation (for admin)",
             ["back_translation"] = "Back translation",
+            ["delete_image"] = "Delete image",
+            ["delete_image_confirm"] = "Remove image from this message?",
+            ["select_image_source"] = "Select image",
+            ["camera"] = "Camera",
+            ["gallery"] = "Gallery",
 
             ["settings_title"] = "Settings",
             ["select_language"] = "Select language",
