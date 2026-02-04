@@ -945,6 +945,22 @@ public class ApiService
         }
     }
 
+    public async Task<ApiResponse> DeleteChatMessagesAsync(string receiverId = "admin")
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync("/mobile/api/chat/delete/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
     #region Settings

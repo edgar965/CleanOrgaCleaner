@@ -16,13 +16,14 @@
         <!-- Content -->
         <Grid Grid.Row="1" RowDefinitions="Auto,*">
 
-            <!-- Partner Header -->
+            <!-- Partner Header mit Avatar und Delete Button -->
             <Border Grid.Row="0" BackgroundColor="White" Padding="15,12" Margin="15,10,15,5"
                     StrokeShape="RoundRectangle 15" Stroke="Transparent">
                 <Border.Shadow>
                     <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.15"/>
                 </Border.Shadow>
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="15">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="15">
+                    <!-- Avatar -->
                     <Border x:Name="PartnerAvatar" WidthRequest="45" HeightRequest="45"
                             StrokeShape="RoundRectangle 22" Stroke="Transparent">
                         <Border.Background>
@@ -34,10 +35,16 @@
                         <Label x:Name="PartnerInitial" Text="A" TextColor="White" FontSize="18"
                                FontAttributes="Bold" HorizontalOptions="Center" VerticalOptions="Center"/>
                     </Border>
+                    <!-- Name und Status -->
                     <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="2">
                         <Label x:Name="PartnerNameLabel" Text="Admin" FontSize="18" FontAttributes="Bold" TextColor="#333"/>
                         <Label x:Name="PartnerStatusLabel" Text="" FontSize="13" TextColor="#888"/>
                     </VerticalStackLayout>
+                    <!-- Delete Button -->
+                    <Button Grid.Column="2" x:Name="DeleteChatButton" Text="🗑️" FontSize="18"
+                            BackgroundColor="#ff5252" TextColor="White" CornerRadius="20"
+                            WidthRequest="40" HeightRequest="40" Padding="0"
+                            Clicked="OnDeleteChatClicked"/>
                 </Grid>
             </Border>
 
@@ -56,12 +63,12 @@
                                 <VerticalStackLayout Spacing="3">
                                     <!-- Original text (was ich geschrieben habe) -->
                                     <Label Text="{Binding Text}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
-                                    <!-- Translation with globe icon (nur wenn übersetzt) -->
+                                    <!-- Übersetzung die Empfänger sieht (mit Globe icon) -->
                                     <Label FontSize="12" TextColor="#666" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
                                         <Label.FormattedText>
                                             <FormattedString>
                                                 <Span Text="🌐 "/>
-                                                <Span Text="{Binding DisplayText}"/>
+                                                <Span Text="{Binding SecondaryText}"/>
                                             </FormattedString>
                                         </Label.FormattedText>
                                     </Label>
@@ -76,12 +83,12 @@
                                 <VerticalStackLayout Spacing="3">
                                     <!-- Übersetzung in meiner Sprache -->
                                     <Label Text="{Binding DisplayText}" FontSize="14" TextColor="#333" LineBreakMode="WordWrap"/>
-                                    <!-- Original mit Globe Icon (nur wenn übersetzt) -->
+                                    <!-- Original des Senders (mit Globe Icon) -->
                                     <Label FontSize="12" TextColor="#888" LineBreakMode="WordWrap" IsVisible="{Binding HasTranslation}">
                                         <Label.FormattedText>
                                             <FormattedString>
                                                 <Span Text="🌐 " FontAttributes="None"/>
-                                                <Span Text="{Binding Text}" FontAttributes="Italic"/>
+                                                <Span Text="{Binding SecondaryText}" FontAttributes="Italic"/>
                                             </FormattedString>
                                         </Label.FormattedText>
                                     </Label>

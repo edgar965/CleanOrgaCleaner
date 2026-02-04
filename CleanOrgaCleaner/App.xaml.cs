@@ -9,7 +9,7 @@ public partial class App : Application
     private static App? _instance;
     public static App Instance => _instance!;
 
-    // Store pending message for ChatPage to display
+    // Store pending message for ChatCurrentPage to display
     public static ChatMessage? PendingChatMessage { get; set; }
 
     // Track if app is in background
@@ -235,7 +235,7 @@ public partial class App : Application
                 var isOwnMessage = !string.IsNullOrEmpty(currentUsername) &&
                     message.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true;
 
-                // Store message for ChatPage
+                // Store message for ChatCurrentPage
                 PendingChatMessage = message;
 
                 // Only play TTS for incoming messages (not our own)
@@ -244,8 +244,13 @@ public partial class App : Application
                     // Play notification with TTS (reads message aloud)
                     // Use DisplayText if available (translated), otherwise Text
                     var messageText = !string.IsNullOrEmpty(message.DisplayText) ? message.DisplayText : message.Text;
+                    var currentLang = Translations.CurrentLanguage;
+                    var prefLang = Preferences.Get("language", "de");
                     var messageFrom = Translations.Get("message_from");
-                    var ttsText = $"{messageFrom} {message.Sender}: {messageText}";
+                    // API sendet sender_name, nicht sender
+                    var senderName = !string.IsNullOrEmpty(message.SenderName) ? message.SenderName : "Admin";
+                    System.Diagnostics.Debug.WriteLine($"[TTS-DEBUG] CurrentLanguage={currentLang}, Preferences.language={prefLang}, messageFrom='{messageFrom}', senderName='{senderName}'");
+                    var ttsText = $"{messageFrom} {senderName}: {messageText}";
 
                     // Start TTS in background (fire and forget - don't block UI)
                     _ = Task.Run(async () =>
@@ -268,7 +273,7 @@ public partial class App : Application
                     // Check if we're already on the chat page
                     var currentPage = Shell.Current?.CurrentPage;
                     var pageName = currentPage?.GetType().Name;
-                    if (pageName == "ChatPage" || pageName == "ChatCurrentPage")
+                    if (pageName == "ChatCurrentPage" || pageName == "ChatCurrentPage")
                     {
                         // Already on chat page, don't show popup
                         return;
@@ -278,16 +283,21 @@ public partial class App : Application
                     currentPage = Shell.Current?.CurrentPage;
                     if (currentPage == null) return;
                     var result = await currentPage.DisplayAlertAsync(
-                        $"Neue Nachricht von {message.Sender}",
+                        $"Neue Nachricht von {senderName}",
                         message.Text,
                         "Zum Chat",
                         "Schliessen");
 
                     if (result)
                     {
-                        // Navigate to chat page
+                        // Navigate to chat with correct partner
                         if (Shell.Current != null)
-                            await Shell.Current.GoToAsync("//MainTabs/ChatPage");
+                        {
+                            // CleanerId ist null wenn Admin gesendet hat, sonst die Cleaner-ID
+                            var partnerId = message.CleanerId?.ToString() ?? "admin";
+                            var partnerNameEncoded = Uri.EscapeDataString(senderName);
+                            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerNameEncoded}");
+                        }
                     }
                 }
             }

@@ -150,14 +150,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         {
             if (!_messages.Any(m => m.Id == message.Id))
             {
-                // Check if this message is from the current user
-                var currentUsername = Preferences.Get("username", "");
-                if (!string.IsNullOrEmpty(currentUsername) &&
-                    message.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    message.FromCurrentUser = true;
-                }
-
+                // API/WebSocket sendet is_mine korrekt
                 _messages.Add(message);
                 MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
@@ -171,25 +164,9 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             var messages = await _apiService.GetChatMessagesAsync(_partnerId);
             _messages.Clear();
 
-            // Get current username to determine which messages are "mine"
-            var currentUsername = Preferences.Get("username", "");
-
+            // API sendet is_mine korrekt basierend auf der Perspektive des Benutzers
             foreach (var msg in messages.OrderBy(m => m.Id))
             {
-                // Set FromCurrentUser based on sender matching current user
-                // If chatting with admin: my messages have sender = my username
-                // Admin messages have is_from_admin = true
-                if (!string.IsNullOrEmpty(currentUsername) &&
-                    msg.Sender?.Equals(currentUsername, StringComparison.OrdinalIgnoreCase) == true)
-                {
-                    msg.FromCurrentUser = true;
-                }
-                else if (_partnerId == "admin" && !msg.IsFromAdmin)
-                {
-                    // If not from admin and sender is not set, assume it's from current user
-                    msg.FromCurrentUser = true;
-                }
-
                 _messages.Add(msg);
             }
 
@@ -339,5 +316,47 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             TtsButton.IsEnabled = true;
             TtsButton.BackgroundColor = Color.FromArgb("#FF9800");
         }
+    }
+
+    /// <summary>
+    /// Delete all messages in this chat
+    /// </summary>
+    private async void OnDeleteChatClicked(object sender, EventArgs e)
+    {
+        var t = Translations.Get;
+        var confirm = await DisplayAlert(
+            t("delete_chat_title") ?? "Chat löschen",
+            t("delete_chat_confirm") ?? "Alle Nachrichten löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+            t("yes") ?? "Ja",
+            t("no") ?? "Nein");
+
+        if (!confirm) return;
+
+        DeleteChatButton.IsEnabled = false;
+        try
+        {
+            var response = await _apiService.DeleteChatMessagesAsync(_partnerId);
+            if (response.Success)
+            {
+                _messages.Clear();
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", response.Error ?? "Nachrichten konnten nicht gelöscht werden", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+        }
+        finally
+        {
+            DeleteChatButton.IsEnabled = true;
+        }
+    }
+
+    private Task DisplayAlertAsync(string title, string message, string cancel)
+    {
+        return DisplayAlert(title, message, cancel);
     }
 }
