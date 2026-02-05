@@ -207,13 +207,10 @@ public class ApiService
                 {
                     cleanerName = cleanerProp.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
                     cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
-                    // Extract and store avatar
-                    var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : null;
-                    if (!string.IsNullOrEmpty(avatar))
-                    {
-                        Preferences.Set("avatar", avatar);
-                        DbgLog($"Avatar stored: {avatar}");
-                    }
+                    // Extract and store avatar (always update, even if empty = default logo)
+                    var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : "";
+                    Preferences.Set("avatar", avatar ?? "");
+                    DbgLog($"Avatar stored: '{avatar}'");
                     // Extract and store language from server
                     cleanerLanguage = cleanerProp.TryGetProperty("language", out var langProp) ? langProp.GetString() : null;
                     DbgLog($"Server returned language: '{cleanerLanguage}'");
@@ -335,14 +332,10 @@ public class ApiService
                 cleanerId = cleanerProp.TryGetProperty("id", out var idProp) ? idProp.GetInt32() : null;
                 DbgLog($"cleanerId={cleanerId}");
 
-                // Extract and store avatar
-                var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : null;
-                DbgLog($"avatar from server: '{avatar}'");
-                if (!string.IsNullOrEmpty(avatar))
-                {
-                    Preferences.Set("avatar", avatar);
-                    DbgLog($"Avatar stored: {avatar}");
-                }
+                // Extract and store avatar (always update, even if empty = default logo)
+                var avatar = cleanerProp.TryGetProperty("avatar", out var avatarProp) ? avatarProp.GetString() : "";
+                Preferences.Set("avatar", avatar ?? "");
+                DbgLog($"Avatar stored: '{avatar}'");
 
                 // Extract and store language from server
                 cleanerLanguage = cleanerProp.TryGetProperty("language", out var langProp) ? langProp.GetString() : null;

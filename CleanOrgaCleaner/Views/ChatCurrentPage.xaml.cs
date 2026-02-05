@@ -287,43 +287,6 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         TranslationPreview.IsVisible = false;
     }
 
-    private async void OnBackClicked(object sender, EventArgs e)
-    {
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    /// <summary>
-    /// Read the last incoming message aloud using TTS
-    /// </summary>
-    private async void OnTtsClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            // Read only the last incoming message aloud (not own messages)
-            var lastIncoming = _messages.LastOrDefault(m => !m.FromCurrentUser);
-            if (lastIncoming == null)
-            {
-                await DisplayAlertAsync("Info", Translations.Get("no_messages"), "OK");
-                return;
-            }
-
-            TtsButton.IsEnabled = false;
-            TtsButton.BackgroundColor = Color.FromArgb("#999999");
-
-            var messageText = !string.IsNullOrEmpty(lastIncoming.DisplayText) ? lastIncoming.DisplayText : lastIncoming.Text;
-            var ttsText = $"{_partnerName}: {messageText}";
-            await App.SpeakTextAsync(ttsText);
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"TTS error: {ex.Message}");
-        }
-        finally
-        {
-            TtsButton.IsEnabled = true;
-            TtsButton.BackgroundColor = Color.FromArgb("#FF9800");
-        }
-    }
 
     /// <summary>
     /// Delete all messages in this chat

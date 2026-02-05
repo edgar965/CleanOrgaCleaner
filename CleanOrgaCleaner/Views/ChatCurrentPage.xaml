@@ -166,30 +166,23 @@
                                 Clicked="OnRemoveImageClicked"/>
                     </Grid>
                 </Border>
-                <Grid Padding="10" HeightRequest="60"
-                      ColumnDefinitions="40,40,*,40,40,40" ColumnSpacing="8">
-                    <Button Grid.Column="0" x:Name="BackButton" Text="&#x2190;" FontSize="16"
-                            BackgroundColor="#666" TextColor="White" CornerRadius="20"
-                            WidthRequest="40" HeightRequest="40" Clicked="OnBackClicked"/>
+                <Grid Padding="8,6" HeightRequest="52"
+                      ColumnDefinitions="36,*,36,36" ColumnSpacing="4"
+                      BackgroundColor="#f0f2f5">
+                    <Button Grid.Column="0" x:Name="PhotoButton" Text="📷" FontSize="18"
+                            BackgroundColor="Transparent" TextColor="#8696a0" CornerRadius="18"
+                            WidthRequest="36" HeightRequest="36" Padding="0" Clicked="OnPhotoClicked"/>
 
-                    <Button Grid.Column="1" x:Name="PhotoButton" Text="📷" FontSize="16"
-                            BackgroundColor="#4CAF50" TextColor="White" CornerRadius="20"
-                            WidthRequest="40" HeightRequest="40" Clicked="OnPhotoClicked"/>
+                    <Entry Grid.Column="1" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
+                           BackgroundColor="White" VerticalOptions="Center" HeightRequest="36"/>
 
-                    <Entry Grid.Column="2" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="14"
-                           BackgroundColor="#f0f0f0" VerticalOptions="Center" HeightRequest="40"/>
+                    <Button Grid.Column="2" x:Name="PreviewButton" Text="T" FontSize="14"
+                            BackgroundColor="Transparent" TextColor="#8696a0" CornerRadius="18"
+                            WidthRequest="36" HeightRequest="36" Padding="0" Clicked="OnPreviewClicked"/>
 
                     <Button Grid.Column="3" x:Name="SendButton" Text="&#x27A4;" FontSize="16"
-                            BackgroundColor="#25D366" TextColor="White" CornerRadius="20"
-                            WidthRequest="40" HeightRequest="40" Clicked="OnSendClicked"/>
-
-                    <Button Grid.Column="4" x:Name="PreviewButton" Text="T" FontSize="14"
-                            BackgroundColor="#2196F3" TextColor="White" CornerRadius="20"
-                            WidthRequest="40" HeightRequest="40" Clicked="OnPreviewClicked"/>
-
-                    <Button Grid.Column="5" x:Name="TtsButton" Text="&#x1F50A;" FontSize="14"
-                            BackgroundColor="#FF9800" TextColor="White" CornerRadius="20"
-                            WidthRequest="40" HeightRequest="40" Clicked="OnTtsClicked"/>
+                            BackgroundColor="#00a884" TextColor="White" CornerRadius="18"
+                            WidthRequest="36" HeightRequest="36" Padding="0" Clicked="OnSendClicked"/>
                 </Grid>
                 <!-- Spacer below input for navigation bar -->
                 <BoxView HeightRequest="80" BackgroundColor="White"/>
