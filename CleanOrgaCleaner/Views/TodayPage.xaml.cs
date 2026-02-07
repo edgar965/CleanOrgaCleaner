@@ -14,6 +14,8 @@ public partial class TodayPage : ContentPage
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
     private List<CleaningTask> _tasks = new();
+    private DateTime _pageLoadDate;
+    private System.Timers.Timer? _dateCheckTimer;
 
     private static void Log(string msg)
     {
@@ -35,6 +37,10 @@ public partial class TodayPage : ContentPage
     {
         Log("OnAppearing START");
         base.OnAppearing();
+
+        // Speichere das aktuelle Datum fuer Datumswechsel-Check
+        _pageLoadDate = DateTime.Today;
+        StartDateCheckTimer();
 
         Log("Subscribe OnTaskUpdate");
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
@@ -58,6 +64,42 @@ public partial class TodayPage : ContentPage
     {
         base.OnDisappearing();
         _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+        StopDateCheckTimer();
+    }
+
+    private void StartDateCheckTimer()
+    {
+        StopDateCheckTimer();
+        _dateCheckTimer = new System.Timers.Timer(5 * 60 * 1000); // 5 Minuten
+        _dateCheckTimer.Elapsed += OnDateCheckTimerElapsed;
+        _dateCheckTimer.AutoReset = true;
+        _dateCheckTimer.Start();
+        Log("Datumswechsel-Check Timer gestartet (alle 5 Min)");
+    }
+
+    private void StopDateCheckTimer()
+    {
+        if (_dateCheckTimer != null)
+        {
+            _dateCheckTimer.Stop();
+            _dateCheckTimer.Elapsed -= OnDateCheckTimerElapsed;
+            _dateCheckTimer.Dispose();
+            _dateCheckTimer = null;
+        }
+    }
+
+    private void OnDateCheckTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+    {
+        if (DateTime.Today != _pageLoadDate)
+        {
+            Log($"Datumswechsel erkannt: {_pageLoadDate:d} -> {DateTime.Today:d}");
+            _pageLoadDate = DateTime.Today;
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await LoadTasksAsync();
+                await Header.LoadWorkStatusAsync();
+            });
+        }
     }
 
     private void OnTaskUpdate(string updateType)
