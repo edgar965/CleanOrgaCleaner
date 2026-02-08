@@ -41,20 +41,29 @@ public class Auftrag
     [JsonPropertyName("assignments")]
     public TaskAssignments? Assignments { get; set; }
 
+    [JsonPropertyName("assigned_cleaner_names")]
+    public List<string>? AssignedCleanerNames { get; set; }
+
     [JsonPropertyName("anmerkungen")]
     public List<ImageListDescription>? Anmerkungen { get; set; }
 
     /// <summary>
-    /// Display text for status
+    /// Display text for status - shows cleaner name if assigned, otherwise empty
     /// </summary>
-    public string StatusDisplay => Status switch
+    public string StatusDisplay
     {
-        "imported" => Translations.Get("status_imported"),
-        "assigned" => Translations.Get("status_assigned"),
-        "cleaned" => Translations.Get("status_cleaned"),
-        "checked" => Translations.Get("status_checked"),
-        _ => Status
-    };
+        get
+        {
+            // Wenn Cleaner zugewiesen, deren Namen anzeigen
+            if (AssignedCleanerNames != null && AssignedCleanerNames.Count > 0)
+            {
+                return string.Join(", ", AssignedCleanerNames);
+            }
+
+            // Sonst leer (nicht "Nicht zugewiesen")
+            return "";
+        }
+    }
 
     /// <summary>
     /// Color for status display

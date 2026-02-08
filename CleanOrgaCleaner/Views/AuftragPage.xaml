@@ -124,25 +124,31 @@
                             <Grid>
                                 <!-- Details Tab -->
                                 <VerticalStackLayout x:Name="DetailsTabContent" IsVisible="True" Spacing="12">
+                                    <!-- Aufgabenname und Apartment nebeneinander -->
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                            <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                            <Entry x:Name="TaskNameEntry" Placeholder="Name" Text="Reparatur" FontSize="16" BackgroundColor="#f5f5f5"/>
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                            <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                            <Picker x:Name="ApartmentPicker" FontSize="16"/>
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                    <!-- Aufgabe (Beschreibung) -->
                                     <VerticalStackLayout Spacing="4">
-                                        <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                        <Entry x:Name="TaskNameEntry" Placeholder="Name" FontSize="16" BackgroundColor="#f5f5f5"/>
+                                        <Label x:Name="LabelHint" Text="Aufgabe" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                        <Editor x:Name="TaskHinweisEditor" Placeholder="Beschreibung der Aufgabe..." FontSize="16" HeightRequest="80" BackgroundColor="#f5f5f5"/>
                                     </VerticalStackLayout>
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                        <Picker x:Name="ApartmentPicker" FontSize="16"/>
-                                    </VerticalStackLayout>
+                                    <!-- Datum -->
                                     <VerticalStackLayout Spacing="4">
                                         <Label x:Name="LabelDate" Text="Datum *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
                                         <DatePicker x:Name="TaskDatePicker" FontSize="16"/>
                                     </VerticalStackLayout>
+                                    <!-- Aufgabenart (am Ende) -->
                                     <VerticalStackLayout Spacing="4">
                                         <Label x:Name="LabelTaskType" Text="Aufgabenart" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
                                         <Picker x:Name="AufgabenartPicker" FontSize="16" SelectedIndexChanged="OnAufgabenartChanged"/>
-                                    </VerticalStackLayout>
-                                    <VerticalStackLayout Spacing="4">
-                                        <Label x:Name="LabelHint" Text="Hinweis" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                        <Editor x:Name="TaskHinweisEditor" Placeholder="Optionaler Hinweis..." FontSize="16" HeightRequest="60" BackgroundColor="#f5f5f5"/>
                                     </VerticalStackLayout>
                                 </VerticalStackLayout>
 

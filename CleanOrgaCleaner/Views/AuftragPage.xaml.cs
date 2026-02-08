@@ -56,7 +56,7 @@ public partial class AuftragPage : ContentPage
         LabelApartment.Text = t("apartment");
         LabelDate.Text = t("date_required");
         LabelTaskType.Text = t("task_type");
-        LabelHint.Text = t("note_hint");
+        LabelHint.Text = t("task_tab");
         TaskHinweisEditor.Placeholder = t("optional_hint");
         LabelAssignCleaners.Text = t("assign_cleaners");
         AddAnmerkungButton.Text = t("add_note");
@@ -157,13 +157,19 @@ public partial class AuftragPage : ContentPage
         _anmerkungen.Clear();
 
         PopupTitle.Text = Translations.Get("create_auftrag");
-        TaskNameEntry.Text = "";
+        TaskNameEntry.Text = "Reparatur";
         ApartmentPicker.SelectedIndex = -1;
         TaskDatePicker.Date = DateTime.Today;
-        AufgabenartPicker.SelectedIndex = -1;
         TaskHinweisEditor.Text = "";
         _currentStatus = "imported";
         BtnDelete.IsVisible = false;
+
+        // Aufgabenart auf "Reparatur" setzen
+        var reparaturArt = _aufgabenarten.FirstOrDefault(a => a.Name == "Reparatur");
+        if (reparaturArt != null)
+            AufgabenartPicker.SelectedItem = reparaturArt;
+        else
+            AufgabenartPicker.SelectedIndex = -1;
 
         UpdateCleanersList();
         UpdateAnmerkungenDisplay();
