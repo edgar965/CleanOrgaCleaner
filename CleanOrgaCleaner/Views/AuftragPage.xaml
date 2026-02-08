@@ -155,10 +155,10 @@
                                 <!-- Assign Tab -->
                                 <VerticalStackLayout x:Name="AssignTabContent" IsVisible="False" Spacing="10">
                                     <Label x:Name="LabelAssignCleaners" Text="Cleaner zuweisen" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                    <VerticalStackLayout x:Name="CleanersList" Spacing="5" BindableLayout.ItemsSource="{x:Null}">
-                                        <BindableLayout.ItemTemplate>
+                                    <CollectionView x:Name="CleanersList" SelectionMode="None" HeightRequest="300">
+                                        <CollectionView.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Padding="12" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10" HeightRequest="64">
+                                                <Border Padding="12" Margin="0,0,0,5" BackgroundColor="#f8f9fa" StrokeShape="RoundRectangle 10" HeightRequest="64">
                                                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
                                                         <!-- Avatar: Emoji if available, otherwise Initial -->
                                                         <Grid Grid.Column="0" WidthRequest="44" HeightRequest="44">
@@ -176,8 +176,8 @@
                                                     </Grid>
                                                 </Border>
                                             </DataTemplate>
-                                        </BindableLayout.ItemTemplate>
-                                    </VerticalStackLayout>
+                                        </CollectionView.ItemTemplate>
+                                    </CollectionView>
                                 </VerticalStackLayout>
 
                                 <!-- Anmerkungen Tab -->
