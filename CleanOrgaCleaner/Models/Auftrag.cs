@@ -66,16 +66,22 @@ public class Auftrag
     }
 
     /// <summary>
-    /// Color for status display
+    /// Color for status display - blue when assigned
     /// </summary>
-    public Color StatusColor => Status switch
+    public Color StatusColor
     {
-        "imported" => Color.FromArgb("#9e9e9e"),
-        "assigned" => Color.FromArgb("#ff9800"),
-        "cleaned" => Color.FromArgb("#2196F3"),
-        "checked" => Color.FromArgb("#4CAF50"),
-        _ => Color.FromArgb("#9e9e9e")
-    };
+        get
+        {
+            // Wenn Cleaner zugewiesen, blau anzeigen
+            if (AssignedCleanerNames != null && AssignedCleanerNames.Count > 0)
+            {
+                return Color.FromArgb("#667eea");
+            }
+
+            // Sonst grau (keine Anzeige)
+            return Color.FromArgb("#9e9e9e");
+        }
+    }
 }
 
 // TaskAssignments is defined in CleaningTask.cs
