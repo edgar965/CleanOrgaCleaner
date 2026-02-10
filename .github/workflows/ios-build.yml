@@ -32,10 +32,10 @@ jobs:
         sudo xcode-select -s /Applications/Xcode_26.1.1.app
         xcodebuild -version
 
-    - name: Install MAUI Workloads (Xcode 26.1 compatible)
+    - name: Install MAUI Workloads (Latest)
       run: |
-        # Install workload version 10.0.101 which supports Xcode 26.1
-        dotnet workload install maui --version 10.0.101
+        # Install latest MAUI workload (no fixed version for better compatibility)
+        dotnet workload install maui
 
         # Verify installed versions
         dotnet workload list
