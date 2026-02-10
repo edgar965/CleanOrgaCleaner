@@ -27,14 +27,14 @@ jobs:
     - name: List Available Xcode Versions
       run: ls -la /Applications/ | grep Xcode
 
-    - name: Select Xcode 26.1
+    - name: Select Xcode 26.2
       run: |
-        sudo xcode-select -s /Applications/Xcode_26.1.1.app
+        sudo xcode-select -s /Applications/Xcode_26.2.app
         xcodebuild -version
 
     - name: Install MAUI Workloads (Latest)
       run: |
-        # Install latest MAUI workload (no fixed version for better compatibility)
+        # Install latest MAUI workload for Xcode 26.2
         dotnet workload install maui
 
         # Verify installed versions
