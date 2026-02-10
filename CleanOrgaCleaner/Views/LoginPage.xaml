@@ -41,14 +41,16 @@
                     <Entry x:Name="PropertyIdEntry"
                            Placeholder="z.B. 1"
                            Keyboard="Numeric"
-                           FontSize="18"/>
+                           FontSize="18"
+                           TextColor="Black"/>
 
                     <Label x:Name="UsernameLabel" Text="Username"
                            FontSize="14"
                            TextColor="#666"/>
                     <Entry x:Name="UsernameEntry"
                            Placeholder=""
-                           FontSize="18"/>
+                           FontSize="18"
+                           TextColor="Black"/>
 
                     <Label x:Name="PasswordLabel" Text="Password"
                            FontSize="14"
@@ -56,7 +58,8 @@
                     <Entry x:Name="PasswordEntry"
                            Placeholder=""
                            IsPassword="True"
-                           FontSize="18"/>
+                           FontSize="18"
+                           TextColor="Black"/>
 
                     <!-- Auto-Login Checkbox -->
                     <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
@@ -133,7 +136,7 @@
             </VerticalStackLayout>
 
             <!-- Version -->
-            <Label Text="v1.16 (Build 100)"
+            <Label Text="v1.42 (Build 148)"
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

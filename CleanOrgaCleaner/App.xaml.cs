@@ -270,34 +270,22 @@ public partial class App : Application
                     // Vibrate
                     try { Vibration.Vibrate(TimeSpan.FromMilliseconds(200)); } catch { }
 
-                    // Check if we're already on the chat page
+                    // Check if we're already on the chat page with same partner
                     var currentPage = Shell.Current?.CurrentPage;
                     var pageName = currentPage?.GetType().Name;
-                    if (pageName == "ChatCurrentPage" || pageName == "ChatCurrentPage")
+                    if (pageName == "ChatCurrentPage")
                     {
-                        // Already on chat page, don't show popup
+                        // Already on chat page - new messages are handled by ChatCurrentPage's OnNewMessageReceived
                         return;
                     }
 
-                    // Show notification popup
-                    currentPage = Shell.Current?.CurrentPage;
-                    if (currentPage == null) return;
-                    var result = await currentPage.DisplayAlertAsync(
-                        $"Neue Nachricht von {senderName}",
-                        message.Text,
-                        "Zum Chat",
-                        "Schliessen");
-
-                    if (result)
+                    // Auto-navigate to chat (no popup)
+                    if (Shell.Current != null)
                     {
-                        // Navigate to chat with correct partner
-                        if (Shell.Current != null)
-                        {
-                            // CleanerId ist null wenn Admin gesendet hat, sonst die Cleaner-ID
-                            var partnerId = message.CleanerId?.ToString() ?? "admin";
-                            var partnerNameEncoded = Uri.EscapeDataString(senderName);
-                            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerNameEncoded}");
-                        }
+                        // CleanerId ist null wenn Admin gesendet hat, sonst die Cleaner-ID
+                        var partnerId = message.CleanerId?.ToString() ?? "admin";
+                        var partnerNameEncoded = Uri.EscapeDataString(senderName);
+                        await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerNameEncoded}");
                     }
                 }
             }

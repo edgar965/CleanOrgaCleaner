@@ -128,7 +128,7 @@
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                                         <VerticalStackLayout Grid.Column="0" Spacing="4">
                                             <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                            <Entry x:Name="TaskNameEntry" Placeholder="Name" Text="Reparatur" FontSize="16" BackgroundColor="#f5f5f5"/>
+                                            <Entry x:Name="TaskNameEntry" Placeholder="Name" Text="Reparatur" FontSize="16" BackgroundColor="#f5f5f5" TextColor="Black"/>
                                         </VerticalStackLayout>
                                         <VerticalStackLayout Grid.Column="1" Spacing="4">
                                             <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
@@ -138,7 +138,7 @@
                                     <!-- Aufgabe (Beschreibung) -->
                                     <VerticalStackLayout Spacing="4">
                                         <Label x:Name="LabelHint" Text="Aufgabe" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                        <Editor x:Name="TaskHinweisEditor" Placeholder="Beschreibung der Aufgabe..." FontSize="16" HeightRequest="80" BackgroundColor="#f5f5f5"/>
+                                        <Editor x:Name="TaskHinweisEditor" Placeholder="Beschreibung der Aufgabe..." FontSize="16" HeightRequest="80" BackgroundColor="#f5f5f5" TextColor="Black"/>
                                     </VerticalStackLayout>
                                     <!-- Datum -->
                                     <VerticalStackLayout Spacing="4">
@@ -234,11 +234,11 @@
                         <VerticalStackLayout Spacing="15">
                             <VerticalStackLayout Spacing="5">
                                 <Label x:Name="ImageListDescriptionDialogNameLabel" Text="Name *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                <Entry x:Name="ImageListDescriptionDialogNameEntry" FontSize="16" BackgroundColor="#f5f5f5" Placeholder="Name eingeben..."/>
+                                <Entry x:Name="ImageListDescriptionDialogNameEntry" FontSize="16" BackgroundColor="#f5f5f5" TextColor="Black" Placeholder="Name eingeben..."/>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="5">
                                 <Label x:Name="ImageListDescriptionDialogDescLabel" Text="Beschreibung" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                <Editor x:Name="ImageListDescriptionDialogDescEditor" HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" Placeholder="Beschreibung eingeben..." TextChanged="OnImageListDescriptionDialogDescTextChanged"/>
+                                <Editor x:Name="ImageListDescriptionDialogDescEditor" HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" TextColor="Black" Placeholder="Beschreibung eingeben..." TextChanged="OnImageListDescriptionDialogDescTextChanged"/>
                                 <Label x:Name="ImageListDescriptionDialogCharCountLabel" Text="0 / 300" FontSize="11" TextColor="#999" HorizontalTextAlignment="End"/>
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="8">

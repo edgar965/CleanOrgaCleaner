@@ -181,7 +181,7 @@
                                     Clicked="OnPhotoClicked"/>
                             <!-- Text entry -->
                             <Entry Grid.Column="1" x:Name="MessageEntry" Placeholder="Nachricht..." FontSize="15"
-                                   BackgroundColor="Transparent" VerticalOptions="Center"/>
+                                   BackgroundColor="Transparent" TextColor="Black" VerticalOptions="Center"/>
                             <!-- T button inside -->
                             <Button Grid.Column="2" x:Name="PreviewButton" Text="T" FontSize="14"
                                     BackgroundColor="Transparent" TextColor="#8696a0"

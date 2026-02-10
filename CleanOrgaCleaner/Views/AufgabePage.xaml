@@ -123,12 +123,12 @@
                             <!-- Name/Title -->
                             <VerticalStackLayout Spacing="5">
                                 <Label x:Name="ImageListDescriptionDialogNameLabel" Text="Name *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                <Entry x:Name="ImageListDescriptionDialogNameEntry" FontSize="16" BackgroundColor="#f5f5f5" Placeholder="Name eingeben..."/>
+                                <Entry x:Name="ImageListDescriptionDialogNameEntry" FontSize="16" BackgroundColor="#f5f5f5" TextColor="Black" Placeholder="Name eingeben..."/>
                             </VerticalStackLayout>
                             <!-- Description -->
                             <VerticalStackLayout Spacing="5">
                                 <Label x:Name="ImageListDescriptionDialogDescLabel" Text="Beschreibung" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                <Editor x:Name="ImageListDescriptionDialogDescEditor" HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" Placeholder="Beschreibung eingeben..." TextChanged="OnImageListDescriptionDialogDescTextChanged"/>
+                                <Editor x:Name="ImageListDescriptionDialogDescEditor" HeightRequest="80" FontSize="15" BackgroundColor="#f5f5f5" TextColor="Black" Placeholder="Beschreibung eingeben..." TextChanged="OnImageListDescriptionDialogDescTextChanged"/>
                                 <Label x:Name="ImageListDescriptionDialogCharCountLabel" Text="0 / 300" FontSize="11" TextColor="#999" HorizontalTextAlignment="End"/>
                             </VerticalStackLayout>
                             <!-- Photos -->
