@@ -106,9 +106,10 @@ public partial class TodayPage : ContentPage
     {
         System.Diagnostics.Debug.WriteLine($"[TodayPage] Task update received: {updateType}");
 
-        // Reload tasks when task changes or assignment changes
+        // Reload tasks when task changes, assignment changes, or problem changes
         if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
-            || updateType == "assignment_update" || updateType == "aufgabe_update")
+            || updateType == "assignment_update" || updateType == "aufgabe_update"
+            || updateType == "image_list_update" || updateType == "problem_update" || updateType == "problem_delete")
         {
             MainThread.BeginInvokeOnMainThread(async () =>
             {
