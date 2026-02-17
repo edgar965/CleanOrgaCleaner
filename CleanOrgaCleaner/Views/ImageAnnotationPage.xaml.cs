@@ -230,9 +230,9 @@ public partial class ImageAnnotationPage : ContentPage
         // Draw line
         canvas.DrawLine(start, end, paint);
 
-        // Draw arrowhead
+        // Draw arrowhead - scale with stroke width for consistent look
         float angle = (float)Math.Atan2(end.Y - start.Y, end.X - start.X);
-        float arrowSize = 25f;
+        float arrowSize = paint.StrokeWidth * 4f; // Proportional to line thickness
         float arrowAngle = 0.5f; // ~30 degrees
 
         var p1 = new SKPoint(
@@ -266,10 +266,20 @@ public partial class ImageAnnotationPage : ContentPage
             using var outputBitmap = _originalBitmap.Copy();
             using var canvas = new SKCanvas(outputBitmap);
 
+            // Scale stroke width proportionally to image size
+            // On screen: 6px stroke with scale 0.3 appears as ~2px
+            // In saved image: we want same visual thickness, so scale up by 1/_scale
+            float scaledStrokeWidth = _scale > 0 ? StrokeWidth / _scale : StrokeWidth;
+
+            // Clamp to reasonable range (min 3px, max 30px in image space)
+            scaledStrokeWidth = Math.Clamp(scaledStrokeWidth, 3f, 30f);
+
+            System.Diagnostics.Debug.WriteLine($"[ANNOTATION] Saving with scale={_scale}, strokeWidth={scaledStrokeWidth}");
+
             using var paint = new SKPaint
             {
                 Color = _drawColor,
-                StrokeWidth = StrokeWidth,
+                StrokeWidth = scaledStrokeWidth,
                 Style = SKPaintStyle.Stroke,
                 IsAntialias = true,
                 StrokeCap = SKStrokeCap.Round,
