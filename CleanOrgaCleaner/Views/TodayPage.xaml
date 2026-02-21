@@ -35,8 +35,10 @@
             <!-- Tasks List -->
             <RefreshView x:Name="TaskRefreshView"
                          Refreshing="OnRefreshing"
-                         IsVisible="True">
-                <ScrollView>
+                         IsVisible="True"
+                         VerticalOptions="Fill">
+                <ScrollView VerticalOptions="Fill"
+                            VerticalScrollBarVisibility="Always">
                     <VerticalStackLayout x:Name="TasksStackLayout"
                                          Spacing="12"
                                          Padding="15"/>
