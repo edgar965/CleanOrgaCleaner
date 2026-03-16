@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Theme for Android 15+ (API 35+) with native edge-to-edge support -->
+    <!-- Note: setStatusBarColor and setNavigationBarColor are deprecated in API 35 -->
+    <!-- Edge-to-edge is now the default behavior on Android 15+ -->
+    <style name="Maui.MainTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+
+        <!-- Edge-to-edge is default on Android 15+, ensure proper drawing -->
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+
+        <!-- Opt out of contrast enforcement to avoid auto-coloring -->
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+
+        <!-- Light/dark system bar icons based on theme -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>

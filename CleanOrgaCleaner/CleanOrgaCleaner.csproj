@@ -80,4 +80,9 @@
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
 	</ItemGroup>
 
+	<!-- Android-specific packages for Edge-to-Edge support -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.9.3.1" />
+	</ItemGroup>
+
 </Project>
