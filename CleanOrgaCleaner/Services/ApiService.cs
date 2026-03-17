@@ -30,6 +30,16 @@ public class ApiService
     public string? CleanerLanguage { get; private set; }
     public int? CleanerId { get; private set; }
 
+    /// <summary>
+    /// Set cleaner info for offline mode (when we can't login to server)
+    /// </summary>
+    public void SetOfflineCleanerInfo(string cleanerName, int? cleanerId)
+    {
+        CleanerName = cleanerName;
+        CleanerId = cleanerId;
+        System.Diagnostics.Debug.WriteLine($"[ApiService] Offline cleaner info set: {cleanerName}, ID: {cleanerId}");
+    }
+
     // Debug callback for LoginPage to show logs on-screen
     public static Action<string>? DebugLog { get; set; }
 
@@ -355,7 +365,7 @@ public class ApiService
             DbgLog($"Cleaner: {CleanerName}, id={CleanerId}, lang={CleanerLanguage}");
 
             DbgLog("returning SUCCESS");
-            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = cleanerLanguage };
+            return new LoginResult { Success = true, CleanerName = cleanerName, CleanerLanguage = cleanerLanguage, CleanerId = cleanerId };
         }
         catch (Exception ex)
         {
@@ -420,6 +430,7 @@ public class ApiService
 
     /// <summary>
     /// Download an image with authentication cookies
+    /// Uses temp file caching for iOS compatibility
     /// </summary>
     public async Task<ImageSource?> GetImageAsync(string url)
     {
@@ -427,22 +438,50 @@ public class ApiService
         {
             if (string.IsNullOrEmpty(url)) return null;
 
+            // Store original URL for caching (before making absolute)
+            var originalUrl = url;
+
             // Make URL absolute if relative
             if (!url.StartsWith("http"))
                 url = $"{BaseUrl}{url}";
 
             System.Diagnostics.Debug.WriteLine($"GetImageAsync: {url}");
-            var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
 
-            if (response.IsSuccessStatusCode)
+            // Try to download from server first
+            try
             {
-                var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                System.Diagnostics.Debug.WriteLine($"GetImageAsync: Got {bytes.Length} bytes");
-                return ImageSource.FromStream(() => new MemoryStream(bytes));
+                var response = await _httpClient.GetAsync(url).ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync: Got {bytes.Length} bytes");
+
+                    // Cache the image for offline use
+                    _ = OfflineDataService.Instance.CacheImageAsync(originalUrl, bytes);
+
+                    // iOS fix: Save to temp file instead of using MemoryStream
+                    var tempFile = Path.Combine(FileSystem.CacheDirectory, $"img_{Guid.NewGuid():N}.jpg");
+                    await File.WriteAllBytesAsync(tempFile, bytes).ConfigureAwait(false);
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync: Saved to {tempFile}");
+                    return ImageSource.FromFile(tempFile);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync: Failed {response.StatusCode}");
+                }
             }
-            else
+            catch (Exception netEx)
             {
-                System.Diagnostics.Debug.WriteLine($"GetImageAsync: Failed {response.StatusCode}");
+                System.Diagnostics.Debug.WriteLine($"GetImageAsync network error: {netEx.Message}");
+
+                // Try to load from cache when network fails
+                var cachedPath = OfflineDataService.Instance.GetCachedImagePath(originalUrl);
+                if (cachedPath != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"GetImageAsync: Loading from cache: {cachedPath}");
+                    return ImageSource.FromFile(cachedPath);
+                }
             }
         }
         catch (Exception ex)
@@ -1212,7 +1251,7 @@ public class ApiService
                 planned_date = plannedDate,
                 apartment_id = apartmentId,
                 aufgabenart_id = aufgabenartId,
-                wichtiger_hinweis = hinweis ?? "",
+                aufgabe = hinweis ?? "",
                 status = status,
                 assignments = assignments ?? new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() }
             };
@@ -1249,7 +1288,7 @@ public class ApiService
                 planned_date = plannedDate,
                 apartment_id = apartmentId,
                 aufgabenart_id = aufgabenartId,
-                wichtiger_hinweis = hinweis ?? "",
+                aufgabe = hinweis ?? "",
                 status = status,
                 assignments = assignments ?? new TaskAssignments { Cleaning = new List<int>(), Check = null, Repare = new List<int>() }
             };

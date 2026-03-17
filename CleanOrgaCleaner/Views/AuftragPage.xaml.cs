@@ -163,13 +163,7 @@ public partial class AuftragPage : ContentPage
         TaskHinweisEditor.Text = "";
         _currentStatus = "imported";
         BtnDelete.IsVisible = false;
-
-        // Aufgabenart auf "Reparatur" setzen
-        var reparaturArt = _aufgabenarten.FirstOrDefault(a => a.Name == "Reparatur");
-        if (reparaturArt != null)
-            AufgabenartPicker.SelectedItem = reparaturArt;
-        else
-            AufgabenartPicker.SelectedIndex = -1;
+        AufgabenartPicker.SelectedIndex = -1;
 
         UpdateCleanersList();
         UpdateAnmerkungenDisplay();
@@ -214,7 +208,7 @@ public partial class AuftragPage : ContentPage
             AufgabenartPicker.SelectedIndex = -1;
         }
 
-        TaskHinweisEditor.Text = task.WichtigerHinweis ?? "";
+        TaskHinweisEditor.Text = task.Aufgabe ?? "";
 
         // Set status
         _currentStatus = task.Status ?? "imported";
@@ -349,9 +343,8 @@ public partial class AuftragPage : ContentPage
         else
         {
             // If network error, queue for offline sync
-            if (result.Error?.Contains("network", StringComparison.OrdinalIgnoreCase) == true ||
-                result.Error?.Contains("timeout", StringComparison.OrdinalIgnoreCase) == true ||
-                result.Error?.Contains("connection", StringComparison.OrdinalIgnoreCase) == true)
+            var isNetworkError = IsNetworkError(result.Error);
+            if (isNetworkError)
             {
                 var offlineQueue = OfflineQueueService.Instance;
                 if (_isNewTask)
@@ -364,13 +357,32 @@ public partial class AuftragPage : ContentPage
                 }
 
                 TaskPopupOverlay.IsVisible = false;
-                await DisplayAlert("Offline", Translations.Get("saved"), Translations.Get("ok"));
+                await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
             }
             else
             {
                 await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_update_error"), Translations.Get("ok"));
             }
         }
+    }
+
+    /// <summary>
+    /// Check if error message indicates a network problem
+    /// </summary>
+    private static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") ||
+               lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") ||
+               lowerError.Contains("connection") ||
+               lowerError.Contains("internet") ||
+               lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") ||
+               lowerError.Contains("failure") ||
+               lowerError.Contains("host") ||
+               lowerError.Contains("refused");
     }
 
     private void OnCancelClicked(object sender, EventArgs e)
@@ -581,7 +593,7 @@ public partial class AuftragPage : ContentPage
         _currentAnmerkung = anmerkung;
         _pendingAnmerkungPhotos.Clear();
 
-        ImageListDescriptionDialogNameEntry.Text = anmerkung?.Name ?? "";
+        ImageListDescriptionDialogNameEntry.Text = anmerkung?.Name ?? "Reparatur";
         ImageListDescriptionDialogDescEditor.Text = anmerkung?.Description ?? "";
         UpdateImageListDescriptionDialogCharCount();
         ImageListDescriptionDialogPhotoPreviewStack.Children.Clear();
@@ -591,36 +603,191 @@ public partial class AuftragPage : ContentPage
         if (anmerkung != null)
         {
             ImageListDescriptionDialogTitle.Text = Translations.Get("edit_note");
-            // Show existing photos
+            DeleteAnmerkungButton.IsVisible = true;
+
+            // Show existing photos with delete buttons
             if (anmerkung.Photos != null && anmerkung.Photos.Count > 0)
             {
                 ImageListDescriptionDialogPhotoPreviewStack.IsVisible = true;
                 foreach (var photo in anmerkung.Photos)
                 {
-                    var img = new Image
-                    {
-                        Source = photo.ThumbnailUrl ?? photo.Url,
-                        Aspect = Aspect.AspectFill,
-                        WidthRequest = 60,
-                        HeightRequest = 60
-                    };
-                    var imgBorder = new Border
-                    {
-                        Content = img,
-                        StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
-                        Stroke = Colors.Transparent,
-                        Margin = new Thickness(0, 0, 5, 5)
-                    };
-                    ImageListDescriptionDialogPhotoPreviewStack.Children.Add(imgBorder);
+                    var photoContainer = CreatePhotoPreviewWithDelete(photo);
+                    ImageListDescriptionDialogPhotoPreviewStack.Children.Add(photoContainer);
                 }
             }
         }
         else
         {
             ImageListDescriptionDialogTitle.Text = Translations.Get("add_note");
+            DeleteAnmerkungButton.IsVisible = false;
         }
 
         ImageListDescriptionDialog.IsVisible = true;
+    }
+
+    private Grid CreatePhotoPreviewWithDelete(ImageListDescriptionPhoto photo)
+    {
+        var container = new Grid
+        {
+            WidthRequest = 70,
+            HeightRequest = 70,
+            Margin = new Thickness(0, 0, 5, 5)
+        };
+
+        var img = new Image
+        {
+            Source = photo.ThumbnailUrl ?? photo.Url,
+            Aspect = Aspect.AspectFill,
+            WidthRequest = 60,
+            HeightRequest = 60
+        };
+        var imgBorder = new Border
+        {
+            Content = img,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
+            Stroke = Colors.Transparent
+        };
+
+        // Tap to view full image
+        var tapGesture = new TapGestureRecognizer();
+        var photoUrl = photo.Url;
+        tapGesture.Tapped += async (s, e) => await OpenFullImage(photoUrl);
+        imgBorder.GestureRecognizers.Add(tapGesture);
+
+        container.Children.Add(imgBorder);
+
+        // Delete button overlay
+        var deleteBtn = new Button
+        {
+            Text = "X",
+            FontSize = 10,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            BackgroundColor = Color.FromArgb("#f44336"),
+            WidthRequest = 20,
+            HeightRequest = 20,
+            CornerRadius = 10,
+            Padding = 0,
+            HorizontalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Start,
+            Margin = new Thickness(0, -2, -2, 0)
+        };
+        var photoId = photo.Id;
+        deleteBtn.Clicked += async (s, e) => await DeletePhotoAsync(photoId);
+        container.Children.Add(deleteBtn);
+
+        return container;
+    }
+
+    private async Task OpenFullImage(string? imageUrl)
+    {
+        if (string.IsNullOrEmpty(imageUrl)) return;
+
+        // Create full screen image viewer
+        var fullImageGrid = new Grid
+        {
+            BackgroundColor = Color.FromArgb("#E0000000"),
+            ZIndex = 5000
+        };
+
+        var tapToClose = new TapGestureRecognizer();
+        tapToClose.Tapped += (s, e) =>
+        {
+            if (this.Content is Grid mainGrid)
+                mainGrid.Children.Remove(fullImageGrid);
+        };
+        fullImageGrid.GestureRecognizers.Add(tapToClose);
+
+        var closeBtn = new Button
+        {
+            Text = "X",
+            FontSize = 24,
+            FontAttributes = FontAttributes.Bold,
+            TextColor = Colors.White,
+            BackgroundColor = Colors.Transparent,
+            HorizontalOptions = LayoutOptions.End,
+            VerticalOptions = LayoutOptions.Start,
+            Margin = new Thickness(0, 40, 20, 0)
+        };
+        closeBtn.Clicked += (s, e) =>
+        {
+            if (this.Content is Grid mainGrid)
+                mainGrid.Children.Remove(fullImageGrid);
+        };
+
+        var fullImage = new Image
+        {
+            Source = imageUrl,
+            Aspect = Aspect.AspectFit,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
+            Margin = new Thickness(20, 80, 20, 80)
+        };
+
+        fullImageGrid.Children.Add(fullImage);
+        fullImageGrid.Children.Add(closeBtn);
+
+        if (this.Content is Grid grid)
+        {
+            Grid.SetRowSpan(fullImageGrid, 2);
+            grid.Children.Add(fullImageGrid);
+        }
+    }
+
+    private async Task DeletePhotoAsync(int photoId)
+    {
+        var confirm = await DisplayAlert(
+            Translations.Get("delete_image"),
+            Translations.Get("delete_image_confirm"),
+            Translations.Get("yes"),
+            Translations.Get("no"));
+
+        if (!confirm) return;
+
+        var result = await _apiService.DeleteImageListPhotoAsync(photoId);
+        if (result.Success)
+        {
+            // Refresh anmerkungen
+            if (_currentTask != null)
+            {
+                LoadAnmerkungen(_currentTask.Id);
+                // Re-open dialog with refreshed data
+                var updated = _anmerkungen.FirstOrDefault(a => a.Id == _currentAnmerkung?.Id);
+                if (updated != null)
+                    OpenAnmerkungDialog(updated);
+                else
+                    ImageListDescriptionDialog.IsVisible = false;
+            }
+        }
+        else
+        {
+            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+        }
+    }
+
+    private async void OnDeleteAnmerkungClicked(object sender, EventArgs e)
+    {
+        if (_currentAnmerkung == null) return;
+
+        var confirm = await DisplayAlert(
+            Translations.Get("delete_note"),
+            Translations.Get("delete_note_confirm"),
+            Translations.Get("yes"),
+            Translations.Get("no"));
+
+        if (!confirm) return;
+
+        var result = await _apiService.DeleteImageListItemAsync(_currentAnmerkung.Id);
+        if (result.Success)
+        {
+            ImageListDescriptionDialog.IsVisible = false;
+            if (_currentTask != null)
+                LoadAnmerkungen(_currentTask.Id);
+        }
+        else
+        {
+            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+        }
     }
 
     private void OnImageListDescriptionDialogDescTextChanged(object sender, TextChangedEventArgs e)
@@ -776,16 +943,35 @@ public partial class AuftragPage : ContentPage
 
         if (_currentTask == null) return;
 
+        var description = ImageListDescriptionDialogDescEditor.Text ?? "";
+
+        // Check if we're offline - queue and close dialog
+        var isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
+        if (isOffline && _currentAnmerkung == null)
+        {
+            // Only queue new items (can't update existing without ID)
+            await OfflineQueueService.Instance.EnqueueImageListItemAsync(
+                _currentTask.Id, "anmerkung", name, description, _pendingAnmerkungPhotos);
+            ImageListDescriptionDialog.IsVisible = false;
+            await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
+            return;
+        }
+
         try
         {
-            var description = ImageListDescriptionDialogDescEditor.Text ?? "";
-
             if (_currentAnmerkung != null)
             {
                 // Update existing
                 var result = await _apiService.UpdateImageListDescriptionAsync(_currentAnmerkung.Id, name, description);
                 if (!result.Success)
                 {
+                    // Check for network error
+                    if (IsNetworkError(result.Error))
+                    {
+                        // Can't queue updates for existing items easily, show friendly error
+                        await DisplayAlert(Translations.Get("no_connection"), Translations.Get("network_error_hint"), Translations.Get("ok"));
+                        return;
+                    }
                     await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("update_error"), Translations.Get("ok"));
                     return;
                 }
@@ -802,6 +988,15 @@ public partial class AuftragPage : ContentPage
                 var result = await _apiService.CreateTaskAnmerkungAsync(_currentTask.Id, name, description, _pendingAnmerkungPhotos);
                 if (!result.Success)
                 {
+                    // Check for network error - queue for offline
+                    if (IsNetworkError(result.Error))
+                    {
+                        await OfflineQueueService.Instance.EnqueueImageListItemAsync(
+                            _currentTask.Id, "anmerkung", name, description, _pendingAnmerkungPhotos);
+                        ImageListDescriptionDialog.IsVisible = false;
+                        await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
+                        return;
+                    }
                     await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("create_error"), Translations.Get("ok"));
                     return;
                 }
@@ -813,6 +1008,24 @@ public partial class AuftragPage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Save anmerkung error: {ex.Message}");
+            // Check if exception is network related
+            if (IsNetworkError(ex.Message))
+            {
+                if (_currentAnmerkung == null)
+                {
+                    // New item - queue for offline sync
+                    await OfflineQueueService.Instance.EnqueueImageListItemAsync(
+                        _currentTask.Id, "anmerkung", name, description, _pendingAnmerkungPhotos);
+                    ImageListDescriptionDialog.IsVisible = false;
+                    await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
+                }
+                else
+                {
+                    // Existing item - show friendly error
+                    await DisplayAlert(Translations.Get("no_connection"), Translations.Get("network_error_hint"), Translations.Get("ok"));
+                }
+                return;
+            }
             await DisplayAlert(Translations.Get("error"), Translations.Get("save_error"), Translations.Get("ok"));
         }
     }

@@ -222,6 +222,39 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
                 // Bild zurücksetzen
                 ClearSelectedImage();
             }
+            else if (IsNetworkError(response.Error))
+            {
+                // Queue for offline sync (only text messages, no images)
+                if (!string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_selectedImagePath))
+                {
+                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text);
+
+                    // Add local placeholder message
+                    var placeholderMessage = new ChatMessage
+                    {
+                        Id = -Random.Shared.Next(1, int.MaxValue),
+                        Text = text,
+                        Timestamp = DateTime.Now,
+                        FromCurrentUser = true
+                    };
+                    _messages.Add(placeholderMessage);
+                    MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                    MessageEntry.Text = "";
+
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("saved_offline"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    // Can't queue image messages offline
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("network_error_hint"),
+                        Translations.Get("ok"));
+                }
+            }
             else
             {
                 await DisplayAlertAsync("Fehler",
@@ -231,12 +264,62 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+            if (IsNetworkError(ex.Message))
+            {
+                // Queue for offline sync (only text messages)
+                if (!string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_selectedImagePath))
+                {
+                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text);
+
+                    var placeholderMessage = new ChatMessage
+                    {
+                        Id = -Random.Shared.Next(1, int.MaxValue),
+                        Text = text,
+                        Timestamp = DateTime.Now,
+                        FromCurrentUser = true
+                    };
+                    _messages.Add(placeholderMessage);
+                    MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
+                    MessageEntry.Text = "";
+
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("saved_offline"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("network_error_hint"),
+                        Translations.Get("ok"));
+                }
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", ex.Message, "OK");
+            }
         }
         finally
         {
             SendButton.IsEnabled = true;
         }
+    }
+
+    private static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") ||
+               lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") ||
+               lowerError.Contains("connection") ||
+               lowerError.Contains("internet") ||
+               lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") ||
+               lowerError.Contains("failure") ||
+               lowerError.Contains("host") ||
+               lowerError.Contains("refused");
     }
 
     private async void OnPreviewClicked(object sender, EventArgs e)
@@ -477,6 +560,13 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
                 // Vorschau anzeigen
                 PreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
                 ImagePreviewContainer.IsVisible = true;
+            }
+            else if (IsNetworkError(response.Error))
+            {
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
             }
             else
             {

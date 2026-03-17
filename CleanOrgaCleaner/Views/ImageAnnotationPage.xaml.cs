@@ -24,25 +24,22 @@ public partial class ImageAnnotationPage : ContentPage
 
     public ImageAnnotationPage(byte[] imageBytes)
     {
-        System.Diagnostics.Debug.WriteLine("[ANNOTATION PAGE] Constructor start");
         InitializeComponent();
-        System.Diagnostics.Debug.WriteLine("[ANNOTATION PAGE] InitializeComponent done");
         LoadImage(imageBytes);
-        System.Diagnostics.Debug.WriteLine("[ANNOTATION PAGE] LoadImage done");
     }
 
     protected override void OnAppearing()
     {
         base.OnAppearing();
-        System.Diagnostics.Debug.WriteLine("[ANNOTATION PAGE] OnAppearing");
     }
 
     private void LoadImage(byte[] imageBytes)
     {
-        System.Diagnostics.Debug.WriteLine($"[ANNOTATION PAGE] LoadImage: {imageBytes.Length} bytes");
         _originalBitmap = SKBitmap.Decode(imageBytes);
-        System.Diagnostics.Debug.WriteLine($"[ANNOTATION PAGE] Bitmap decoded: {_originalBitmap?.Width}x{_originalBitmap?.Height}");
         BackgroundImage.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes));
+
+        // Recalculate transform after image loads
+        BackgroundImage.SizeChanged += (s, e) => CalculateTransform();
     }
 
     protected override void OnSizeAllocated(double width, double height)
@@ -53,20 +50,22 @@ public partial class ImageAnnotationPage : ContentPage
 
     private void CalculateTransform()
     {
-        if (_originalBitmap == null || CanvasContainer.Width <= 0 || CanvasContainer.Height <= 0) return;
+        if (_originalBitmap == null || CanvasView.CanvasSize.Width <= 0 || CanvasView.CanvasSize.Height <= 0) return;
 
-        var containerWidth = (float)CanvasContainer.Width;
-        var containerHeight = (float)CanvasContainer.Height;
+        // Use SKCanvasView's actual canvas size (in device pixels)
+        var canvasWidth = CanvasView.CanvasSize.Width;
+        var canvasHeight = CanvasView.CanvasSize.Height;
 
-        float scaleX = containerWidth / _originalBitmap.Width;
-        float scaleY = containerHeight / _originalBitmap.Height;
+        float scaleX = canvasWidth / _originalBitmap.Width;
+        float scaleY = canvasHeight / _originalBitmap.Height;
         _scale = Math.Min(scaleX, scaleY);
 
         float scaledWidth = _originalBitmap.Width * _scale;
         float scaledHeight = _originalBitmap.Height * _scale;
 
-        _offsetX = (containerWidth - scaledWidth) / 2f;
-        _offsetY = (containerHeight - scaledHeight) / 2f;
+        _offsetX = (canvasWidth - scaledWidth) / 2f;
+        _offsetY = (canvasHeight - scaledHeight) / 2f;
+
     }
 
     private SKPoint ScreenToImage(SKPoint screenPoint)
@@ -170,6 +169,9 @@ public partial class ImageAnnotationPage : ContentPage
 
     private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
     {
+        // Recalculate transform on each paint to ensure correct values
+        CalculateTransform();
+
         var canvas = e.Surface.Canvas;
         canvas.Clear(SKColors.Transparent);
 
@@ -273,8 +275,6 @@ public partial class ImageAnnotationPage : ContentPage
 
             // Clamp to reasonable range (min 3px, max 30px in image space)
             scaledStrokeWidth = Math.Clamp(scaledStrokeWidth, 3f, 30f);
-
-            System.Diagnostics.Debug.WriteLine($"[ANNOTATION] Saving with scale={_scale}, strokeWidth={scaledStrokeWidth}");
 
             using var paint = new SKPaint
             {

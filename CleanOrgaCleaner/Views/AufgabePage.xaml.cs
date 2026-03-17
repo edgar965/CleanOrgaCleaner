@@ -280,6 +280,17 @@ public partial class AufgabePage : ContentPage
                 _task.StateCompleted = response.NewState ?? newState;
                 UpdateStartStopButton();
             }
+            else if (IsNetworkError(response.Error))
+            {
+                // Queue for offline sync
+                await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, newState);
+                _task.StateCompleted = newState;
+                UpdateStartStopButton();
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+            }
             else
             {
                 await DisplayAlertAsync("Fehler", response.Error ?? "Status konnte nicht geaendert werden", "OK");
@@ -287,7 +298,32 @@ public partial class AufgabePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+            if (IsNetworkError(ex.Message))
+            {
+                string newState = _task.StateCompleted switch
+                {
+                    "not_started" => "started",
+                    "completed" => "not_started",
+                    _ => ""
+                };
+                if (!string.IsNullOrEmpty(newState))
+                {
+                    await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, newState);
+                    _task.StateCompleted = newState;
+                    UpdateStartStopButton();
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("saved_offline"),
+                        Translations.Get("ok"));
+                }
+            }
+            else
+            {
+                await DisplayAlertAsync(
+                    Translations.Get("error"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
+            }
         }
         finally
         {
@@ -318,6 +354,24 @@ public partial class AufgabePage : ContentPage
                     catch { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); }
                 });
             }
+            else if (IsNetworkError(response.Error))
+            {
+                // Queue for offline sync
+                await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, "completed");
+                _task!.StateCompleted = "completed";
+                UpdateStartStopButton();
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Task.Delay(150);
+                    try { await Shell.Current.GoToAsync(".."); }
+                    catch { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); }
+                });
+            }
             else
             {
                 await DisplayAlertAsync("Fehler", response.Error ?? "Status konnte nicht geaendert werden", "OK");
@@ -326,8 +380,31 @@ public partial class AufgabePage : ContentPage
         }
         catch (Exception ex)
         {
-            await DisplayAlertAsync("Fehler", ex.Message, "OK");
-            StartStopButton.IsEnabled = true;
+            if (IsNetworkError(ex.Message))
+            {
+                await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, "completed");
+                _task!.StateCompleted = "completed";
+                UpdateStartStopButton();
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+
+                await MainThread.InvokeOnMainThreadAsync(async () =>
+                {
+                    await Task.Delay(150);
+                    try { await Shell.Current.GoToAsync(".."); }
+                    catch { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); }
+                });
+            }
+            else
+            {
+                await DisplayAlertAsync(
+                    Translations.Get("error"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
+                StartStopButton.IsEnabled = true;
+            }
         }
     }
 
@@ -503,12 +580,40 @@ public partial class AufgabePage : ContentPage
         bool confirm = await DisplayAlert(title, message, Translations.Get("yes_delete"), Translations.Get("cancel"));
         if (confirm)
         {
-            var response = await _apiService.DeleteImageListItemAsync(itemId);
+            try
+            {
+                var response = await _apiService.DeleteImageListItemAsync(itemId);
 
-            if (response.Success)
-                await LoadTaskAsync();
-            else
-                await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
+                if (response.Success)
+                {
+                    await LoadTaskAsync();
+                }
+                else if (IsNetworkError(response.Error))
+                {
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("network_error_hint"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlertAsync("Fehler", response.Error ?? "Fehler beim Loeschen", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (IsNetworkError(ex.Message))
+                {
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("network_error_hint"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlertAsync("Fehler", ex.Message, "OK");
+                }
+            }
         }
     }
 
@@ -780,8 +885,22 @@ public partial class AufgabePage : ContentPage
                 success = response.Success;
                 error = response.Error;
 
-                if (success) await LoadTaskAsync();
-                else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Aktualisieren", "OK");
+                if (success)
+                {
+                    await LoadTaskAsync();
+                }
+                else if (IsNetworkError(error))
+                {
+                    // For updates we can't easily queue, show offline message
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("network_error_hint"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlertAsync("Fehler", error ?? "Fehler beim Aktualisieren", "OK");
+                }
             }
             else
             {
@@ -799,13 +918,46 @@ public partial class AufgabePage : ContentPage
                     }
                     await LoadTaskAsync();
                 }
-                else await DisplayAlertAsync("Fehler", error ?? "Fehler beim Speichern", "OK");
+                else if (IsNetworkError(error))
+                {
+                    // Queue for offline sync
+                    var photoBytes = _selectedPhotos.Select(p => p.Bytes).ToList();
+                    await OfflineQueueService.Instance.EnqueueImageListItemAsync(_taskId, _currentItemType, name, description, photoBytes);
+                    await DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("saved_offline"),
+                        Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlertAsync("Fehler", error ?? "Fehler beim Speichern", "OK");
+                }
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Save error: {ex.Message}");
-            await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
+            if (IsNetworkError(ex.Message) && !_editingItemId.HasValue)
+            {
+                // Queue for offline sync
+                var photoBytes = _selectedPhotos.Select(p => p.Bytes).ToList();
+                await OfflineQueueService.Instance.EnqueueImageListItemAsync(_taskId, _currentItemType, name, description, photoBytes);
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+            }
+            else if (IsNetworkError(ex.Message))
+            {
+                await DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
+            }
         }
         finally
         {
@@ -888,6 +1040,26 @@ public partial class AufgabePage : ContentPage
             NoLogsLabel.Text = Translations.Get("error");
             NoLogsLabel.IsVisible = true;
         }
+    }
+
+    #endregion
+
+    #region Network Error Handling
+
+    private static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") ||
+               lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") ||
+               lowerError.Contains("connection") ||
+               lowerError.Contains("internet") ||
+               lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") ||
+               lowerError.Contains("failure") ||
+               lowerError.Contains("host") ||
+               lowerError.Contains("refused");
     }
 
     #endregion

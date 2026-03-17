@@ -131,6 +131,13 @@ public partial class TodayPage : ContentPage
             _tasks = data.Tasks;
             Log($"_tasks set: {_tasks?.Count ?? 0}");
 
+            // Cache tasks for offline use
+            Log("Caching tasks for offline");
+            _ = OfflineDataService.Instance.SaveTasksAsync(_tasks);
+
+            // Clear offline mode flag since we're online
+            Preferences.Set("offline_mode", false);
+
             // UI updates must be on main thread
             Log("MainThread.BeginInvoke for UI");
             MainThread.BeginInvokeOnMainThread(() =>
@@ -146,6 +153,62 @@ public partial class TodayPage : ContentPage
         catch (Exception ex)
         {
             Log($"LoadTasksAsync ERROR: {ex.Message}");
+
+            // Try to load cached tasks when network fails
+            if (IsNetworkError(ex.Message))
+            {
+                Log("Network error - trying to load cached tasks");
+                await LoadCachedTasksAsync();
+            }
+            else
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    NoTasksLabel.Text = Translations.Get("connection_error");
+                    EmptyStateView.IsVisible = true;
+                    TaskRefreshView.IsVisible = false;
+                });
+            }
+        }
+        Log("LoadTasksAsync END");
+    }
+
+    private async Task LoadCachedTasksAsync()
+    {
+        Log("LoadCachedTasksAsync START");
+        try
+        {
+            // Allow stale tasks (from yesterday) in offline mode
+            var cachedTasks = await OfflineDataService.Instance.LoadCachedTasksAsync(allowStale: true);
+
+            if (cachedTasks != null && cachedTasks.Count > 0)
+            {
+                Log($"Loaded {cachedTasks.Count} cached tasks");
+                _tasks = cachedTasks;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    NoTasksLabel.Text = Translations.Get("no_tasks");
+                    BuildTaskGrid();
+
+                    // Show offline indicator in header
+                    Header.UpdateOfflineBanner(true);
+                });
+            }
+            else
+            {
+                Log("No cached tasks available");
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    NoTasksLabel.Text = Translations.Get("no_connection") + "\n" + Translations.Get("network_error_hint");
+                    EmptyStateView.IsVisible = true;
+                    TaskRefreshView.IsVisible = false;
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Log($"LoadCachedTasksAsync ERROR: {ex.Message}");
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 NoTasksLabel.Text = Translations.Get("connection_error");
@@ -153,7 +216,23 @@ public partial class TodayPage : ContentPage
                 TaskRefreshView.IsVisible = false;
             });
         }
-        Log("LoadTasksAsync END");
+        Log("LoadCachedTasksAsync END");
+    }
+
+    private static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") ||
+               lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") ||
+               lowerError.Contains("connection") ||
+               lowerError.Contains("internet") ||
+               lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") ||
+               lowerError.Contains("failure") ||
+               lowerError.Contains("host") ||
+               lowerError.Contains("refused");
     }
 
     private void BuildTaskGrid()

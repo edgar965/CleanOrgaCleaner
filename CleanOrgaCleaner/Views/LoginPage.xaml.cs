@@ -4,6 +4,26 @@ using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Views;
 
+// Network error detection helper
+public static class NetworkErrorHelper
+{
+    public static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") ||
+               lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") ||
+               lowerError.Contains("connection") ||
+               lowerError.Contains("internet") ||
+               lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") ||
+               lowerError.Contains("failure") ||
+               lowerError.Contains("host") ||
+               lowerError.Contains("refused");
+    }
+}
+
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
@@ -51,7 +71,6 @@ public partial class LoginPage : ContentPage
     {
         var logLine = $"[LOGIN] [{_sw.ElapsedMilliseconds}ms] {msg}";
         System.Diagnostics.Debug.WriteLine(logLine);
-
         // Fire-and-forget file logging (non-blocking)
         _ = Task.Run(() => ApiService.WriteLog(logLine));
     }
@@ -177,13 +196,21 @@ public partial class LoginPage : ContentPage
 
             if (result == null)
             {
-                Log("result is null");
-                ShowError(Translations.Get("connection_error"));
+                Log("result is null - try offline login");
+                await TryOfflineLoginAsync();
                 return;
             }
 
             if (!result.Success)
             {
+                // Check if this is a network error - try offline login
+                if (NetworkErrorHelper.IsNetworkError(result.ErrorMessage))
+                {
+                    Log($"Network error: {result.ErrorMessage} - try offline login");
+                    await TryOfflineLoginAsync();
+                    return;
+                }
+
                 Log($"FAILED: {result.ErrorMessage}");
                 SecureStorage.Remove("password");
                 Preferences.Set("remember_me", false);
@@ -199,6 +226,13 @@ public partial class LoginPage : ContentPage
             Preferences.Set("language", language);
             Translations.CurrentLanguage = language;
             Log($"language={language}");
+
+            // Save login state for offline use
+            Log("Saving login state for offline");
+            _ = OfflineDataService.Instance.SaveLoginStateAsync(
+                result.CleanerName ?? savedUsername,
+                language,
+                result.CleanerId);
 
             // iOS: UI thread atmen lassen
             await Task.Yield();
@@ -225,6 +259,15 @@ public partial class LoginPage : ContentPage
         catch (Exception ex)
         {
             Log($"EXCEPTION: {ex.GetType().Name}: {ex.Message}");
+
+            // Try offline login on network exceptions
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
+            {
+                Log("Network exception - try offline login");
+                await TryOfflineLoginAsync();
+                return;
+            }
+
             System.Diagnostics.Debug.WriteLine($"[Login] Auto-login error: {ex}");
         }
         finally
@@ -232,6 +275,88 @@ public partial class LoginPage : ContentPage
             LoginButton.IsEnabled = true;
             LoginButton.Text = Translations.Get("login_title");
             Log("TryAutoLogin END");
+        }
+    }
+
+    /// <summary>
+    /// Try to login using cached offline data when network is unavailable
+    /// </summary>
+    private async Task TryOfflineLoginAsync()
+    {
+        Log("TryOfflineLogin START");
+
+        try
+        {
+            // Check if we have valid cached login state
+            var loginState = await OfflineDataService.Instance.LoadLoginStateAsync();
+
+            string cleanerName;
+            string language;
+            int? cleanerId = null;
+
+            if (loginState != null)
+            {
+                // Use cached login state
+                cleanerName = loginState.CleanerName;
+                language = loginState.Language ?? "de";
+                cleanerId = loginState.CleanerId;
+                Log($"Using cached login state: {cleanerName}");
+            }
+            else
+            {
+                // Fallback: Use saved Preferences (from previous logins before cache was implemented)
+                var savedUsername = Preferences.Get("username", "");
+                language = Preferences.Get("language", "de");
+
+                if (string.IsNullOrEmpty(savedUsername))
+                {
+                    Log("No valid offline login state and no saved username");
+                    ShowError(Translations.Get("no_connection") + "\n" + Translations.Get("network_error_hint"));
+                    return;
+                }
+
+                cleanerName = savedUsername;
+                Log($"Using fallback from Preferences: {cleanerName}");
+
+                // Save to new cache for next time
+                _ = OfflineDataService.Instance.SaveLoginStateAsync(cleanerName, language, null);
+            }
+
+            // Check if we have cached tasks
+            var hasTasks = OfflineDataService.Instance.HasCachedTasks();
+            Log($"Has cached tasks: {hasTasks}");
+
+            // Set up offline session
+            Log($"Setting up offline session for {cleanerName}");
+
+            // Set language
+            Preferences.Set("language", language);
+            Translations.CurrentLanguage = language;
+            Log($"Language set to: {language}");
+
+            // Set cleaner info in ApiService (for display purposes)
+            _apiService.SetOfflineCleanerInfo(cleanerName, cleanerId);
+
+            // Mark as offline mode
+            Preferences.Set("offline_mode", true);
+
+            await Task.Yield();
+
+            // Navigate to main page - it will load cached tasks
+            Log("GoToAsync (offline mode) START");
+            await Shell.Current.GoToAsync("//MainTabs/TodayPage");
+            Log("GoToAsync (offline mode) DONE");
+        }
+        catch (Exception ex)
+        {
+            Log($"TryOfflineLogin EXCEPTION: {ex.Message}");
+            ShowError(Translations.Get("no_connection") + "\n" + Translations.Get("network_error_hint"));
+        }
+        finally
+        {
+            LoginButton.IsEnabled = true;
+            LoginButton.Text = Translations.Get("login_title");
+            Log("TryOfflineLogin END");
         }
     }
 

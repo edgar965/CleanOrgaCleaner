@@ -153,6 +153,17 @@ public partial class AppHeader : ContentView
                     _isWorking = true;
                     UpdateWorkButton();
                 }
+                else if (IsNetworkError(result.Error))
+                {
+                    // Queue for offline sync
+                    await OfflineQueueService.Instance.EnqueueWorkStartAsync();
+                    _isWorking = true;
+                    UpdateWorkButton();
+                    await Shell.Current.CurrentPage.DisplayAlertAsync(
+                        Translations.Get("no_connection"),
+                        Translations.Get("saved_offline"),
+                        Translations.Get("ok"));
+                }
             }
             else
             {
@@ -163,10 +174,23 @@ public partial class AppHeader : ContentView
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[AppHeader] Work toggle error: {ex.Message}");
-            await Shell.Current.CurrentPage.DisplayAlertAsync(
-                Translations.Get("error"),
-                ex.Message,
-                Translations.Get("ok"));
+            if (IsNetworkError(ex.Message) && !_isWorking)
+            {
+                await OfflineQueueService.Instance.EnqueueWorkStartAsync();
+                _isWorking = true;
+                UpdateWorkButton();
+                await Shell.Current.CurrentPage.DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+            }
+            else
+            {
+                await Shell.Current.CurrentPage.DisplayAlertAsync(
+                    Translations.Get("error"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
+            }
         }
     }
 
@@ -180,18 +204,53 @@ public partial class AppHeader : ContentView
                 _isWorking = false;
                 UpdateWorkButton();
             }
+            else
+            {
+                // Queue for offline sync
+                await OfflineQueueService.Instance.EnqueueWorkStopAsync();
+                _isWorking = false;
+                UpdateWorkButton();
+                await Shell.Current.CurrentPage.DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+            }
         }
         catch (Exception ex)
         {
-            await Shell.Current.CurrentPage.DisplayAlertAsync(
-                Translations.Get("error"),
-                ex.Message,
-                Translations.Get("ok"));
+            if (IsNetworkError(ex.Message))
+            {
+                await OfflineQueueService.Instance.EnqueueWorkStopAsync();
+                _isWorking = false;
+                UpdateWorkButton();
+                await Shell.Current.CurrentPage.DisplayAlertAsync(
+                    Translations.Get("no_connection"),
+                    Translations.Get("saved_offline"),
+                    Translations.Get("ok"));
+            }
+            else
+            {
+                await Shell.Current.CurrentPage.DisplayAlertAsync(
+                    Translations.Get("error"),
+                    Translations.Get("network_error_hint"),
+                    Translations.Get("ok"));
+            }
         }
         finally
         {
             WorkStopPopup.IsVisible = false;
         }
+    }
+
+    private static bool IsNetworkError(string? error)
+    {
+        if (string.IsNullOrEmpty(error)) return false;
+        var lowerError = error.ToLowerInvariant();
+        return lowerError.Contains("network") || lowerError.Contains("timeout") ||
+               lowerError.Contains("timedout") || lowerError.Contains("connection") ||
+               lowerError.Contains("internet") || lowerError.Contains("unreachable") ||
+               lowerError.Contains("net_http") || lowerError.Contains("failure") ||
+               lowerError.Contains("host") || lowerError.Contains("refused");
     }
 
     private void OnWorkStopNoClicked(object sender, EventArgs e)
@@ -292,9 +351,13 @@ public partial class AppHeader : ContentView
         Preferences.Remove("is_logged_in");
         Preferences.Remove("remember_me");
         Preferences.Remove("biometric_login_enabled");
+        Preferences.Remove("offline_mode");
 
         // Clear secure storage
         SecureStorage.Remove("password");
+
+        // Clear offline cached data
+        OfflineDataService.Instance.ClearAll();
 
         // Disconnect WebSocket
         WebSocketService.Instance.Dispose();

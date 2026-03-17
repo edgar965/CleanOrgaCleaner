@@ -195,6 +195,33 @@ public class OfflineQueueService : IDisposable
     }
 
     /// <summary>
+    /// Enqueue work day start
+    /// </summary>
+    public async Task EnqueueWorkStartAsync()
+    {
+        var payload = JsonSerializer.Serialize(new { timestamp = DateTime.UtcNow });
+        await EnqueueAsync("work_start", payload, priority: 1).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Enqueue work day stop
+    /// </summary>
+    public async Task EnqueueWorkStopAsync()
+    {
+        var payload = JsonSerializer.Serialize(new { timestamp = DateTime.UtcNow });
+        await EnqueueAsync("work_stop", payload, priority: 1).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Enqueue task state change (started, completed, etc.)
+    /// </summary>
+    public async Task EnqueueTaskStateChangeAsync(int taskId, string newState)
+    {
+        var payload = JsonSerializer.Serialize(new { taskId, newState, timestamp = DateTime.UtcNow });
+        await EnqueueAsync("task_state", payload, priority: 1).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Generic enqueue method
     /// </summary>
     private async Task EnqueueAsync(string operationType, string payload, int priority)
@@ -322,6 +349,12 @@ public class OfflineQueueService : IDisposable
                 return await ProcessTaskCreateAsync(item, apiService);
             case "task_update":
                 return await ProcessTaskUpdateAsync(item, apiService);
+            case "work_start":
+                return await ProcessWorkStartAsync(item, apiService);
+            case "work_stop":
+                return await ProcessWorkStopAsync(item, apiService);
+            case "task_state":
+                return await ProcessTaskStateAsync(item, apiService);
             default:
                 System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Unknown operation type: {item.OperationType}");
                 return true; // Remove unknown items
@@ -451,6 +484,28 @@ public class OfflineQueueService : IDisposable
         }
 
         var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments).ConfigureAwait(false);
+        return response.Success;
+    }
+
+    private async Task<bool> ProcessWorkStartAsync(OfflineQueueItem item, ApiService api)
+    {
+        var response = await api.StartWorkAsync().ConfigureAwait(false);
+        return response.Success;
+    }
+
+    private async Task<bool> ProcessWorkStopAsync(OfflineQueueItem item, ApiService api)
+    {
+        var response = await api.StopWorkAsync().ConfigureAwait(false);
+        return response;
+    }
+
+    private async Task<bool> ProcessTaskStateAsync(OfflineQueueItem item, ApiService api)
+    {
+        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
+        var taskId = data.GetProperty("taskId").GetInt32();
+        var newState = data.GetProperty("newState").GetString() ?? "";
+
+        var response = await api.UpdateTaskStateAsync(taskId, newState).ConfigureAwait(false);
         return response.Success;
     }
 

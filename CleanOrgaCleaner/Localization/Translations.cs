@@ -32,6 +32,9 @@ public static class Translations
             ["back_translation"] = "Rückübersetzung",
             ["delete_image"] = "Bild löschen",
             ["delete_image_confirm"] = "Bild aus dieser Nachricht entfernen?",
+            ["delete_note"] = "Anmerkung loeschen",
+            ["delete_note_confirm"] = "Moechtest du diese Anmerkung wirklich loeschen?",
+            ["delete_error"] = "Loeschen fehlgeschlagen",
             ["select_image_source"] = "Bild auswählen",
             ["camera"] = "Kamera",
             ["gallery"] = "Galerie",
@@ -144,6 +147,9 @@ public static class Translations
             // Allgemein
             ["loading"] = "Laden...",
             ["connection_error"] = "Verbindungsfehler",
+            ["no_connection"] = "Keine Verbindung",
+            ["network_error_hint"] = "Netzwerkfehler. Bitte verbinden Sie sich mit WLAN oder mobilen Daten.",
+            ["saved_offline"] = "Gespeichert. Wird bei Verbindung synchronisiert.",
             ["task_not_found"] = "Aufgabe nicht gefunden",
             ["notes_saved"] = "Notizen wurden gespeichert",
             ["status_changed"] = "Status wurde geändert",
@@ -283,6 +289,9 @@ public static class Translations
             ["back_translation"] = "Back translation",
             ["delete_image"] = "Delete image",
             ["delete_image_confirm"] = "Remove image from this message?",
+            ["delete_note"] = "Delete note",
+            ["delete_note_confirm"] = "Do you really want to delete this note?",
+            ["delete_error"] = "Delete failed",
             ["select_image_source"] = "Select image",
             ["camera"] = "Camera",
             ["gallery"] = "Gallery",
@@ -389,6 +398,9 @@ public static class Translations
 
             ["loading"] = "Loading...",
             ["connection_error"] = "Connection error",
+            ["no_connection"] = "No connection",
+            ["network_error_hint"] = "Network error. Please connect to WiFi or mobile data.",
+            ["saved_offline"] = "Saved. Will sync when connected.",
             ["task_not_found"] = "Task not found",
             ["notes_saved"] = "Notes saved",
             ["status_changed"] = "Status changed",
@@ -636,6 +648,8 @@ public static class Translations
             // General
             ["loading"] = "Cargando...",
             ["connection_error"] = "Error de conexión",
+            ["no_connection"] = "Sin conexión",
+            ["saved_offline"] = "Guardado. Se sincronizará cuando haya conexión.",
             ["task_not_found"] = "Tarea no encontrada",
             ["notes_saved"] = "Notas guardadas",
             ["status_changed"] = "Estado cambiado",
@@ -877,6 +891,8 @@ public static class Translations
             // General
             ["loading"] = "Se încarcă...",
             ["connection_error"] = "Eroare de conexiune",
+            ["no_connection"] = "Fără conexiune",
+            ["saved_offline"] = "Salvat. Se va sincroniza când va fi conexiune.",
             ["task_not_found"] = "Sarcină negăsită",
             ["notes_saved"] = "Notele au fost salvate",
             ["status_changed"] = "Starea a fost schimbată",
@@ -1118,6 +1134,8 @@ public static class Translations
             // General
             ["loading"] = "Ładowanie...",
             ["connection_error"] = "Błąd połączenia",
+            ["no_connection"] = "Brak połączenia",
+            ["saved_offline"] = "Zapisano. Zsynchronizuje się po połączeniu.",
             ["task_not_found"] = "Zadanie nie znalezione",
             ["notes_saved"] = "Notatki zapisane",
             ["status_changed"] = "Status zmieniony",
@@ -1359,6 +1377,8 @@ public static class Translations
             // General
             ["loading"] = "Загрузка...",
             ["connection_error"] = "Ошибка соединения",
+            ["no_connection"] = "Нет соединения",
+            ["saved_offline"] = "Сохранено. Синхронизируется при подключении.",
             ["task_not_found"] = "Задача не найдена",
             ["notes_saved"] = "Заметки сохранены",
             ["status_changed"] = "Статус изменён",
@@ -1600,6 +1620,8 @@ public static class Translations
             // General
             ["loading"] = "Завантаження...",
             ["connection_error"] = "Помилка з'єднання",
+            ["no_connection"] = "Немає з'єднання",
+            ["saved_offline"] = "Збережено. Синхронізується при підключенні.",
             ["task_not_found"] = "Завдання не знайдено",
             ["notes_saved"] = "Нотатки збережено",
             ["status_changed"] = "Статус змінено",
@@ -1841,6 +1863,8 @@ public static class Translations
             // General
             ["loading"] = "Đang tải...",
             ["connection_error"] = "Lỗi kết nối",
+            ["no_connection"] = "Không có kết nối",
+            ["saved_offline"] = "Đã lưu. Sẽ đồng bộ khi có kết nối.",
             ["task_not_found"] = "Không tìm thấy công việc",
             ["notes_saved"] = "Đã lưu ghi chú",
             ["status_changed"] = "Đã thay đổi trạng thái",

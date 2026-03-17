@@ -26,8 +26,8 @@ public class Auftrag
     [JsonPropertyName("planned_date")]
     public string PlannedDate { get; set; } = "";
 
-    [JsonPropertyName("wichtiger_hinweis")]
-    public string? WichtigerHinweis { get; set; }
+    [JsonPropertyName("aufgabe")]
+    public string? Aufgabe { get; set; }
 
     [JsonPropertyName("status")]
     public string Status { get; set; } = "imported";

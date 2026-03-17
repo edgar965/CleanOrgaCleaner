@@ -29,4 +29,5 @@ public class LoginResult
     public string? ErrorMessage { get; set; }
     public string? CleanerName { get; set; }
     public string? CleanerLanguage { get; set; }
+    public int? CleanerId { get; set; }
 }
