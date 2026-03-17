@@ -821,9 +821,15 @@ public partial class AufgabePage : ContentPage
 
         try
         {
-            // Download image from server
+            // Download image from server - ensure full URL
+            var imageUrl = photo.Url;
+            if (!imageUrl.StartsWith("http"))
+            {
+                imageUrl = $"{ApiService.BaseUrl}{imageUrl}";
+            }
+
             using var httpClient = new HttpClient();
-            var imageBytes = await httpClient.GetByteArrayAsync(photo.Url);
+            var imageBytes = await httpClient.GetByteArrayAsync(imageUrl);
 
             // Open annotation page
             var annotationPage = new ImageAnnotationPage(imageBytes);
