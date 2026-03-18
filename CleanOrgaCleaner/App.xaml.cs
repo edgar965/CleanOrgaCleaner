@@ -21,6 +21,9 @@ public partial class App : Application
         InitializeComponent();
         _instance = this;
 
+        // Initialize crash reporting
+        CrashReportService.Instance.Initialize();
+
         // Subscribe to chat messages for global notifications
         WebSocketService.Instance.OnChatMessageReceived += OnChatMessageReceived;
     }

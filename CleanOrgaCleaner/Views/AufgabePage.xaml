@@ -20,27 +20,25 @@
                 <!-- Task Title (z.B. "02 Reinigung") - Combined apartment and task name -->
                 <Label x:Name="TaskNameLabel" Text="" FontSize="22" FontAttributes="Bold" TextColor="#1a3a5c"/>
 
-                <!-- Tab Bar (scrollable) -->
-                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,5,0,10">
-                    <HorizontalStackLayout Spacing="8">
-                        <Button x:Name="TabAufgabeButton" Text="Aufgabe"
-                                BackgroundColor="White" TextColor="#1a3a5c"
-                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
-                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabAufgabeClicked"/>
-                        <Button x:Name="TabProblemeButton" Text="Problem"
-                                BackgroundColor="#1a3a5c" TextColor="White"
-                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
-                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabProblemeClicked"/>
-                        <Button x:Name="TabAnmerkungenButton" Text="Notiz"
-                                BackgroundColor="#1a3a5c" TextColor="White"
-                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
-                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabAnmerkungenClicked"/>
-                        <Button x:Name="TabLogsButton" Text="Log"
-                                BackgroundColor="#1a3a5c" TextColor="White"
-                                FontSize="15" FontAttributes="Bold" CornerRadius="12"
-                                HeightRequest="40" Padding="16,0" BorderWidth="0" Clicked="OnTabLogsClicked"/>
-                    </HorizontalStackLayout>
-                </ScrollView>
+                <!-- Tab Bar (wrapping) -->
+                <FlexLayout Wrap="Wrap" JustifyContent="Start" AlignItems="Start" Margin="0,5,0,10">
+                    <Button x:Name="TabAufgabeButton" Text="Aufgabe"
+                            BackgroundColor="White" TextColor="#1a3a5c"
+                            FontSize="14" FontAttributes="Bold" CornerRadius="12"
+                            HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabAufgabeClicked"/>
+                    <Button x:Name="TabProblemeButton" Text="Problem"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            FontSize="14" FontAttributes="Bold" CornerRadius="12"
+                            HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabProblemeClicked"/>
+                    <Button x:Name="TabAnmerkungenButton" Text="Notiz"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            FontSize="14" FontAttributes="Bold" CornerRadius="12"
+                            HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabAnmerkungenClicked"/>
+                    <Button x:Name="TabLogsButton" Text="Log"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            FontSize="14" FontAttributes="Bold" CornerRadius="12"
+                            HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabLogsClicked"/>
+                </FlexLayout>
 
                 <!-- Tab Content: Aufgabe -->
                 <Border x:Name="TabAufgabeContent" IsVisible="True" BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="20">
@@ -138,7 +136,7 @@
                                     <Button x:Name="ImageListDescriptionDialogTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImageListDescriptionDialogTakePhotoClicked"/>
                                     <Button x:Name="ImageListDescriptionDialogPickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImageListDescriptionDialogPickPhotoClicked"/>
                                 </Grid>
-                                <FlexLayout x:Name="ImageListDescriptionDialogPhotoPreviewStack" Wrap="Wrap" JustifyContent="Start" Direction="Row" IsVisible="False"/>
+                                <VerticalStackLayout x:Name="ImageListDescriptionDialogPhotoPreviewStack" Spacing="10" IsVisible="False"/>
                                 <Label x:Name="ImageListDescriptionDialogPhotoCountLabel" Text="" FontSize="12" TextColor="#888" IsVisible="False"/>
                             </VerticalStackLayout>
                             <!-- Buttons -->

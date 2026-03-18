@@ -1742,4 +1742,39 @@ public class ApiService
 
     #endregion
 
+    #region Crash Reporting
+
+    /// <summary>
+    /// Send a crash report to the server
+    /// </summary>
+    public async Task<bool> SendCrashReportAsync(CrashReport report)
+    {
+        try
+        {
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("timestamp", report.Timestamp.ToString("o")),
+                new KeyValuePair<string, string>("source", report.Source),
+                new KeyValuePair<string, string>("exception_type", report.ExceptionType),
+                new KeyValuePair<string, string>("message", report.Message),
+                new KeyValuePair<string, string>("stack_trace", report.StackTrace),
+                new KeyValuePair<string, string>("inner_exception", report.InnerException ?? ""),
+                new KeyValuePair<string, string>("device_info", report.DeviceInfo),
+                new KeyValuePair<string, string>("app_version", report.AppVersion),
+                new KeyValuePair<string, string>("cleaner_name", CleanerName ?? "Unknown"),
+            });
+
+            var response = await _httpClient.PostAsync("/api/crash-report/", content).ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[CrashReport] Send response: {response.StatusCode}");
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[CrashReport] Send error: {ex.Message}");
+            return false;
+        }
+    }
+
+    #endregion
+
 }

@@ -247,7 +247,7 @@
                                     <Button x:Name="ImageListDescriptionDialogTakePhotoButton" Text="Kamera" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImageListDescriptionDialogTakePhotoClicked"/>
                                     <Button x:Name="ImageListDescriptionDialogPickPhotoButton" Grid.Column="1" Text="Galerie" BackgroundColor="#e0e0e0" TextColor="#333" CornerRadius="8" Clicked="OnImageListDescriptionDialogPickPhotoClicked"/>
                                 </Grid>
-                                <FlexLayout x:Name="ImageListDescriptionDialogPhotoPreviewStack" Wrap="Wrap" JustifyContent="Start" Direction="Row" IsVisible="False"/>
+                                <VerticalStackLayout x:Name="ImageListDescriptionDialogPhotoPreviewStack" Spacing="10" IsVisible="False"/>
                                 <Label x:Name="ImageListDescriptionDialogPhotoCountLabel" Text="" FontSize="12" TextColor="#888" IsVisible="False"/>
                             </VerticalStackLayout>
                         </VerticalStackLayout>
@@ -258,7 +258,7 @@
                             <Button x:Name="CancelImageListDescriptionDialogButton" Text="Abbrechen" BackgroundColor="#f0f0f0" TextColor="#666" CornerRadius="12" HeightRequest="50" Clicked="OnCancelImageListDescriptionDialogClicked"/>
                             <Button x:Name="SaveImageListDescriptionDialogButton" Grid.Column="1" Text="Speichern" BackgroundColor="#2196F3" TextColor="White" FontAttributes="Bold" CornerRadius="12" HeightRequest="50" Clicked="OnSaveImageListDescriptionDialogClicked"/>
                         </Grid>
-                        <Button x:Name="DeleteAnmerkungButton" Text="Anmerkung loeschen" BackgroundColor="#f44336" TextColor="White" CornerRadius="12" HeightRequest="50" IsVisible="False" Clicked="OnDeleteAnmerkungClicked"/>
+                        <Button x:Name="DeleteAnmerkungButton" Text="Notiz löschen" BackgroundColor="#f44336" TextColor="White" CornerRadius="12" HeightRequest="50" IsVisible="False" Clicked="OnDeleteAnmerkungClicked"/>
                     </VerticalStackLayout>
                 </Grid>
             </Border>

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using CleanOrgaCleaner.Models;
 using CleanOrgaCleaner.Models.Responses;
+using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Json;
 
@@ -35,6 +36,8 @@ namespace CleanOrgaCleaner.Json;
 [JsonSerializable(typeof(ChatMessage))]
 [JsonSerializable(typeof(JsonElement))]
 [JsonSerializable(typeof(TaskAssignments))]
+[JsonSerializable(typeof(CrashReport))]
+[JsonSerializable(typeof(List<CrashReport>))]
 [JsonSourceGenerationOptions(
     PropertyNameCaseInsensitive = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]

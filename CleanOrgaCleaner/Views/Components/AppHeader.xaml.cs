@@ -345,25 +345,76 @@ public partial class AppHeader : ContentView
         }
 
         // Clear stored credentials
-        Preferences.Remove("property_id");
-        Preferences.Remove("username");
-        Preferences.Remove("language");
-        Preferences.Remove("is_logged_in");
-        Preferences.Remove("remember_me");
-        Preferences.Remove("biometric_login_enabled");
-        Preferences.Remove("offline_mode");
+        try
+        {
+            Preferences.Remove("property_id");
+            Preferences.Remove("username");
+            Preferences.Remove("language");
+            Preferences.Remove("is_logged_in");
+            Preferences.Remove("remember_me");
+            Preferences.Remove("biometric_login_enabled");
+            Preferences.Remove("offline_mode");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] Preferences clear error: {ex.Message}");
+        }
 
         // Clear secure storage
-        SecureStorage.Remove("password");
+        try
+        {
+            SecureStorage.Remove("password");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] SecureStorage clear error: {ex.Message}");
+        }
 
         // Clear offline cached data
-        OfflineDataService.Instance.ClearAll();
+        try
+        {
+            OfflineDataService.Instance.ClearAll();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] OfflineDataService clear error: {ex.Message}");
+        }
 
-        // Disconnect WebSocket
-        WebSocketService.Instance.Dispose();
+        // Disconnect WebSocket (in background to avoid UI thread issues on iOS)
+        try
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    WebSocketService.Instance.Dispose();
+                }
+                catch { }
+            });
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] WebSocket dispose error: {ex.Message}");
+        }
 
         // Navigate to login page
-        await Shell.Current.GoToAsync("//LoginPage");
+        try
+        {
+            await Shell.Current.GoToAsync("//LoginPage");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] Navigation error: {ex.Message}");
+            // Fallback: try Application.Current
+            try
+            {
+                if (Application.Current?.MainPage is Shell shell)
+                {
+                    await shell.GoToAsync("//LoginPage");
+                }
+            }
+            catch { }
+        }
     }
 
     #endregion

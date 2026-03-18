@@ -627,25 +627,33 @@ public partial class AuftragPage : ContentPage
 
     private Grid CreatePhotoPreviewWithDelete(ImageListDescriptionPhoto photo)
     {
+        // Horizontal row: image on left, buttons on right
         var container = new Grid
         {
-            WidthRequest = 70,
-            HeightRequest = 70,
-            Margin = new Thickness(0, 0, 5, 5)
+            ColumnDefinitions = new ColumnDefinitionCollection
+            {
+                new ColumnDefinition(new GridLength(140)),
+                new ColumnDefinition(GridLength.Star)
+            },
+            ColumnSpacing = 15,
+            Margin = new Thickness(0, 0, 0, 10)
         };
 
         var img = new Image
         {
             Source = photo.ThumbnailUrl ?? photo.Url,
             Aspect = Aspect.AspectFill,
-            WidthRequest = 60,
-            HeightRequest = 60
+            WidthRequest = 140,
+            HeightRequest = 140
         };
         var imgBorder = new Border
         {
             Content = img,
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
-            Stroke = Colors.Transparent
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+            Stroke = Colors.LightGray,
+            StrokeThickness = 1,
+            WidthRequest = 140,
+            HeightRequest = 140
         };
 
         // Tap to view full image
@@ -655,26 +663,32 @@ public partial class AuftragPage : ContentPage
         imgBorder.GestureRecognizers.Add(tapGesture);
 
         container.Children.Add(imgBorder);
+        Grid.SetColumn(imgBorder, 0);
 
-        // Delete button overlay
+        // Button stack on the right
+        var buttonStack = new VerticalStackLayout
+        {
+            Spacing = 10,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        // Delete button
         var deleteBtn = new Button
         {
-            Text = "X",
-            FontSize = 10,
-            FontAttributes = FontAttributes.Bold,
+            Text = "Löschen",
+            FontSize = 14,
             TextColor = Colors.White,
             BackgroundColor = Color.FromArgb("#f44336"),
-            WidthRequest = 20,
-            HeightRequest = 20,
-            CornerRadius = 10,
-            Padding = 0,
-            HorizontalOptions = LayoutOptions.End,
-            VerticalOptions = LayoutOptions.Start,
-            Margin = new Thickness(0, -2, -2, 0)
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Padding = new Thickness(15, 0)
         };
         var photoId = photo.Id;
         deleteBtn.Clicked += async (s, e) => await DeletePhotoAsync(photoId);
-        container.Children.Add(deleteBtn);
+        buttonStack.Children.Add(deleteBtn);
+
+        container.Children.Add(buttonStack);
+        Grid.SetColumn(buttonStack, 1);
 
         return container;
     }

@@ -764,14 +764,33 @@ public partial class AufgabePage : ContentPage
         ImageListDescriptionDialogPhotoCountLabel.IsVisible = true;
         ImageListDescriptionDialogPhotoCountLabel.Text = $"{totalCount} Foto(s)";
 
-        // Show existing photos from server (with edit button)
+        // Show existing photos from server (with edit and delete buttons)
         if (_editingItem?.Photos != null)
         {
             foreach (var photo in _editingItem.Photos)
             {
                 var photoCopy = photo;
-                var grid = new Grid { WidthRequest = 70, HeightRequest = 70 };
-                var imageContainer = new Border { StrokeShape = new RoundRectangle { CornerRadius = 8 }, Stroke = Color.FromArgb("#2196F3"), StrokeThickness = 2 };
+
+                // Horizontal row: Image | Buttons
+                var row = new Grid
+                {
+                    ColumnDefinitions = new ColumnDefinitionCollection
+                    {
+                        new ColumnDefinition(new GridLength(140)),
+                        new ColumnDefinition(GridLength.Star)
+                    },
+                    ColumnSpacing = 15
+                };
+
+                // Image container (140x140)
+                var imageContainer = new Border
+                {
+                    WidthRequest = 140,
+                    HeightRequest = 140,
+                    StrokeShape = new RoundRectangle { CornerRadius = 8 },
+                    Stroke = Color.FromArgb("#2196F3"),
+                    StrokeThickness = 2
+                };
                 var image = new Image { Aspect = Aspect.AspectFill };
 
                 // Load image async
@@ -784,18 +803,51 @@ public partial class AufgabePage : ContentPage
 
                 imageContainer.Content = image;
 
-                // Tap to edit
+                // Tap to view full size
                 var tapGesture = new TapGestureRecognizer();
-                tapGesture.Tapped += async (s, e) => await EditExistingPhotoAsync(photoCopy);
+                tapGesture.Tapped += async (s, e) => await ViewExistingPhotoAsync(photoCopy);
                 imageContainer.GestureRecognizers.Add(tapGesture);
 
-                grid.Children.Add(imageContainer);
+                row.Children.Add(imageContainer);
+                Grid.SetColumn(imageContainer, 0);
 
-                // Edit icon overlay
-                var editLabel = new Label { Text = "✏", FontSize = 12, TextColor = Colors.White, BackgroundColor = Color.FromArgb("#FF9800"), Padding = new Thickness(4, 2), HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.End, Margin = new Thickness(0, 0, 2, 2) };
-                grid.Children.Add(editLabel);
+                // Button stack (right side)
+                var buttonStack = new VerticalStackLayout
+                {
+                    Spacing = 10,
+                    VerticalOptions = LayoutOptions.Center
+                };
 
-                ImageListDescriptionDialogPhotoPreviewStack.Children.Add(grid);
+                // Edit button
+                var editBtn = new Button
+                {
+                    Text = "✏ Bearbeiten",
+                    BackgroundColor = Color.FromArgb("#FF9800"),
+                    TextColor = Colors.White,
+                    FontSize = 14,
+                    CornerRadius = 8,
+                    HeightRequest = 40
+                };
+                editBtn.Clicked += async (s, e) => await EditExistingPhotoAsync(photoCopy);
+                buttonStack.Children.Add(editBtn);
+
+                // Delete button
+                var deleteBtn = new Button
+                {
+                    Text = "🗑 Löschen",
+                    BackgroundColor = Color.FromArgb("#c62828"),
+                    TextColor = Colors.White,
+                    FontSize = 14,
+                    CornerRadius = 8,
+                    HeightRequest = 40
+                };
+                deleteBtn.Clicked += async (s, e) => await DeleteExistingPhotoAsync(photoCopy);
+                buttonStack.Children.Add(deleteBtn);
+
+                row.Children.Add(buttonStack);
+                Grid.SetColumn(buttonStack, 1);
+
+                ImageListDescriptionDialogPhotoPreviewStack.Children.Add(row);
             }
         }
 
@@ -804,14 +856,131 @@ public partial class AufgabePage : ContentPage
         {
             var photo = _selectedPhotos[i];
             var index = i;
-            var grid = new Grid { WidthRequest = 70, HeightRequest = 70 };
-            var imageContainer = new Border { StrokeShape = new RoundRectangle { CornerRadius = 8 }, Stroke = Colors.Transparent };
-            imageContainer.Content = new Image { Source = ImageSource.FromStream(() => new MemoryStream(photo.Bytes)), Aspect = Aspect.AspectFill };
-            grid.Children.Add(imageContainer);
-            var deleteBtn = new Button { Text = "X", BackgroundColor = Color.FromArgb("#c62828"), TextColor = Colors.White, FontSize = 10, WidthRequest = 22, HeightRequest = 22, CornerRadius = 11, Padding = 0, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 2, 2, 0) };
+
+            // Horizontal row: Image | Delete button
+            var row = new Grid
+            {
+                ColumnDefinitions = new ColumnDefinitionCollection
+                {
+                    new ColumnDefinition(new GridLength(140)),
+                    new ColumnDefinition(GridLength.Star)
+                },
+                ColumnSpacing = 15
+            };
+
+            // Image container (140x140)
+            var imageContainer = new Border
+            {
+                WidthRequest = 140,
+                HeightRequest = 140,
+                StrokeShape = new RoundRectangle { CornerRadius = 8 },
+                Stroke = Colors.Transparent
+            };
+            imageContainer.Content = new Image
+            {
+                Source = ImageSource.FromStream(() => new MemoryStream(photo.Bytes)),
+                Aspect = Aspect.AspectFill
+            };
+
+            row.Children.Add(imageContainer);
+            Grid.SetColumn(imageContainer, 0);
+
+            // Delete button (right side)
+            var deleteBtn = new Button
+            {
+                Text = "🗑 Löschen",
+                BackgroundColor = Color.FromArgb("#c62828"),
+                TextColor = Colors.White,
+                FontSize = 14,
+                CornerRadius = 8,
+                HeightRequest = 40,
+                VerticalOptions = LayoutOptions.Center
+            };
             deleteBtn.Clicked += (s, e) => { _selectedPhotos.RemoveAt(index); UpdateDialogPhotoPreview(); };
-            grid.Children.Add(deleteBtn);
-            ImageListDescriptionDialogPhotoPreviewStack.Children.Add(grid);
+
+            row.Children.Add(deleteBtn);
+            Grid.SetColumn(deleteBtn, 1);
+
+            ImageListDescriptionDialogPhotoPreviewStack.Children.Add(row);
+        }
+    }
+
+    private async Task ViewExistingPhotoAsync(ImageListDescriptionPhoto photo)
+    {
+        if (string.IsNullOrEmpty(photo.Url)) return;
+
+        try
+        {
+            // Show full size image in a simple modal
+            var imageUrl = photo.Url;
+            if (!imageUrl.StartsWith("http"))
+            {
+                imageUrl = $"{ApiService.BaseUrl}{imageUrl}";
+            }
+
+            var imagePage = new ContentPage
+            {
+                BackgroundColor = Colors.Black,
+                Content = new Grid
+                {
+                    Children =
+                    {
+                        new Image
+                        {
+                            Source = imageUrl,
+                            Aspect = Aspect.AspectFit,
+                            VerticalOptions = LayoutOptions.Center,
+                            HorizontalOptions = LayoutOptions.Center
+                        },
+                        new Button
+                        {
+                            Text = "✕",
+                            FontSize = 24,
+                            BackgroundColor = Colors.Transparent,
+                            TextColor = Colors.White,
+                            WidthRequest = 50,
+                            HeightRequest = 50,
+                            HorizontalOptions = LayoutOptions.End,
+                            VerticalOptions = LayoutOptions.Start,
+                            Margin = new Thickness(0, 40, 10, 0)
+                        }
+                    }
+                }
+            };
+
+            var closeBtn = (Button)((Grid)imagePage.Content).Children[1];
+            closeBtn.Clicked += async (s, e) => await Navigation.PopModalAsync();
+
+            await Navigation.PushModalAsync(imagePage);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"View photo error: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteExistingPhotoAsync(ImageListDescriptionPhoto photo)
+    {
+        var confirm = await DisplayAlertAsync("Foto löschen", "Möchten Sie dieses Foto wirklich löschen?", "Ja", "Nein");
+        if (!confirm) return;
+
+        try
+        {
+            var result = await _apiService.DeleteImageListPhotoAsync(photo.Id);
+            if (result.Success)
+            {
+                _editingItem?.Photos?.Remove(photo);
+                UpdateDialogPhotoPreview();
+            }
+            else
+            {
+                await DisplayAlertAsync("Fehler", result.Error ?? "Foto konnte nicht gelöscht werden", "OK");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Delete photo error: {ex.Message}");
+            await DisplayAlertAsync("Fehler", "Foto konnte nicht gelöscht werden", "OK");
         }
     }
 
