@@ -35,11 +35,8 @@ jobs:
     - name: Install MAUI Workloads (Latest)
       run: |
         # Pin iOS workload zu 26.2 (Xcode 26.4 ist nicht auf dem Runner)
-        cat > /tmp/rollback.json <<JSON
-{
-  "microsoft.net.sdk.ios": "26.2.10233/10.0.100"
-}
-JSON
+        printf '%s\n' '{' '  "microsoft.net.sdk.ios": "26.2.10233/10.0.100"' '}' > /tmp/rollback.json
+        cat /tmp/rollback.json
         dotnet workload install maui --from-rollback-file /tmp/rollback.json
         dotnet workload install ios --from-rollback-file /tmp/rollback.json
 
