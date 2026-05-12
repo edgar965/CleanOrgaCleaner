@@ -11,6 +11,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class AufgabePage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private int _taskId;
     private CleaningTask? _task;
     private string _currentTab = "aufgabe";
@@ -34,6 +35,7 @@ public partial class AufgabePage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     public AufgabePage(int taskId) : this() { _taskId = taskId; }
@@ -45,8 +47,30 @@ public partial class AufgabePage : ContentPage
         _ = Header.InitializeAsync();
         Header.SetPageTitle("today");
 
+        _webSocketService.OnTaskUpdate += OnTaskUpdate;
+
         ApplyTranslations();
         _ = LoadTaskAsync();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+    }
+
+    private void OnTaskUpdate(string updateType)
+    {
+        System.Diagnostics.Debug.WriteLine($"[AufgabePage] Task update received: {updateType}");
+        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
+            || updateType == "assignment_update" || updateType == "aufgabe_update"
+            || updateType == "image_list_update" || updateType == "problem_update" || updateType == "problem_delete")
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await LoadTaskAsync();
+            });
+        }
     }
 
     private void ApplyTranslations()
