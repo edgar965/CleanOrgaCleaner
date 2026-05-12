@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DOTNET_VERSION: '10.0.7'
+  DOTNET_VERSION: '10.0.203'
   PROJECT_PATH: 'CleanOrgaCleaner/CleanOrgaCleaner.csproj'
 
 jobs:
