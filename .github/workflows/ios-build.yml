@@ -27,9 +27,9 @@ jobs:
     - name: List Available Xcode Versions
       run: ls -la /Applications/ | grep Xcode
 
-    - name: Select Xcode 26.2
+    - name: Select Xcode 26.3
       run: |
-        sudo xcode-select -s /Applications/Xcode_26.2.app
+        sudo xcode-select -s /Applications/Xcode_26.3.app
         xcodebuild -version
 
     - name: Install MAUI Workloads (Latest)
