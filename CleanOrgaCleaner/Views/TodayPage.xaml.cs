@@ -265,12 +265,15 @@ public partial class TodayPage : ContentPage
     private View CreateTaskButton(CleaningTask task)
     {
         // Full-width button like Django client
+        var isCompleted = task.IsCompleted;
+        var taskLabel = string.IsNullOrEmpty(task.ApartmentName)
+            ? task.Aufgabenart
+            : $"{task.ApartmentName}  {task.Aufgabenart}";
+
         var button = new Button
         {
-            Text = string.IsNullOrEmpty(task.ApartmentName)
-                ? task.Aufgabenart
-                : $"{task.ApartmentName}  {task.Aufgabenart}",
-            BackgroundColor = Color.FromArgb("#2196F3"),
+            Text = isCompleted ? $"✓ {taskLabel}" : taskLabel,
+            BackgroundColor = Color.FromArgb(isCompleted ? "#4CAF50" : "#2196F3"),
             TextColor = Colors.White,
             FontSize = 20,
             FontAttributes = FontAttributes.Bold,
@@ -279,20 +282,13 @@ public partial class TodayPage : ContentPage
             HorizontalOptions = LayoutOptions.Fill
         };
 
-        // Add border for completed tasks
-        if (task.IsCompleted)
-        {
-            button.BorderColor = Color.FromArgb("#1565c0");
-            button.BorderWidth = 3;
-        }
-
         // Shadow effect
         button.Shadow = new Shadow
         {
-            Brush = Color.FromArgb("#2196F3"),
+            Brush = Color.FromArgb(isCompleted ? "#4CAF50" : "#2196F3"),
             Offset = new Point(0, 3),
             Radius = 10,
-            Opacity = 0.3f
+            Opacity = isCompleted ? 0.35f : 0.3f
         };
 
         button.Clicked += async (s, e) => await OnTaskTapped(task);
