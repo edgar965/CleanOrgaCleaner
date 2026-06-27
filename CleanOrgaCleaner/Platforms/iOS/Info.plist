@@ -4,13 +4,13 @@
 <dict>
 	<!-- Camera Permission -->
 	<key>NSCameraUsageDescription</key>
-	<string>CleanOrga benötigt Zugriff auf die Kamera, um Fotos von Reinigungsaufgaben aufzunehmen.</string>
+	<string>CleanOrga benötigt Zugriff auf die Kamera, damit du direkt ein Foto zu einer Reinigungsaufgabe aufnehmen kannst – zum Beispiel, um ein gemeldetes Problem in einem Apartment oder eine fertig gereinigte Wohnung zu dokumentieren.</string>
 
 	<!-- Photo Library Permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>CleanOrga benötigt Zugriff auf Ihre Fotos, um Bilder für Aufgaben auszuwählen.</string>
+	<string>CleanOrga benötigt Zugriff auf deine Fotos, damit du vorhandene Bilder zu einer Reinigungsaufgabe hinzufügen kannst – zum Beispiel, um ein gemeldetes Problem in einem Apartment oder eine fertig gereinigte Wohnung zu dokumentieren.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>CleanOrga möchte Fotos in Ihrer Fotobibliothek speichern.</string>
+	<string>CleanOrga speichert Fotos, die du zu einer Reinigungsaufgabe aufnimmst, in deiner Fotobibliothek – zum Beispiel die Dokumentation eines Problems oder einer fertig gereinigten Wohnung –, damit du sie später erneut verwenden kannst.</string>
 
 	<!-- Face ID Permission -->
 	<key>NSFaceIDUsageDescription</key>
