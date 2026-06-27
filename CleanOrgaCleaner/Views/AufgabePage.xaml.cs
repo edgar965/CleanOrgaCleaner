@@ -858,7 +858,7 @@ public partial class AufgabePage : ContentPage
                 // Delete button
                 var deleteBtn = new Button
                 {
-                    Text = "🗑 Löschen",
+                    Text = "🗑 " + Translations.Get("delete"),
                     BackgroundColor = Color.FromArgb("#c62828"),
                     TextColor = Colors.White,
                     FontSize = 14,
