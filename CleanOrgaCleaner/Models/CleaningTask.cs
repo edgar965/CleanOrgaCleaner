@@ -54,6 +54,13 @@ public class CleaningTask
     [JsonPropertyName("checklist_status")]
     public Dictionary<string, bool>? ChecklistStatus { get; set; }
 
+    /// <summary>
+    /// Neue Checkliste pro Apartment + Aufgabenart (Name, Beschreibung, Vorgabebilder,
+    /// Abhaken, Beweis-Fotos). Ergänzt die alte string-basierte <see cref="Checkliste"/>.
+    /// </summary>
+    [JsonPropertyName("putzliste")]
+    public List<PutzlisteEintrag>? Putzliste { get; set; }
+
     [JsonPropertyName("problems")]
     public List<ImageListDescription>? Problems { get; set; }
 

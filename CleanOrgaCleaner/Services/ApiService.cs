@@ -703,6 +703,69 @@ public class ApiService
         return await ToggleChecklistItemAsync(taskId, itemIndex).ConfigureAwait(false);
     }
 
+    // ===== Putzliste (neue Checkliste pro Apartment + Aufgabenart) =====
+
+    /// <summary>Hakt einen Putzlisten-Eintrag für eine Aufgabe ab / wieder ab.</summary>
+    public async Task<ChecklistToggleResponse> TogglePutzlisteItemAsync(int taskId, int eintragId)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/task/{taskId}/putzliste/{eintragId}/toggle/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<ChecklistToggleResponse>(responseText, _jsonOptions)
+                ?? new ChecklistToggleResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"TogglePutzliste error: {ex.Message}");
+            return new ChecklistToggleResponse { Success = false };
+        }
+    }
+
+    /// <summary>Lädt ein Beweis-Foto zu einem Putzlisten-Eintrag hoch.</summary>
+    public async Task<PutzlisteFotoResponse> UploadPutzlisteFotoAsync(int taskId, int eintragId, string fileName, byte[] bytes)
+    {
+        try
+        {
+            using var formData = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(bytes);
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+            formData.Add(fileContent, "foto", fileName);
+
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/task/{taskId}/putzliste/{eintragId}/foto/", formData).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                return new PutzlisteFotoResponse { Success = false, Error = $"Server error {(int)response.StatusCode}" };
+            return JsonSerializer.Deserialize<PutzlisteFotoResponse>(responseText, _jsonOptions)
+                ?? new PutzlisteFotoResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"UploadPutzlisteFoto error: {ex.Message}");
+            return new PutzlisteFotoResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>Löscht ein Beweis-Foto eines Putzlisten-Eintrags.</summary>
+    public async Task<ApiResponse> DeletePutzlisteFotoAsync(int fotoId)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/task/putzliste/foto/{fotoId}/delete/", null).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DeletePutzlisteFoto error: {ex.Message}");
+            return new ApiResponse { Success = false };
+        }
+    }
+
     /// <summary>
     /// Save task notes - alias for SaveTaskNoteAsync
     /// </summary>

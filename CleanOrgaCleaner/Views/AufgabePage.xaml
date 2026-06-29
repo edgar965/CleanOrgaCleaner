@@ -26,6 +26,10 @@
                             BackgroundColor="White" TextColor="#1a3a5c"
                             FontSize="14" FontAttributes="Bold" CornerRadius="12"
                             HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabAufgabeClicked"/>
+                    <Button x:Name="TabChecklisteButton" Text="Checkliste"
+                            BackgroundColor="#1a3a5c" TextColor="White"
+                            FontSize="14" FontAttributes="Bold" CornerRadius="12"
+                            HeightRequest="38" Padding="12,0" Margin="0,0,8,8" BorderWidth="0" Clicked="OnTabChecklisteClicked"/>
                     <Button x:Name="TabProblemeButton" Text="Problem"
                             BackgroundColor="#1a3a5c" TextColor="White"
                             FontSize="14" FontAttributes="Bold" CornerRadius="12"
@@ -48,6 +52,15 @@
                         <Label x:Name="NoTaskDescriptionLabel" Text="Keine Aufgabenbeschreibung vorhanden"
                                FontSize="14" TextColor="#999" FontAttributes="Italic"
                                HorizontalTextAlignment="Center" IsVisible="True"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Tab Content: Checkliste -->
+                <Border x:Name="TabChecklisteContent" IsVisible="False" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
+                    <Border.Shadow><Shadow Brush="Black" Offset="0,4" Radius="15" Opacity="0.08"/></Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout x:Name="ChecklisteStack" Spacing="12"/>
+                        <Label x:Name="NoChecklisteLabel" Text="Keine Checkliste vorhanden" FontSize="14" TextColor="#999" FontAttributes="Italic" HorizontalTextAlignment="Center"/>
                     </VerticalStackLayout>
                 </Border>
 

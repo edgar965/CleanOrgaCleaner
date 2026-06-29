@@ -112,6 +112,7 @@ public partial class AufgabePage : ContentPage
 
     // Tab handling
     private void OnTabAufgabeClicked(object sender, EventArgs e) => SelectTab("aufgabe");
+    private void OnTabChecklisteClicked(object sender, EventArgs e) { SelectTab("checkliste"); BuildCheckliste(); }
     private void OnTabProblemeClicked(object sender, EventArgs e) => SelectTab("probleme");
     private void OnTabAnmerkungenClicked(object sender, EventArgs e) => SelectTab("anmerkungen");
     private async void OnTabLogsClicked(object sender, EventArgs e)
@@ -128,6 +129,9 @@ public partial class AufgabePage : ContentPage
         TabAufgabeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabAufgabeButton.TextColor = Colors.White;
         TabAufgabeButton.BorderWidth = 0;
+        TabChecklisteButton.BackgroundColor = Color.FromArgb("#1a3a5c");
+        TabChecklisteButton.TextColor = Colors.White;
+        TabChecklisteButton.BorderWidth = 0;
         TabProblemeButton.BackgroundColor = Color.FromArgb("#1a3a5c");
         TabProblemeButton.TextColor = Colors.White;
         TabProblemeButton.BorderWidth = 0;
@@ -140,6 +144,7 @@ public partial class AufgabePage : ContentPage
 
         // Hide all tab content
         TabAufgabeContent.IsVisible = false;
+        TabChecklisteContent.IsVisible = false;
         TabProblemeContent.IsVisible = false;
         TabAnmerkungenContent.IsVisible = false;
         TabLogsContent.IsVisible = false;
@@ -154,6 +159,13 @@ public partial class AufgabePage : ContentPage
                 TabAufgabeButton.BorderColor = borderColor;
                 TabAufgabeButton.BorderWidth = 2;
                 TabAufgabeContent.IsVisible = true;
+                break;
+            case "checkliste":
+                TabChecklisteButton.BackgroundColor = Colors.White;
+                TabChecklisteButton.TextColor = Color.FromArgb("#1a3a5c");
+                TabChecklisteButton.BorderColor = borderColor;
+                TabChecklisteButton.BorderWidth = 2;
+                TabChecklisteContent.IsVisible = true;
                 break;
             case "probleme":
                 TabProblemeButton.BackgroundColor = Colors.White;
@@ -496,6 +508,208 @@ public partial class AufgabePage : ContentPage
         _selectedPhotos.Clear();
         UpdateDialogPhotoPreview();
         ImageListDescriptionDialog.IsVisible = true;
+    }
+
+    #endregion
+
+    #region Checkliste Tab
+
+    private bool _suppressPutzCheck = false;
+
+    private void BuildCheckliste()
+    {
+        ChecklisteStack.Children.Clear();
+        var entries = _task?.Putzliste;
+        if (entries == null || entries.Count == 0)
+        {
+            NoChecklisteLabel.IsVisible = true;
+            return;
+        }
+        NoChecklisteLabel.IsVisible = false;
+        foreach (var entry in entries)
+            ChecklisteStack.Children.Add(CreatePutzlisteEntryView(entry));
+    }
+
+    private View CreatePutzlisteEntryView(PutzlisteEintrag entry)
+    {
+        var border = new Border
+        {
+            BackgroundColor = Colors.White,
+            Stroke = Color.FromArgb("#e0e0e0"),
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
+            Padding = 12
+        };
+        border.Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(0, 2), Radius = 8, Opacity = 0.1f };
+
+        var stack = new VerticalStackLayout { Spacing = 8 };
+
+        // Kopf: Checkbox + Name
+        var head = new HorizontalStackLayout { Spacing = 10 };
+        var check = new CheckBox { IsChecked = entry.Checked, Color = Color.FromArgb("#2196F3"), VerticalOptions = LayoutOptions.Center };
+        check.CheckedChanged += async (s, ev) =>
+        {
+            if (_suppressPutzCheck) return;
+            var resp = await _apiService.TogglePutzlisteItemAsync(_taskId, entry.Id);
+            if (resp.Success) { entry.Checked = resp.Checked; }
+            else
+            {
+                _suppressPutzCheck = true;
+                check.IsChecked = !ev.Value;
+                _suppressPutzCheck = false;
+                await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
+            }
+        };
+        var nameLabel = new Label { Text = entry.Name, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1a3a5c"), VerticalOptions = LayoutOptions.Center };
+        var nameTap = new TapGestureRecognizer();
+        nameTap.Tapped += (s, ev) => check.IsChecked = !check.IsChecked;
+        nameLabel.GestureRecognizers.Add(nameTap);
+        head.Children.Add(check);
+        head.Children.Add(nameLabel);
+        stack.Children.Add(head);
+
+        // Beschreibung
+        if (entry.HasBeschreibung)
+            stack.Children.Add(new Label { Text = entry.Beschreibung, FontSize = 14, TextColor = Color.FromArgb("#666666"), Margin = new Thickness(34, 0, 0, 0) });
+
+        // Vorgabebilder (Admin)
+        if (entry.HasBilder)
+        {
+            stack.Children.Add(new Label { Text = "Vorgabe", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999999"), Margin = new Thickness(34, 4, 0, 0) });
+            var vorgabeStrip = CreateImageStrip(entry.Bilder!, deletable: false);
+            stack.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = vorgabeStrip });
+        }
+
+        // Beweis-Fotos (Putzkraft) + Aufnahme-Button
+        stack.Children.Add(new Label { Text = "Fotos", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999999"), Margin = new Thickness(34, 4, 0, 0) });
+        var fotoStrip = CreateImageStrip(entry.Fotos ?? new List<PutzlisteBild>(), deletable: true);
+        stack.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = fotoStrip });
+
+        var addFoto = new Button
+        {
+            Text = "\U0001F4F7 Foto",
+            BackgroundColor = Color.FromArgb("#e0e0e0"),
+            TextColor = Color.FromArgb("#333333"),
+            CornerRadius = 8,
+            HeightRequest = 40,
+            Padding = new Thickness(16, 0),
+            Margin = new Thickness(34, 0, 0, 0),
+            HorizontalOptions = LayoutOptions.Start
+        };
+        addFoto.Clicked += async (s, ev) => await OnPutzlisteAddFoto(entry, fotoStrip);
+        stack.Children.Add(addFoto);
+
+        border.Content = stack;
+        return border;
+    }
+
+    private HorizontalStackLayout CreateImageStrip(IEnumerable<PutzlisteBild> bilder, bool deletable)
+    {
+        var strip = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(34, 0, 0, 0) };
+        foreach (var b in bilder)
+            strip.Children.Add(CreatePutzlisteThumb(b, deletable));
+        return strip;
+    }
+
+    private View CreatePutzlisteThumb(PutzlisteBild bild, bool deletable)
+    {
+        var grid = new Grid { WidthRequest = 64, HeightRequest = 64 };
+        var imgBorder = new Border
+        {
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+            Stroke = Color.FromArgb("#e0e0e0"),
+            BackgroundColor = Color.FromArgb("#E0E0E0"),
+            WidthRequest = 64,
+            HeightRequest = 64
+        };
+        var image = new Image { WidthRequest = 64, HeightRequest = 64, Aspect = Aspect.AspectFill };
+        var url = bild.Url;
+        _ = Task.Run(async () =>
+        {
+            var src = await _apiService.GetImageAsync(url);
+            if (src != null) MainThread.BeginInvokeOnMainThread(() => image.Source = src);
+        });
+        imgBorder.Content = image;
+        grid.Children.Add(imgBorder);
+
+        if (deletable)
+        {
+            var del = new Button
+            {
+                Text = "✕",
+                FontSize = 12,
+                FontAttributes = FontAttributes.Bold,
+                BackgroundColor = Color.FromArgb("#E91E63"),
+                TextColor = Colors.White,
+                WidthRequest = 22,
+                HeightRequest = 22,
+                CornerRadius = 11,
+                Padding = 0,
+                HorizontalOptions = LayoutOptions.End,
+                VerticalOptions = LayoutOptions.Start
+            };
+            del.Clicked += async (s, e) => await OnPutzlisteDeleteFoto(bild, grid);
+            grid.Children.Add(del);
+        }
+        return grid;
+    }
+
+    private async Task OnPutzlisteAddFoto(PutzlisteEintrag entry, HorizontalStackLayout fotoStrip)
+    {
+        try
+        {
+            if (!MediaPicker.Default.IsCaptureSupported)
+            {
+                await DisplayAlertAsync("Fehler", "Kamera nicht verfügbar", "OK");
+                return;
+            }
+            var cameraStatus = await Permissions.CheckStatusAsync<Permissions.Camera>();
+            if (cameraStatus != PermissionStatus.Granted)
+            {
+                cameraStatus = await Permissions.RequestAsync<Permissions.Camera>();
+                if (cameraStatus != PermissionStatus.Granted) { await OfferOpenSettingsAsync("Kamera"); return; }
+            }
+
+            var photo = await MediaPicker.Default.CapturePhotoAsync();
+            if (photo == null) return;
+
+            using var stream = await photo.OpenReadAsync();
+            using var ms = new MemoryStream();
+            await stream.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            var fileName = $"checkliste_{DateTime.Now:yyyyMMdd_HHmmss}.jpg";
+            var resp = await _apiService.UploadPutzlisteFotoAsync(_taskId, entry.Id, fileName, bytes);
+            if (!resp.Success)
+            {
+                await DisplayAlertAsync("Fehler", resp.Error ?? "Upload fehlgeschlagen", "OK");
+                return;
+            }
+            var bild = new PutzlisteBild { Id = resp.Id, Url = resp.Url };
+            entry.Fotos ??= new List<PutzlisteBild>();
+            entry.Fotos.Add(bild);
+            fotoStrip.Children.Add(CreatePutzlisteThumb(bild, deletable: true));
+        }
+        catch (FeatureNotSupportedException)
+        {
+            await DisplayAlertAsync("Fehler", "Kamera wird auf diesem Geraet nicht unterstuetzt", "OK");
+        }
+        catch (PermissionException)
+        {
+            await OfferOpenSettingsAsync("Kamera");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("Fehler", ex.Message, "OK");
+        }
+    }
+
+    private async Task OnPutzlisteDeleteFoto(PutzlisteBild bild, View thumb)
+    {
+        bool confirm = await DisplayAlertAsync("Foto löschen", "Dieses Foto wirklich löschen?", "Löschen", "Abbrechen");
+        if (!confirm) return;
+        var resp = await _apiService.DeletePutzlisteFotoAsync(bild.Id);
+        if (resp.Success && thumb.Parent is Microsoft.Maui.Controls.Layout layout)
+            layout.Children.Remove(thumb);
     }
 
     #endregion
