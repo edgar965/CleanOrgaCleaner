@@ -61,6 +61,10 @@ public class CleaningTask
     [JsonPropertyName("putzliste")]
     public List<PutzlisteEintrag>? Putzliste { get; set; }
 
+    /// <summary>Anmerkung des Cleaners zur gesamten Checkliste dieser Aufgabe.</summary>
+    [JsonPropertyName("putzliste_kommentar")]
+    public string? PutzlisteKommentar { get; set; }
+
     [JsonPropertyName("problems")]
     public List<ImageListDescription>? Problems { get; set; }
 

@@ -38,6 +38,13 @@ public partial class LoginPage : ContentPage
         _apiService = ApiService.Instance;
         _biometricService = BiometricService.Instance;
 
+        // Version dynamisch aus der echten Build-Version (statt hartcodiert)
+        try
+        {
+            VersionLabel.Text = $"v{AppInfo.Current.VersionString} (Build {AppInfo.Current.BuildString})";
+        }
+        catch { VersionLabel.Text = ""; }
+
         // Load language and apply translations
         Translations.LoadFromPreferences();
         ApplyTranslations();

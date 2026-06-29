@@ -723,6 +723,44 @@ public class ApiService
         }
     }
 
+    /// <summary>Speichert die Anmerkung des Cleaners zu einem Putzlisten-Eintrag.</summary>
+    public async Task<ApiResponse> SavePutzlisteEintragKommentarAsync(int taskId, int eintragId, string kommentar)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(new { kommentar = kommentar });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/task/{taskId}/putzliste/{eintragId}/kommentar/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>Speichert die Anmerkung des Cleaners zur gesamten Checkliste der Aufgabe.</summary>
+    public async Task<ApiResponse> SavePutzlisteChecklistKommentarAsync(int taskId, string kommentar)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(new { kommentar = kommentar });
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/task/{taskId}/putzliste/kommentar/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     /// <summary>Lädt ein Beweis-Foto zu einem Putzlisten-Eintrag hoch.</summary>
     public async Task<PutzlisteFotoResponse> UploadPutzlisteFotoAsync(int taskId, int eintragId, string fileName, byte[] bytes)
     {

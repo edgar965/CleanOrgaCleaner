@@ -20,6 +20,10 @@ public class PutzlisteEintrag
     [JsonPropertyName("checked")]
     public bool Checked { get; set; }
 
+    /// <summary>Anmerkung des Cleaners zu diesem Eintrag.</summary>
+    [JsonPropertyName("kommentar")]
+    public string Kommentar { get; set; } = "";
+
     /// <summary>Vorgabebilder (vom Admin hinterlegt).</summary>
     [JsonPropertyName("bilder")]
     public List<PutzlisteBild>? Bilder { get; set; }

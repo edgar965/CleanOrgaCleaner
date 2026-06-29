@@ -195,7 +195,9 @@ public partial class AufgabePage : ContentPage
     {
         try
         {
-            _task = await _apiService.GetAufgabeDetailAsync(_taskId);
+            // Performance: zuerst den bereits geladenen Cache nutzen (kein voller Reload pro Klick).
+            // Fällt automatisch auf Nachladen zurück, wenn die Aufgabe nicht im Cache ist.
+            _task = await _apiService.GetAufgabeDetailAsync(_taskId, forceRefresh: false);
             if (_task == null)
             {
                 System.Diagnostics.Debug.WriteLine($"LoadTask: Task {_taskId} not found");
@@ -523,29 +525,54 @@ public partial class AufgabePage : ContentPage
         if (entries == null || entries.Count == 0)
         {
             NoChecklisteLabel.IsVisible = true;
+            ChecklisteKommentarBox.IsVisible = false;
             return;
         }
         NoChecklisteLabel.IsVisible = false;
+        // Anmerkung zur gesamten Checkliste
+        ChecklisteKommentarEditor.Text = _task?.PutzlisteKommentar ?? "";
+        ChecklisteKommentarBox.IsVisible = true;
+        // Tabellarisch: Zeilen (Bild | Name | Abgehakt | Bearbeiten), ohne Kopfzeile
         foreach (var entry in entries)
-            ChecklisteStack.Children.Add(CreatePutzlisteEntryView(entry));
+            ChecklisteStack.Children.Add(BuildChecklistRow(entry));
     }
 
-    private View CreatePutzlisteEntryView(PutzlisteEintrag entry)
+    private async void OnChecklisteKommentarUnfocused(object sender, FocusEventArgs e)
     {
-        var border = new Border
-        {
-            BackgroundColor = Colors.White,
-            Stroke = Color.FromArgb("#e0e0e0"),
-            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 },
-            Padding = 12
-        };
-        border.Shadow = new Shadow { Brush = Colors.Gray, Offset = new Point(0, 2), Radius = 8, Opacity = 0.1f };
+        if (_task == null) return;
+        var text = ChecklisteKommentarEditor.Text ?? "";
+        if ((_task.PutzlisteKommentar ?? "") == text) return;  // keine Änderung
+        var resp = await _apiService.SavePutzlisteChecklistKommentarAsync(_taskId, text);
+        if (resp.Success) _task.PutzlisteKommentar = text;
+    }
 
-        var stack = new VerticalStackLayout { Spacing = 8 };
+    private ColumnDefinitionCollection _cklCols() => new ColumnDefinitionCollection
+    {
+        new ColumnDefinition(GridLength.Star),       // Name
+        new ColumnDefinition(new GridLength(46)),    // Vorgabebild
+        new ColumnDefinition(new GridLength(46)),    // Cleaner-Foto
+        new ColumnDefinition(GridLength.Auto),       // Abgehakt
+        new ColumnDefinition(GridLength.Auto)        // Bearbeiten (Symbol)
+    };
 
-        // Kopf: Checkbox + Name
-        var head = new HorizontalStackLayout { Spacing = 10 };
-        var check = new CheckBox { IsChecked = entry.Checked, Color = Color.FromArgb("#2196F3"), VerticalOptions = LayoutOptions.Center };
+    private View BuildChecklistRow(PutzlisteEintrag entry)
+    {
+        var g = new Grid { ColumnDefinitions = _cklCols(), Padding = new Thickness(2, 10, 2, 10), ColumnSpacing = 6 };
+
+        // Spalte 1: Name (+ Badge für Anmerkung)
+        var nameStack = new HorizontalStackLayout { Spacing = 6, VerticalOptions = LayoutOptions.Center };
+        nameStack.Children.Add(new Label { Text = entry.Name, FontSize = 15, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#222222"), VerticalOptions = LayoutOptions.Center });
+        if (!string.IsNullOrWhiteSpace(entry.Kommentar))
+            nameStack.Children.Add(new Label { Text = "💬", FontSize = 12, VerticalOptions = LayoutOptions.Center });
+        g.Add(nameStack, 0, 0);
+
+        // Spalte 2: erstes Vorgabebild (klickbar -> Vollbild)
+        g.Add(CreateRowImageCell(entry.HasBilder ? entry.Bilder![0].Url : null), 1, 0);
+        // Spalte 3: erstes Cleaner-Foto (klickbar -> Vollbild)
+        g.Add(CreateRowImageCell(entry.HasFotos ? entry.Fotos![0].Url : null), 2, 0);
+
+        // Spalte 4: Abgehakt
+        var check = new CheckBox { IsChecked = entry.Checked, Color = Color.FromArgb("#2196F3"), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
         check.CheckedChanged += async (s, ev) =>
         {
             if (_suppressPutzCheck) return;
@@ -559,69 +586,205 @@ public partial class AufgabePage : ContentPage
                 await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
             }
         };
-        var nameLabel = new Label { Text = entry.Name, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1a3a5c"), VerticalOptions = LayoutOptions.Center };
-        var nameTap = new TapGestureRecognizer();
-        nameTap.Tapped += (s, ev) => check.IsChecked = !check.IsChecked;
-        nameLabel.GestureRecognizers.Add(nameTap);
-        head.Children.Add(check);
-        head.Children.Add(nameLabel);
-        stack.Children.Add(head);
+        g.Add(check, 3, 0);
 
-        // Beschreibung
-        if (entry.HasBeschreibung)
-            stack.Children.Add(new Label { Text = entry.Beschreibung, FontSize = 14, TextColor = Color.FromArgb("#666666"), Margin = new Thickness(34, 0, 0, 0) });
-
-        // Vorgabebilder (Admin)
-        if (entry.HasBilder)
+        // Spalte 5: Bearbeiten (kompakt, nur Symbol)
+        var editBtn = new Button
         {
-            stack.Children.Add(new Label { Text = "Vorgabe", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999999"), Margin = new Thickness(34, 4, 0, 0) });
-            var vorgabeStrip = CreateImageStrip(entry.Bilder!, deletable: false);
-            stack.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = vorgabeStrip });
+            Text = "✏️",
+            FontSize = 16,
+            BackgroundColor = Color.FromArgb("#1a3a5c"),
+            TextColor = Colors.White,
+            CornerRadius = 8,
+            Padding = new Thickness(0),
+            WidthRequest = 40,
+            HeightRequest = 40,
+            VerticalOptions = LayoutOptions.Center
+        };
+        editBtn.Clicked += (s, ev) => OpenChecklisteDetail(entry);
+        g.Add(editBtn, 4, 0);
+
+        return g;
+    }
+
+    // Zelle mit einem Bild (oder Platzhalter); Tippen -> Vollbild
+    private View CreateRowImageCell(string? url)
+    {
+        var holder = new Border
+        {
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
+            Stroke = Color.FromArgb("#e0e0e0"),
+            BackgroundColor = Color.FromArgb("#f0f0f0"),
+            WidthRequest = 44,
+            HeightRequest = 44,
+            VerticalOptions = LayoutOptions.Center
+        };
+
+        if (string.IsNullOrEmpty(url))
+        {
+            holder.Content = new Label { Text = "—", FontSize = 16, TextColor = Color.FromArgb("#bbb"), HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center };
+            return holder;
         }
 
-        // Beweis-Fotos (Putzkraft) + Aufnahme-Button
-        stack.Children.Add(new Label { Text = "Fotos", FontSize = 11, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#999999"), Margin = new Thickness(34, 4, 0, 0) });
-        var fotoStrip = CreateImageStrip(entry.Fotos ?? new List<PutzlisteBild>(), deletable: true);
-        stack.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = fotoStrip });
+        var image = new Image { Aspect = Aspect.AspectFill };
+        _ = Task.Run(async () =>
+        {
+            var src = await _apiService.GetImageAsync(url);
+            if (src != null) MainThread.BeginInvokeOnMainThread(() => image.Source = src);
+        });
+        holder.Content = image;
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (s, e) => ShowImageFullscreen(url);
+        holder.GestureRecognizers.Add(tap);
+        return holder;
+    }
+
+    private static Label _detailLabel(string text) => new Label
+    {
+        Text = text, FontSize = 11, FontAttributes = FontAttributes.Bold,
+        TextColor = Color.FromArgb("#999999")
+    };
+
+    private static Label _noneLabel(string text) => new Label
+    {
+        Text = text, FontSize = 13, FontAttributes = FontAttributes.Italic,
+        TextColor = Color.FromArgb("#999999")
+    };
+
+    // Detail-Popup für einen Checklisten-Eintrag (über der Seite)
+    private void OpenChecklisteDetail(PutzlisteEintrag entry)
+    {
+        if (this.Content is not Grid root) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#801a3a5c"), ZIndex = 5500 };
+        void Close() { root.Children.Remove(overlay); BuildCheckliste(); }
+
+        var bg = new BoxView { Color = Colors.Transparent };
+        var bgTap = new TapGestureRecognizer();
+        bgTap.Tapped += (s, e) => Close();
+        bg.GestureRecognizers.Add(bgTap);
+        overlay.Children.Add(bg);
+
+        var card = new Border
+        {
+            BackgroundColor = Colors.White,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 16 },
+            Stroke = Colors.Transparent,
+            Margin = new Thickness(16),
+            VerticalOptions = LayoutOptions.Center,
+            MaximumHeightRequest = 640
+        };
+        var outer = new Grid { RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Auto), new RowDefinition(GridLength.Star) } };
+
+        // Kopf
+        var header = new Grid { Padding = new Thickness(20, 16), BackgroundColor = Color.FromArgb("#1a3a5c") };
+        header.Add(new Label { Text = entry.Name, FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, VerticalOptions = LayoutOptions.Center }, 0, 0);
+        var hclose = new Button { Text = "✕", FontSize = 18, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, BackgroundColor = Colors.Transparent, WidthRequest = 44, HeightRequest = 44, HorizontalOptions = LayoutOptions.End };
+        hclose.Clicked += (s, e) => Close();
+        header.Add(hclose, 0, 0);
+        outer.Add(header, 0, 0);
+
+        // Inhalt
+        var body = new VerticalStackLayout { Spacing = 14, Padding = new Thickness(20) };
+
+        if (entry.HasBeschreibung)
+        {
+            body.Children.Add(_detailLabel("Beschreibung"));
+            body.Children.Add(new Label { Text = entry.Beschreibung, FontSize = 14, TextColor = Color.FromArgb("#444444") });
+        }
+
+        body.Children.Add(_detailLabel("Anmerkung"));
+        var komm = new Editor
+        {
+            Text = entry.Kommentar ?? "", HeightRequest = 70, FontSize = 14,
+            BackgroundColor = Color.FromArgb("#f5f5f5"), TextColor = Colors.Black,
+            Placeholder = "Anmerkung zu diesem Punkt..."
+        };
+        komm.Unfocused += async (s, e) =>
+        {
+            var t = komm.Text ?? "";
+            if ((entry.Kommentar ?? "") == t) return;
+            var r = await _apiService.SavePutzlisteEintragKommentarAsync(_taskId, entry.Id, t);
+            if (r.Success) entry.Kommentar = t;
+        };
+        body.Children.Add(komm);
+
+        body.Children.Add(_detailLabel("Ursprungsbilder (Checkliste)"));
+        if (entry.HasBilder)
+            body.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = CreatePutzThumbStrip(entry.Bilder!, deletable: false, entry: entry) });
+        else
+            body.Children.Add(_noneLabel("Keine Vorgabebilder"));
+
+        body.Children.Add(_detailLabel("Fotos vom Cleaner"));
+        var fotoStrip = CreatePutzThumbStrip(entry.Fotos ?? new List<PutzlisteBild>(), deletable: true, entry: entry);
+        body.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = fotoStrip });
 
         var addFoto = new Button
         {
-            Text = "\U0001F4F7 Foto",
-            BackgroundColor = Color.FromArgb("#e0e0e0"),
-            TextColor = Color.FromArgb("#333333"),
-            CornerRadius = 8,
-            HeightRequest = 40,
-            Padding = new Thickness(16, 0),
-            Margin = new Thickness(34, 0, 0, 0),
-            HorizontalOptions = LayoutOptions.Start
+            Text = "\U0001F4F7 Foto aufnehmen",
+            BackgroundColor = Color.FromArgb("#2196F3"), TextColor = Colors.White,
+            FontAttributes = FontAttributes.Bold, CornerRadius = 10, HeightRequest = 48
         };
-        addFoto.Clicked += async (s, ev) => await OnPutzlisteAddFoto(entry, fotoStrip);
-        stack.Children.Add(addFoto);
+        addFoto.Clicked += async (s, e) => await OnPutzlisteAddFoto(entry, fotoStrip);
+        body.Children.Add(addFoto);
 
-        border.Content = stack;
-        return border;
+        outer.Add(new ScrollView { Content = body }, 0, 1);
+        card.Content = outer;
+        overlay.Children.Add(card);
+
+        Grid.SetRowSpan(overlay, 3);
+        root.Children.Add(overlay);
     }
 
-    private HorizontalStackLayout CreateImageStrip(IEnumerable<PutzlisteBild> bilder, bool deletable)
+    // Vollbild-Ansicht eines Bildes (mit Auth über GetImageAsync)
+    private void ShowImageFullscreen(string url)
     {
-        var strip = new HorizontalStackLayout { Spacing = 8, Margin = new Thickness(34, 0, 0, 0) };
+        if (string.IsNullOrEmpty(url) || this.Content is not Grid root) return;
+
+        var overlay = new Grid { BackgroundColor = Color.FromArgb("#E6000000"), ZIndex = 6000 };
+        void Remove() { root.Children.Remove(overlay); }
+
+        var img = new Image { Aspect = Aspect.AspectFit, Margin = new Thickness(16, 60, 16, 60) };
+        _ = Task.Run(async () =>
+        {
+            var src = await _apiService.GetImageAsync(url);
+            if (src != null) MainThread.BeginInvokeOnMainThread(() => img.Source = src);
+        });
+
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (s, e) => Remove();
+        overlay.GestureRecognizers.Add(tap);
+
+        var close = new Button { Text = "✕", FontSize = 24, FontAttributes = FontAttributes.Bold, TextColor = Colors.White, BackgroundColor = Colors.Transparent, HorizontalOptions = LayoutOptions.End, VerticalOptions = LayoutOptions.Start, Margin = new Thickness(0, 40, 16, 0) };
+        close.Clicked += (s, e) => Remove();
+
+        overlay.Children.Add(img);
+        overlay.Children.Add(close);
+        Grid.SetRowSpan(overlay, 3);
+        root.Children.Add(overlay);
+    }
+
+    private HorizontalStackLayout CreatePutzThumbStrip(IEnumerable<PutzlisteBild> bilder, bool deletable, PutzlisteEintrag entry)
+    {
+        var strip = new HorizontalStackLayout { Spacing = 8 };
         foreach (var b in bilder)
-            strip.Children.Add(CreatePutzlisteThumb(b, deletable));
+            strip.Children.Add(CreatePutzlisteThumb(b, deletable, entry));
         return strip;
     }
 
-    private View CreatePutzlisteThumb(PutzlisteBild bild, bool deletable)
+    private View CreatePutzlisteThumb(PutzlisteBild bild, bool deletable, PutzlisteEintrag entry)
     {
-        var grid = new Grid { WidthRequest = 64, HeightRequest = 64 };
+        var grid = new Grid { WidthRequest = 84, HeightRequest = 84 };
         var imgBorder = new Border
         {
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 8 },
             Stroke = Color.FromArgb("#e0e0e0"),
             BackgroundColor = Color.FromArgb("#E0E0E0"),
-            WidthRequest = 64,
-            HeightRequest = 64
+            WidthRequest = 84,
+            HeightRequest = 84
         };
-        var image = new Image { WidthRequest = 64, HeightRequest = 64, Aspect = Aspect.AspectFill };
+        var image = new Image { WidthRequest = 84, HeightRequest = 84, Aspect = Aspect.AspectFill };
         var url = bild.Url;
         _ = Task.Run(async () =>
         {
@@ -630,6 +793,11 @@ public partial class AufgabePage : ContentPage
         });
         imgBorder.Content = image;
         grid.Children.Add(imgBorder);
+
+        // Klick auf die ganze Zelle -> Vollbild (robuster als nur aufs Image)
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += (s, e) => ShowImageFullscreen(url);
+        grid.GestureRecognizers.Add(tap);
 
         if (deletable)
         {
@@ -647,7 +815,7 @@ public partial class AufgabePage : ContentPage
                 HorizontalOptions = LayoutOptions.End,
                 VerticalOptions = LayoutOptions.Start
             };
-            del.Clicked += async (s, e) => await OnPutzlisteDeleteFoto(bild, grid);
+            del.Clicked += async (s, e) => await OnPutzlisteDeleteFoto(bild, grid, entry);
             grid.Children.Add(del);
         }
         return grid;
@@ -687,7 +855,7 @@ public partial class AufgabePage : ContentPage
             var bild = new PutzlisteBild { Id = resp.Id, Url = resp.Url };
             entry.Fotos ??= new List<PutzlisteBild>();
             entry.Fotos.Add(bild);
-            fotoStrip.Children.Add(CreatePutzlisteThumb(bild, deletable: true));
+            fotoStrip.Children.Add(CreatePutzlisteThumb(bild, deletable: true, entry: entry));
         }
         catch (FeatureNotSupportedException)
         {
@@ -703,12 +871,14 @@ public partial class AufgabePage : ContentPage
         }
     }
 
-    private async Task OnPutzlisteDeleteFoto(PutzlisteBild bild, View thumb)
+    private async Task OnPutzlisteDeleteFoto(PutzlisteBild bild, View thumb, PutzlisteEintrag entry)
     {
         bool confirm = await DisplayAlertAsync("Foto löschen", "Dieses Foto wirklich löschen?", "Löschen", "Abbrechen");
         if (!confirm) return;
         var resp = await _apiService.DeletePutzlisteFotoAsync(bild.Id);
-        if (resp.Success && thumb.Parent is Microsoft.Maui.Controls.Layout layout)
+        if (!resp.Success) return;
+        if (entry.Fotos != null) entry.Fotos.RemoveAll(f => f.Id == bild.Id);
+        if (thumb.Parent is Microsoft.Maui.Controls.Layout layout)
             layout.Children.Remove(thumb);
     }
 

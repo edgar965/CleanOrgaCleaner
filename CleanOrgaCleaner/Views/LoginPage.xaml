@@ -135,8 +135,8 @@
 
             </VerticalStackLayout>
 
-            <!-- Version -->
-            <Label Text="v1.55 (Build 157)"
+            <!-- Version (wird im Code-behind aus der echten Build-Version gesetzt) -->
+            <Label x:Name="VersionLabel" Text=""
                    FontSize="12"
                    TextColor="White"
                    Opacity="0.6"

@@ -59,6 +59,10 @@
                 <Border x:Name="TabChecklisteContent" IsVisible="False" BackgroundColor="White" StrokeShape="RoundRectangle 20" Stroke="Transparent" Padding="20">
                     <Border.Shadow><Shadow Brush="Black" Offset="0,4" Radius="15" Opacity="0.08"/></Border.Shadow>
                     <VerticalStackLayout Spacing="12">
+                        <VerticalStackLayout x:Name="ChecklisteKommentarBox" Spacing="4" IsVisible="False">
+                            <Label Text="Anmerkung zur Checkliste" FontSize="12" FontAttributes="Bold" TextColor="#1a3a5c"/>
+                            <Editor x:Name="ChecklisteKommentarEditor" HeightRequest="70" FontSize="14" BackgroundColor="#f5f5f5" TextColor="Black" Placeholder="Anmerkung zur gesamten Checkliste..." Unfocused="OnChecklisteKommentarUnfocused"/>
+                        </VerticalStackLayout>
                         <VerticalStackLayout x:Name="ChecklisteStack" Spacing="12"/>
                         <Label x:Name="NoChecklisteLabel" Text="Keine Checkliste vorhanden" FontSize="14" TextColor="#999" FontAttributes="Italic" HorizontalTextAlignment="Center"/>
                     </VerticalStackLayout>
