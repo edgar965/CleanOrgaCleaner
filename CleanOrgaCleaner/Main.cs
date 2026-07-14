@@ -9,11 +9,6 @@ namespace CleanOrgaCleaner;
 public static class Main
 {
     /// <summary>
-    /// App version number
-    /// </summary>
-    public const string Version = "1.52";
-
-    /// <summary>
     /// Server URL
     /// </summary>
     public const string ServerUrl = "cleanorga.com";
@@ -55,26 +50,9 @@ public static class Main
         // Load language from preferences
         Translations.LoadFromPreferences();
 
-        System.Diagnostics.Debug.WriteLine($"[Main] Initialized - Version {Version}");
+        System.Diagnostics.Debug.WriteLine($"[Main] Initialized - Version {AppInfo.Current.VersionString}");
         System.Diagnostics.Debug.WriteLine($"[Main] Language: {Language}");
         System.Diagnostics.Debug.WriteLine($"[Main] LoggedIn: {IsLoggedIn}");
-    }
-
-    /// <summary>
-    /// Save login state
-    /// </summary>
-    public static void SaveLogin(string propertyId, string username, string? language = null)
-    {
-        Preferences.Set("property_id", propertyId);
-        Preferences.Set("username", username);
-        Preferences.Set("is_logged_in", true);
-
-        if (!string.IsNullOrEmpty(language))
-        {
-            Language = language;
-        }
-
-        System.Diagnostics.Debug.WriteLine($"[Main] Login saved: {username}");
     }
 
     /// <summary>
@@ -94,66 +72,4 @@ public static class Main
         System.Diagnostics.Debug.WriteLine("[Main] Login cleared");
     }
 
-    /// <summary>
-    /// Get localized string
-    /// Shortcut for Translations.Get()
-    /// </summary>
-    public static string T(string key) => Translations.Get(key);
-
-    /// <summary>
-    /// Navigate to login page
-    /// </summary>
-    public static async Task NavigateToLogin()
-    {
-        await ClearLoginAsync();
-        await Shell.Current.GoToAsync("//LoginPage");
-    }
-
-    /// <summary>
-    /// Navigate to main page (TodayPage)
-    /// </summary>
-    public static async Task NavigateToMain()
-    {
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    /// <summary>
-    /// Show error alert with translated text
-    /// </summary>
-    public static async Task ShowError(Page page, string message)
-    {
-        await page.DisplayAlertAsync(T("error"), message, T("ok"));
-    }
-
-    /// <summary>
-    /// Show confirmation dialog with translated text
-    /// </summary>
-    public static async Task<bool> ShowConfirm(Page page, string title, string message)
-    {
-        return await page.DisplayAlertAsync(title, message, T("yes"), T("no"));
-    }
-
-    /// <summary>
-    /// Format date for display (German format)
-    /// </summary>
-    public static string FormatDate(DateTime date)
-    {
-        return date.ToString("dd.MM.yyyy");
-    }
-
-    /// <summary>
-    /// Format time for display (German format)
-    /// </summary>
-    public static string FormatTime(DateTime time)
-    {
-        return time.ToString("HH:mm");
-    }
-
-    /// <summary>
-    /// Format decimal with comma (German format)
-    /// </summary>
-    public static string FormatDecimal(double value, int decimals = 2)
-    {
-        return value.ToString($"F{decimals}").Replace(".", ",");
-    }
 }

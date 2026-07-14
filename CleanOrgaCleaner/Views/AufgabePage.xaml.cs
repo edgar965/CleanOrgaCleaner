@@ -44,13 +44,24 @@ public partial class AufgabePage : ContentPage
     {
         base.OnAppearing();
 
-        _ = Header.InitializeAsync();
-        Header.SetPageTitle("today");
+        try
+        {
+            _ = Header.InitializeAsync();
+            Header.SetPageTitle("today");
 
-        _webSocketService.OnTaskUpdate += OnTaskUpdate;
+            // -= vor += : bei doppeltem OnAppearing ohne OnDisappearing sonst
+            // mehrfach abonniert -> jedes Task-Update triggert mehrere Reloads
+            _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+            _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
-        ApplyTranslations();
-        _ = LoadTaskAsync();
+            ApplyTranslations();
+            _ = LoadTaskAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AufgabePage] OnAppearing error: {ex.Message}");
+        }
     }
 
     protected override void OnDisappearing()
@@ -66,10 +77,7 @@ public partial class AufgabePage : ContentPage
             || updateType == "assignment_update" || updateType == "aufgabe_update"
             || updateType == "image_list_update" || updateType == "problem_update" || updateType == "problem_delete")
         {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                await LoadTaskAsync();
-            });
+            UiSicher.AufMainThread(() => LoadTaskAsync(), "AufgabePage");
         }
     }
 
@@ -81,7 +89,7 @@ public partial class AufgabePage : ContentPage
         // Tab Buttons
         TabAufgabeButton.Text = t("task_tab");
         TabProblemeButton.Text = t("problems_tab");
-        TabAnmerkungenButton.Text = t("note");
+        TabAnmerkungenButton.Text = t("notes");
         TabLogsButton.Text = t("log");
 
         // Buttons
@@ -268,6 +276,26 @@ public partial class AufgabePage : ContentPage
         return _task.Aufgabe ?? string.Empty;
     }
 
+    /// <summary>
+    /// Bild asynchron laden und setzen - Fehler nur loggen (reiner Anzeige-Pfad,
+    /// URLs können null/leer sein, GetImageAsync kann werfen).
+    /// </summary>
+    private void LadeBild(Image ziel, string? url)
+    {
+        if (string.IsNullOrEmpty(url)) return;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var src = await _apiService.GetImageAsync(url);
+                // Source-Zuweisung ueber UiSicher: das Delegate kann nach
+                // Seiten-Teardown laufen, der try/catch hier faengt das nicht
+                if (src != null) UiSicher.AufMainThread(() => ziel.Source = src, "AufgabePage");
+            }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[AufgabePage] Bild laden: {ex.Message}"); }
+        });
+    }
+
     private string TranslateTaskType(string taskType)
     {
         if (string.IsNullOrEmpty(taskType)) return taskType;
@@ -318,7 +346,7 @@ public partial class AufgabePage : ContentPage
                 _task.StateCompleted = response.NewState ?? newState;
                 UpdateStartStopButton();
             }
-            else if (IsNetworkError(response.Error))
+            else if (NetworkErrorHelper.IsNetworkError(response.Error))
             {
                 // Queue for offline sync
                 await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, newState);
@@ -336,7 +364,7 @@ public partial class AufgabePage : ContentPage
         }
         catch (Exception ex)
         {
-            if (IsNetworkError(ex.Message))
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 string newState = _task.StateCompleted switch
                 {
@@ -392,7 +420,7 @@ public partial class AufgabePage : ContentPage
                     catch { if (Navigation.NavigationStack.Count > 1) await Navigation.PopAsync(); }
                 });
             }
-            else if (IsNetworkError(response.Error))
+            else if (NetworkErrorHelper.IsNetworkError(response.Error))
             {
                 // Queue for offline sync
                 await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, "completed");
@@ -418,7 +446,7 @@ public partial class AufgabePage : ContentPage
         }
         catch (Exception ex)
         {
-            if (IsNetworkError(ex.Message))
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 await OfflineQueueService.Instance.EnqueueTaskStateChangeAsync(_taskId, "completed");
                 _task!.StateCompleted = "completed";
@@ -539,11 +567,19 @@ public partial class AufgabePage : ContentPage
 
     private async void OnChecklisteKommentarUnfocused(object sender, FocusEventArgs e)
     {
-        if (_task == null) return;
-        var text = ChecklisteKommentarEditor.Text ?? "";
-        if ((_task.PutzlisteKommentar ?? "") == text) return;  // keine Änderung
-        var resp = await _apiService.SavePutzlisteChecklistKommentarAsync(_taskId, text);
-        if (resp.Success) _task.PutzlisteKommentar = text;
+        try
+        {
+            if (_task == null) return;
+            var text = ChecklisteKommentarEditor.Text ?? "";
+            if ((_task.PutzlisteKommentar ?? "") == text) return;  // keine Änderung
+            var resp = await _apiService.SavePutzlisteChecklistKommentarAsync(_taskId, text);
+            if (resp.Success) _task.PutzlisteKommentar = text;
+        }
+        catch (Exception ex)
+        {
+            // Unfocus feuert auch beim Wegnavigieren - async void darf nie werfen
+            System.Diagnostics.Debug.WriteLine($"[AufgabePage] Kommentar save error: {ex.Message}");
+        }
     }
 
     private ColumnDefinitionCollection _cklCols() => new ColumnDefinitionCollection
@@ -576,14 +612,23 @@ public partial class AufgabePage : ContentPage
         check.CheckedChanged += async (s, ev) =>
         {
             if (_suppressPutzCheck) return;
-            var resp = await _apiService.TogglePutzlisteItemAsync(_taskId, entry.Id);
-            if (resp.Success) { entry.Checked = resp.Checked; }
-            else
+            try
             {
-                _suppressPutzCheck = true;
-                check.IsChecked = !ev.Value;
-                _suppressPutzCheck = false;
-                await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
+                var resp = await _apiService.TogglePutzlisteItemAsync(_taskId, entry.Id);
+                if (resp.Success) { entry.Checked = resp.Checked; }
+                else
+                {
+                    _suppressPutzCheck = true;
+                    check.IsChecked = !ev.Value;
+                    _suppressPutzCheck = false;
+                    await DisplayAlertAsync("Fehler", "Konnte nicht gespeichert werden", "OK");
+                }
+            }
+            catch (Exception ex)
+            {
+                // async void Event-Lambda: ungefangene Exception = App-Crash
+                System.Diagnostics.Debug.WriteLine($"[AufgabePage] Toggle error: {ex.Message}");
+                try { _suppressPutzCheck = true; check.IsChecked = !ev.Value; } finally { _suppressPutzCheck = false; }
             }
         };
         g.Add(check, 3, 0);
@@ -627,11 +672,7 @@ public partial class AufgabePage : ContentPage
         }
 
         var image = new Image { Aspect = Aspect.AspectFill };
-        _ = Task.Run(async () =>
-        {
-            var src = await _apiService.GetImageAsync(url);
-            if (src != null) MainThread.BeginInvokeOnMainThread(() => image.Source = src);
-        });
+        LadeBild(image, url);
         holder.Content = image;
 
         var tap = new TapGestureRecognizer();
@@ -703,10 +744,18 @@ public partial class AufgabePage : ContentPage
         };
         komm.Unfocused += async (s, e) =>
         {
-            var t = komm.Text ?? "";
-            if ((entry.Kommentar ?? "") == t) return;
-            var r = await _apiService.SavePutzlisteEintragKommentarAsync(_taskId, entry.Id, t);
-            if (r.Success) entry.Kommentar = t;
+            try
+            {
+                var t = komm.Text ?? "";
+                if ((entry.Kommentar ?? "") == t) return;
+                var r = await _apiService.SavePutzlisteEintragKommentarAsync(_taskId, entry.Id, t);
+                if (r.Success) entry.Kommentar = t;
+            }
+            catch (Exception ex)
+            {
+                // Unfocus feuert auch beim Wegnavigieren - nie werfen lassen
+                System.Diagnostics.Debug.WriteLine($"[AufgabePage] Eintrag-Kommentar error: {ex.Message}");
+            }
         };
         body.Children.Add(komm);
 
@@ -746,11 +795,7 @@ public partial class AufgabePage : ContentPage
         void Remove() { root.Children.Remove(overlay); }
 
         var img = new Image { Aspect = Aspect.AspectFit, Margin = new Thickness(16, 60, 16, 60) };
-        _ = Task.Run(async () =>
-        {
-            var src = await _apiService.GetImageAsync(url);
-            if (src != null) MainThread.BeginInvokeOnMainThread(() => img.Source = src);
-        });
+        LadeBild(img, url);
 
         var tap = new TapGestureRecognizer();
         tap.Tapped += (s, e) => Remove();
@@ -786,11 +831,7 @@ public partial class AufgabePage : ContentPage
         };
         var image = new Image { WidthRequest = 84, HeightRequest = 84, Aspect = Aspect.AspectFill };
         var url = bild.Url;
-        _ = Task.Run(async () =>
-        {
-            var src = await _apiService.GetImageAsync(url);
-            if (src != null) MainThread.BeginInvokeOnMainThread(() => image.Source = src);
-        });
+        LadeBild(image, url);
         imgBorder.Content = image;
         grid.Children.Add(imgBorder);
 
@@ -873,13 +914,21 @@ public partial class AufgabePage : ContentPage
 
     private async Task OnPutzlisteDeleteFoto(PutzlisteBild bild, View thumb, PutzlisteEintrag entry)
     {
-        bool confirm = await DisplayAlertAsync("Foto löschen", "Dieses Foto wirklich löschen?", "Löschen", "Abbrechen");
-        if (!confirm) return;
-        var resp = await _apiService.DeletePutzlisteFotoAsync(bild.Id);
-        if (!resp.Success) return;
-        if (entry.Fotos != null) entry.Fotos.RemoveAll(f => f.Id == bild.Id);
-        if (thumb.Parent is Microsoft.Maui.Controls.Layout layout)
-            layout.Children.Remove(thumb);
+        try
+        {
+            bool confirm = await DisplayAlertAsync("Foto löschen", "Dieses Foto wirklich löschen?", "Löschen", "Abbrechen");
+            if (!confirm) return;
+            var resp = await _apiService.DeletePutzlisteFotoAsync(bild.Id);
+            if (!resp.Success) return;
+            if (entry.Fotos != null) entry.Fotos.RemoveAll(f => f.Id == bild.Id);
+            if (thumb.Parent is Microsoft.Maui.Controls.Layout layout)
+                layout.Children.Remove(thumb);
+        }
+        catch (Exception ex)
+        {
+            // Wird aus async void Clicked-Lambda aufgerufen - nie werfen lassen
+            System.Diagnostics.Debug.WriteLine($"[AufgabePage] Foto delete error: {ex.Message}");
+        }
     }
 
     #endregion
@@ -902,10 +951,11 @@ public partial class AufgabePage : ContentPage
             ColumnSpacing = 12
         };
 
-        // First photo thumbnail
-        if (item.HasPhotos && item.Photos != null)
+        // First photo thumbnail (Liste kann leer/URLs können null sein)
+        if (item.HasPhotos && item.Photos != null && item.Photos.Count > 0
+            && !string.IsNullOrEmpty(item.Photos[0].ThumbnailUrl ?? item.Photos[0].Url))
         {
-            var imageUrl = item.Photos[0].ThumbnailUrl ?? item.Photos[0].Url;
+            var imageUrl = item.Photos[0].ThumbnailUrl ?? item.Photos[0].Url!;
             var imgBorder = new Border
             {
                 StrokeShape = new RoundRectangle { CornerRadius = 10 },
@@ -916,12 +966,7 @@ public partial class AufgabePage : ContentPage
             };
             var image = new Image { WidthRequest = 70, HeightRequest = 70, Aspect = Aspect.AspectFill };
 
-            _ = Task.Run(async () =>
-            {
-                var imageSource = await _apiService.GetImageAsync(imageUrl);
-                if (imageSource != null)
-                    MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
-            });
+            LadeBild(image, imageUrl);
 
             imgBorder.Content = image;
             grid.Children.Add(imgBorder);
@@ -996,7 +1041,7 @@ public partial class AufgabePage : ContentPage
                 {
                     await LoadTaskAsync();
                 }
-                else if (IsNetworkError(response.Error))
+                else if (NetworkErrorHelper.IsNetworkError(response.Error))
                 {
                     await DisplayAlertAsync(
                         Translations.Get("no_connection"),
@@ -1010,7 +1055,7 @@ public partial class AufgabePage : ContentPage
             }
             catch (Exception ex)
             {
-                if (IsNetworkError(ex.Message))
+                if (NetworkErrorHelper.IsNetworkError(ex.Message))
                 {
                     await DisplayAlertAsync(
                         Translations.Get("no_connection"),
@@ -1201,13 +1246,8 @@ public partial class AufgabePage : ContentPage
                 };
                 var image = new Image { Aspect = Aspect.AspectFill };
 
-                // Load image async
-                _ = Task.Run(async () =>
-                {
-                    var imageSource = await _apiService.GetImageAsync(photoCopy.ThumbnailUrl ?? photoCopy.Url);
-                    if (imageSource != null)
-                        MainThread.BeginInvokeOnMainThread(() => image.Source = imageSource);
-                });
+                // Load image async (URLs können null sein)
+                LadeBild(image, photoCopy.ThumbnailUrl ?? photoCopy.Url);
 
                 imageContainer.Content = image;
 
@@ -1472,7 +1512,7 @@ public partial class AufgabePage : ContentPage
                 {
                     await LoadTaskAsync();
                 }
-                else if (IsNetworkError(error))
+                else if (NetworkErrorHelper.IsNetworkError(error))
                 {
                     // For updates we can't easily queue, show offline message
                     await DisplayAlertAsync(
@@ -1501,7 +1541,7 @@ public partial class AufgabePage : ContentPage
                     }
                     await LoadTaskAsync();
                 }
-                else if (IsNetworkError(error))
+                else if (NetworkErrorHelper.IsNetworkError(error))
                 {
                     // Queue for offline sync
                     var photoBytes = _selectedPhotos.Select(p => p.Bytes).ToList();
@@ -1520,7 +1560,7 @@ public partial class AufgabePage : ContentPage
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Save error: {ex.Message}");
-            if (IsNetworkError(ex.Message) && !_editingItemId.HasValue)
+            if (NetworkErrorHelper.IsNetworkError(ex.Message) && !_editingItemId.HasValue)
             {
                 // Queue for offline sync
                 var photoBytes = _selectedPhotos.Select(p => p.Bytes).ToList();
@@ -1530,7 +1570,7 @@ public partial class AufgabePage : ContentPage
                     Translations.Get("saved_offline"),
                     Translations.Get("ok"));
             }
-            else if (IsNetworkError(ex.Message))
+            else if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 await DisplayAlertAsync(
                     Translations.Get("no_connection"),
@@ -1629,21 +1669,6 @@ public partial class AufgabePage : ContentPage
 
     #region Network Error Handling
 
-    private static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
-    }
 
     #endregion
 }

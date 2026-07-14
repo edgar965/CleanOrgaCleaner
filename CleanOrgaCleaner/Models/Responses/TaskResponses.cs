@@ -33,21 +33,6 @@ public class ChecklistToggleResponse
 }
 
 /// <summary>
-/// Response from Aufgabe detail API
-/// </summary>
-public class AufgabeDetailResponse
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-
-    [JsonPropertyName("task")]
-    public CleaningTask? Task { get; set; }
-
-    [JsonPropertyName("error")]
-    public string? Error { get; set; }
-}
-
-/// <summary>
 /// Log entry for task history
 /// </summary>
 public class LogEntry

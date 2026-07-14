@@ -47,7 +47,10 @@ public class ApiService
     public bool IsOnline => WebSocketService.Instance.IsOnline;
 
     // Task cache - stores tasks loaded from today-data
-    private Dictionary<int, CleaningTask> _taskCache = new();
+    // ConcurrentDictionary: wird auf Thread-Pool-Threads (GetTodayDataAsync in
+    // Task.Run) geschrieben und parallel gelesen - ein normales Dictionary
+    // kann dabei intern korrumpieren
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, CleaningTask> _taskCache = new();
 
     public static ApiService Instance
     {
@@ -498,6 +501,9 @@ public class ApiService
     public Task<TodayDataResponse> GetTodayDataAsync()
     {
         // iOS: Run on thread pool to avoid UI thread deadlock (same pattern as LoginAsync)
+        // WICHTIG: Fehler werden NICHT geschluckt, sondern weitergeworfen -
+        // nur so kann die TodayPage auf den Offline-Cache zurückfallen, statt
+        // eine leere Liste anzuzeigen (und den Cache damit zu überschreiben).
         return Task.Run(async () =>
         {
             try
@@ -509,33 +515,38 @@ public class ApiService
                 var response = await _httpClient.GetAsync($"/mobile/api/today-data/?_={cacheBuster}").ConfigureAwait(false);
                 WriteLog($"[API] GetAsync DONE: {response.StatusCode}");
 
-                if (response.IsSuccessStatusCode)
+                if (!response.IsSuccessStatusCode)
                 {
-                    WriteLog("[API] ReadAsStringAsync START");
-                    var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    WriteLog($"[API] ReadAsStringAsync DONE: {json.Length} chars");
-
-                    WriteLog("[API] JsonSerializer.Deserialize START");
-                    var data = JsonSerializer.Deserialize<TodayDataResponse>(json, _jsonOptions) ?? new TodayDataResponse();
-                    WriteLog($"[API] Deserialize DONE: {data.Tasks?.Count ?? 0} tasks");
-
-                    // Cache tasks
-                    _taskCache.Clear();
-                    foreach (var task in data.Tasks)
-                    {
-                        _taskCache[task.Id] = task;
-                    }
-
-                    WriteLog("[API] GetTodayDataAsync SUCCESS");
-                    return data;
+                    WriteLog($"[API] GetTodayDataAsync FAILED: {response.StatusCode}");
+                    // Eigener Typ: Server hat GEANTWORTET (kein Netzwerkproblem).
+                    // Die TodayPage unterscheidet darueber Server- vs. Netzfehler,
+                    // statt fehleranfälliger ex.Message-Strings zu matchen.
+                    throw new ServerAntwortFehler((int)response.StatusCode);
                 }
-                WriteLog($"[API] GetTodayDataAsync FAILED: {response.StatusCode}");
+
+                WriteLog("[API] ReadAsStringAsync START");
+                var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                WriteLog($"[API] ReadAsStringAsync DONE: {json.Length} chars");
+
+                WriteLog("[API] JsonSerializer.Deserialize START");
+                var data = JsonSerializer.Deserialize<TodayDataResponse>(json, _jsonOptions) ?? new TodayDataResponse();
+                WriteLog($"[API] Deserialize DONE: {data.Tasks?.Count ?? 0} tasks");
+
+                // Cache tasks (Tasks kann bei unerwartetem JSON null sein)
+                _taskCache.Clear();
+                foreach (var task in data.Tasks ?? new List<CleaningTask>())
+                {
+                    _taskCache[task.Id] = task;
+                }
+
+                WriteLog("[API] GetTodayDataAsync SUCCESS");
+                return data;
             }
             catch (Exception ex)
             {
                 WriteLog($"[API] GetTodayDataAsync ERROR: {ex.Message}");
+                throw;
             }
-            return new TodayDataResponse();
         });
     }
 
@@ -950,11 +961,6 @@ public class ApiService
         }
     }
 
-    public async Task<ApiResponse> UpdateTaskNotesAsync(int taskId, string notes)
-    {
-        return await SaveTaskNoteAsync(taskId, notes).ConfigureAwait(false);
-    }
-
     #region Task Logs
 
     public async Task<List<LogEntry>> GetTaskLogsAsync(int taskId)
@@ -981,34 +987,6 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"GetTaskLogs: EXCEPTION - {ex.Message}");
             return new List<LogEntry>();
-        }
-    }
-
-    #endregion
-
-    #region Task Delete
-
-    public async Task<ApiResponse> DeleteTaskAsync(int taskId)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteTask: Deleting task {taskId}");
-            var response = await _httpClient.PostAsync($"/api/cleaning-task/{taskId}/delete/", new StringContent("{}")).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"DeleteTask: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteTask: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
         }
     }
 
@@ -1190,7 +1168,10 @@ public class ApiService
     {
         try
         {
-            var response = await _httpClient.PostAsync("/mobile/api/chat/delete/", null).ConfigureAwait(false);
+            // partner_id mitgeben - sonst löscht der Server den Default-Chat
+            // (Admin) statt des tatsächlich geöffneten Chats
+            var response = await _httpClient.PostAsync(
+                $"/mobile/api/chat/delete/?partner_id={Uri.EscapeDataString(receiverId)}", null).ConfigureAwait(false);
             var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
 
             return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
@@ -1322,26 +1303,6 @@ public class ApiService
         }
     }
 
-    public async Task<AuftragDetailResponse> GetAuftragAsync(int taskId)
-    {
-        try
-        {
-            var response = await _httpClient.GetAsync($"/mobile/api/task/{taskId}/").ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            if (response.IsSuccessStatusCode)
-            {
-                return JsonSerializer.Deserialize<AuftragDetailResponse>(responseText, _jsonOptions)
-                    ?? new AuftragDetailResponse { Success = false, Error = "Parse error" };
-            }
-            return new AuftragDetailResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}" };
-        }
-        catch (Exception ex)
-        {
-            return new AuftragDetailResponse { Success = false, Error = ex.Message };
-        }
-    }
-
     public async Task<ApiResponse> CreateAuftragAsync(string name, string plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
     {
         try
@@ -1467,109 +1428,6 @@ public class ApiService
         {
             System.Diagnostics.Debug.WriteLine($"GetTaskImages: EXCEPTION - {ex.Message}");
             return new List<Views.TaskImageInfo>();
-        }
-    }
-
-    public async Task<ApiResponse> UploadTaskImageAsync(int taskId, Stream imageStream, string fileName, string? note)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: Start - TaskId={taskId}, FileName={fileName}");
-
-            using var memoryStream = new MemoryStream();
-            await imageStream.CopyToAsync(memoryStream).ConfigureAwait(false);
-            var bytes = memoryStream.ToArray();
-
-            var formData = new MultipartFormDataContent();
-            var fileContent = new ByteArrayContent(bytes);
-
-            var extension = Path.GetExtension(fileName).ToLowerInvariant();
-            var contentType = extension switch
-            {
-                ".png" => "image/png",
-                ".gif" => "image/gif",
-                ".webp" => "image/webp",
-                _ => "image/jpeg"
-            };
-            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
-
-            // Neue unified API - photos statt image, description statt notiz
-            formData.Add(fileContent, "photos", fileName);
-            formData.Add(new StringContent("Anmerkung"), "name");
-            if (!string.IsNullOrEmpty(note))
-                formData.Add(new StringContent(note), "description");
-
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: POST /api/task/{taskId}/items/anmerkung/create/");
-            var response = await _httpClient.PostAsync($"/api/task/{taskId}/items/anmerkung/create/", formData).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UploadTaskImage: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> UpdateTaskImageAsync(int imageId, string? note)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: Update image {imageId}");
-            // Neue unified API - description statt notiz
-            var data = new { description = note ?? "" };
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync($"/api/image-list/{imageId}/update/", content).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: /api/image-list/{imageId}/update/ - {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"UpdateTaskImage: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
-        }
-    }
-
-    public async Task<ApiResponse> DeleteTaskImageAsync(int imageId)
-    {
-        try
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: Delete image {imageId}");
-            // Neue unified API
-            var response = await _httpClient.PostAsync($"/api/image-list/{imageId}/delete/", new StringContent("{}")).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: /api/image-list/{imageId}/delete/ - {response.StatusCode} - {responseText}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return new ApiResponse { Success = false, Error = $"HTTP {(int)response.StatusCode}: {responseText}" };
-            }
-
-            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
-                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"DeleteTaskImage: EXCEPTION - {ex.Message}");
-            return new ApiResponse { Success = false, Error = ex.Message };
         }
     }
 
@@ -1805,44 +1663,6 @@ public class ApiService
 
     #endregion
 
-    #region Translation
-
-    /// <summary>
-    /// Translates text to the target language using the server API
-    /// </summary>
-    public async Task<string?> TranslateTextAsync(string text, string targetLanguage)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-            return text;
-
-        try
-        {
-            var data = new { text, target_language = targetLanguage };
-            var json = JsonSerializer.Serialize(data);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await _httpClient.PostAsync("/api/translate-preview/", content).ConfigureAwait(false);
-            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-
-            if (response.IsSuccessStatusCode)
-            {
-                using var doc = JsonDocument.Parse(responseText);
-                if (doc.RootElement.TryGetProperty("translated_text", out var translated))
-                {
-                    return translated.GetString() ?? text;
-                }
-            }
-            return text;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Translation] Error: {ex.Message}");
-            return text;
-        }
-    }
-
-    #endregion
-
     #region Crash Reporting
 
     /// <summary>
@@ -1878,4 +1698,19 @@ public class ApiService
 
     #endregion
 
+}
+/// <summary>
+/// Der Server hat geantwortet, aber mit Fehlerstatus (z.B. 500 während eines
+/// Deploys). Bewusst KEIN Netzwerkfehler: Aufrufer wie TodayPage dürfen dann
+/// nicht auf den (evtl. tagealten) Offline-Cache zurueckfallen.
+/// </summary>
+public class ServerAntwortFehler : Exception
+{
+    public int StatusCode { get; }
+
+    public ServerAntwortFehler(int statusCode)
+        : base($"Server antwortete mit HTTP {statusCode}")
+    {
+        StatusCode = statusCode;
+    }
 }

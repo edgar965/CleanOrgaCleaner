@@ -91,52 +91,12 @@ public class OfflineQueueService : IDisposable
     /// <summary>
     /// Enqueue a chat message for later sending
     /// </summary>
-    public async Task EnqueueChatMessageAsync(string message)
+    public async Task EnqueueChatMessageAsync(string message, string receiverId = "admin")
     {
-        var payload = JsonSerializer.Serialize(new { message });
+        // Empfänger mitspeichern - sonst landet die Nachricht beim Reconnect
+        // immer beim Admin, auch wenn sie an einen Kollegen ging
+        var payload = JsonSerializer.Serialize(new { message, receiver = receiverId });
         await EnqueueAsync("chat", payload, priority: 1).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Enqueue a task status change
-    /// </summary>
-    public async Task EnqueueStatusChangeAsync(int taskId, string action, string? notes = null)
-    {
-        var payload = JsonSerializer.Serialize(new { taskId, action, notes, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("status", payload, priority: 2).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Enqueue an image upload
-    /// </summary>
-    public async Task EnqueueImageUploadAsync(int taskId, byte[] imageBytes, string? notes = null)
-    {
-        var payload = JsonSerializer.Serialize(new
-        {
-            taskId,
-            imageBase64 = Convert.ToBase64String(imageBytes),
-            notes,
-            timestamp = DateTime.UtcNow
-        });
-        await EnqueueAsync("image", payload, priority: 3).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Enqueue a checklist item toggle
-    /// </summary>
-    public async Task EnqueueChecklistToggleAsync(int taskId, int itemId, bool completed)
-    {
-        var payload = JsonSerializer.Serialize(new { taskId, itemId, completed, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("checklist", payload, priority: 2).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Enqueue notes update
-    /// </summary>
-    public async Task EnqueueNotesUpdateAsync(int taskId, string notes)
-    {
-        var payload = JsonSerializer.Serialize(new { taskId, notes, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("notes", payload, priority: 2).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -241,7 +201,7 @@ public class OfflineQueueService : IDisposable
         System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Enqueued {operationType} (ID: {item.Id})");
 
         var count = await GetQueueCountAsync().ConfigureAwait(false);
-        OnQueueCountChanged?.Invoke(count);
+        UiSicher.SichererInvoke(() => OnQueueCountChanged?.Invoke(count), "Queue");
     }
 
     /// <summary>
@@ -297,7 +257,17 @@ public class OfflineQueueService : IDisposable
                     }
                     else
                     {
+                        // Fehlversuch: Item BLEIBT in der Queue und wird beim
+                        // nächsten Reconnect erneut versucht. Bewusst KEIN Auto-
+                        // Verwerfen: Success=false kann Transportfehler, ein
+                        // transientes 5xx (Deploy/Überlast) ODER eine echte
+                        // Ablehnung sein - am Queue-Level nicht unterscheidbar.
+                        // Für eine App, deren Offline-Aktionen Arbeitszeiten und
+                        // Problemmeldungen sind, wiegt "nie Daten verlieren"
+                        // schwerer als "Queue immer klein". Der RetryCount dient
+                        // nur der Diagnose.
                         item.RetryCount++;
+                        item.LastError = $"Fehlversuch {item.RetryCount} ({item.OperationType})";
                         await _database!.UpdateAsync(item).ConfigureAwait(false);
                     }
                 }
@@ -306,7 +276,6 @@ public class OfflineQueueService : IDisposable
                     item.RetryCount++;
                     item.LastError = ex.Message;
                     await _database!.UpdateAsync(item).ConfigureAwait(false);
-                    OnItemSyncFailed?.Invoke(item, ex.Message);
                     System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Failed {item.OperationType}: {ex.Message}");
                 }
 
@@ -315,7 +284,7 @@ public class OfflineQueueService : IDisposable
             }
 
             var count = await GetQueueCountAsync().ConfigureAwait(false);
-            OnQueueCountChanged?.Invoke(count);
+            UiSicher.SichererInvoke(() => OnQueueCountChanged?.Invoke(count), "Queue");
         }
         finally
         {
@@ -323,6 +292,7 @@ public class OfflineQueueService : IDisposable
             _processingLock.Release();
         }
     }
+
 
     /// <summary>
     /// Process a single queue item
@@ -367,7 +337,10 @@ public class OfflineQueueService : IDisposable
         var message = data.GetProperty("message").GetString();
         if (string.IsNullOrEmpty(message)) return true;
 
-        var response = await api.SendChatMessageAsync(message).ConfigureAwait(false);
+        // Empfänger aus dem Payload; alte Queue-Einträge (ohne receiver) gehen
+        // weiterhin an den Admin
+        var receiver = data.TryGetProperty("receiver", out var r) ? (r.GetString() ?? "admin") : "admin";
+        var response = await api.SendChatMessageAsync(message, receiver).ConfigureAwait(false);
         return response.Success;
     }
 
@@ -507,16 +480,6 @@ public class OfflineQueueService : IDisposable
 
         var response = await api.UpdateTaskStateAsync(taskId, newState).ConfigureAwait(false);
         return response.Success;
-    }
-
-    /// <summary>
-    /// Clear all items from the queue
-    /// </summary>
-    public async Task ClearQueueAsync()
-    {
-        await InitializeAsync().ConfigureAwait(false);
-        await _database!.DeleteAllAsync<OfflineQueueItem>().ConfigureAwait(false);
-        OnQueueCountChanged?.Invoke(0);
     }
 
     public void Dispose()

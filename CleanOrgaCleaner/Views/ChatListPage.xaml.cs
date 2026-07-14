@@ -23,13 +23,21 @@ public partial class ChatListPage : ContentPage
     {
         base.OnAppearing();
 
-        // Initialize header (handles translations, user info, work status, offline banner)
-        _ = Header.InitializeAsync();
-        Header.SetPageTitle("chat");
+        try
+        {
+            // Initialize header (handles translations, user info, work status, offline banner)
+            _ = Header.InitializeAsync();
+            Header.SetPageTitle("chat");
 
-        ApplyTranslations();
-        System.Diagnostics.Debug.WriteLine("[ChatListPage] OnAppearing called");
-        _ = LoadCleanersAsync();
+            ApplyTranslations();
+            System.Diagnostics.Debug.WriteLine("[ChatListPage] OnAppearing called");
+            _ = LoadCleanersAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] OnAppearing error: {ex.Message}");
+        }
     }
 
     private void ApplyTranslations()
@@ -83,17 +91,34 @@ public partial class ChatListPage : ContentPage
 
     private async void OnAdminChatTapped(object sender, EventArgs e)
     {
-        var avatarEncoded = Uri.EscapeDataString(_adminAvatar);
-        await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin&partnerName=Admin&partnerAvatar={avatarEncoded}");
+        try
+        {
+            if (Shell.Current == null) return;
+            var avatarEncoded = Uri.EscapeDataString(_adminAvatar);
+            await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin&partnerName=Admin&partnerAvatar={avatarEncoded}");
+        }
+        catch (Exception ex)
+        {
+            // async void + Navigation: Shell.Current kann null sein, GoToAsync werfen
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Admin chat nav error: {ex.Message}");
+        }
     }
 
     private async void OnCleanerChatTapped(object sender, EventArgs e)
     {
-        if (sender is Button btn && btn.CommandParameter is CleanerInfo cleaner)
+        try
         {
-            var partnerName = Uri.EscapeDataString(cleaner.Name ?? "Kollege");
-            var partnerAvatar = Uri.EscapeDataString(cleaner.Avatar ?? "");
-            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
+            if (Shell.Current == null) return;
+            if (sender is Button btn && btn.CommandParameter is CleanerInfo cleaner)
+            {
+                var partnerName = Uri.EscapeDataString(cleaner.Name ?? "Kollege");
+                var partnerAvatar = Uri.EscapeDataString(cleaner.Avatar ?? "");
+                await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Cleaner chat nav error: {ex.Message}");
         }
     }
 }

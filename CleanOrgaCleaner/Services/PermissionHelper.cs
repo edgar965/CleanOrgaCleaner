@@ -38,22 +38,4 @@ public static class PermissionHelper
         }
     }
 #endif
-
-    /// <summary>
-    /// Checks camera permission and requests if needed. Returns true if granted.
-    /// </summary>
-    public static async Task<bool> CheckAndRequestCameraPermissionAsync()
-    {
-        var status = await Permissions.CheckStatusAsync<Permissions.Camera>();
-        System.Diagnostics.Debug.WriteLine($"[PermissionHelper] Camera status: {status}");
-
-        if (status == PermissionStatus.Granted)
-            return true;
-
-        // Try to request
-        status = await Permissions.RequestAsync<Permissions.Camera>();
-        System.Diagnostics.Debug.WriteLine($"[PermissionHelper] Camera after request: {status}");
-
-        return status == PermissionStatus.Granted;
-    }
 }

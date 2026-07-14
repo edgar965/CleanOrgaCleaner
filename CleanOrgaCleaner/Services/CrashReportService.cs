@@ -75,7 +75,7 @@ public class CrashReportService
                 reports = reports.Skip(reports.Count - 10).ToList();
             }
 
-            var json = JsonSerializer.Serialize(reports, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
             File.WriteAllText(_crashReportFile, json);
 
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Saved crash report: {ex.Message}");
@@ -96,7 +96,7 @@ public class CrashReportService
             if (File.Exists(_crashReportFile))
             {
                 var json = File.ReadAllText(_crashReportFile);
-                return JsonSerializer.Deserialize<List<CrashReport>>(json) ?? new List<CrashReport>();
+                return JsonSerializer.Deserialize(json, Json.AppJsonContext.Default.ListCrashReport) ?? new List<CrashReport>();
             }
         }
         catch (Exception ex)
@@ -104,15 +104,6 @@ public class CrashReportService
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Failed to load crash reports: {ex.Message}");
         }
         return new List<CrashReport>();
-    }
-
-    /// <summary>
-    /// Check if there are pending crash reports
-    /// </summary>
-    public bool HasPendingReports()
-    {
-        var reports = LoadCrashReports();
-        return reports.Any(r => !r.Sent);
     }
 
     /// <summary>
@@ -153,7 +144,7 @@ public class CrashReportService
             }
 
             // Save updated reports (with Sent flags)
-            var json = JsonSerializer.Serialize(reports, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
             File.WriteAllText(_crashReportFile, json);
 
             // Clean up old sent reports (keep only last 5 sent ones)
@@ -179,23 +170,8 @@ public class CrashReportService
 
             if (keepReports.Count < reports.Count)
             {
-                var json = JsonSerializer.Serialize(keepReports, new JsonSerializerOptions { WriteIndented = true });
+                var json = JsonSerializer.Serialize(keepReports, Json.AppJsonContext.Default.ListCrashReport);
                 File.WriteAllText(_crashReportFile, json);
-            }
-        }
-        catch { }
-    }
-
-    /// <summary>
-    /// Clear all crash reports
-    /// </summary>
-    public void ClearAllReports()
-    {
-        try
-        {
-            if (File.Exists(_crashReportFile))
-            {
-                File.Delete(_crashReportFile);
             }
         }
         catch { }

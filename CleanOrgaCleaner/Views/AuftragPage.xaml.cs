@@ -34,10 +34,18 @@ public partial class AuftragPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        await Header.InitializeAsync();
-        Header.SetPageTitle("task");
-        ApplyTranslations();
-        await LoadDataAsync();
+        try
+        {
+            await Header.InitializeAsync();
+            Header.SetPageTitle("task");
+            ApplyTranslations();
+            await LoadDataAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] OnAppearing error: {ex.Message}");
+        }
     }
 
     private void ApplyTranslations()
@@ -289,63 +297,28 @@ public partial class AuftragPage : ContentPage
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        var name = TaskNameEntry.Text?.Trim();
-        if (string.IsNullOrEmpty(name))
+        try
         {
-            await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
-            return;
-        }
-
-        var plannedDate = $"{TaskDatePicker.Date:yyyy-MM-dd}";
-        int? apartmentId = (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id;
-        int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
-        var hinweis = TaskHinweisEditor.Text;
-
-        var status = _currentStatus;
-
-        // Check if we're offline
-        var isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
-
-        if (isOffline)
-        {
-            // Queue the operation for later sync
-            var offlineQueue = OfflineQueueService.Instance;
-            if (_isNewTask)
+            var name = TaskNameEntry.Text?.Trim();
+            if (string.IsNullOrEmpty(name))
             {
-                await offlineQueue.EnqueueTaskCreateAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
-            }
-            else
-            {
-                await offlineQueue.EnqueueTaskUpdateAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+                await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
+                return;
             }
 
-            TaskPopupOverlay.IsVisible = false;
-            await DisplayAlert("Offline", Translations.Get("saved"), Translations.Get("ok"));
-            return;
-        }
+            var plannedDate = $"{TaskDatePicker.Date:yyyy-MM-dd}";
+            int? apartmentId = (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id;
+            int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
+            var hinweis = TaskHinweisEditor.Text;
 
-        ApiResponse result;
-        if (_isNewTask)
-        {
-            result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
-        }
-        else
-        {
-            result = await _apiService.UpdateAuftragAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
-        }
+            var status = _currentStatus;
 
-        if (result.Success)
-        {
-            // Close dialog and refresh data for all cases
-            TaskPopupOverlay.IsVisible = false;
-            await LoadDataAsync();
-        }
-        else
-        {
-            // If network error, queue for offline sync
-            var isNetworkError = IsNetworkError(result.Error);
-            if (isNetworkError)
+            // Check if we're offline
+            var isOffline = Connectivity.Current.NetworkAccess != NetworkAccess.Internet;
+
+            if (isOffline)
             {
+                // Queue the operation for later sync
                 var offlineQueue = OfflineQueueService.Instance;
                 if (_isNewTask)
                 {
@@ -357,33 +330,59 @@ public partial class AuftragPage : ContentPage
                 }
 
                 TaskPopupOverlay.IsVisible = false;
-                await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
+                await DisplayAlert("Offline", Translations.Get("saved"), Translations.Get("ok"));
+                return;
+            }
+
+            ApiResponse result;
+            if (_isNewTask)
+            {
+                result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
             }
             else
             {
-                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_update_error"), Translations.Get("ok"));
+                result = await _apiService.UpdateAuftragAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
             }
+
+            if (result.Success)
+            {
+                // Close dialog and refresh data for all cases
+                TaskPopupOverlay.IsVisible = false;
+                await LoadDataAsync();
+            }
+            else
+            {
+                // If network error, queue for offline sync
+                var isNetworkError = NetworkErrorHelper.IsNetworkError(result.Error);
+                if (isNetworkError)
+                {
+                    var offlineQueue = OfflineQueueService.Instance;
+                    if (_isNewTask)
+                    {
+                        await offlineQueue.EnqueueTaskCreateAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+                    }
+                    else
+                    {
+                        await offlineQueue.EnqueueTaskUpdateAsync(_currentTask!.Id, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+                    }
+
+                    TaskPopupOverlay.IsVisible = false;
+                    await DisplayAlert(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
+                }
+                else
+                {
+                    await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_update_error"), Translations.Get("ok"));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // async void: ungefangene Exception (Timeout, JSON, ...) = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] Save error: {ex.Message}");
+            await UiSicher.FehlerAlertAsync();
         }
     }
 
-    /// <summary>
-    /// Check if error message indicates a network problem
-    /// </summary>
-    private static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
-    }
 
     private void OnCancelClicked(object sender, EventArgs e)
     {
@@ -404,25 +403,36 @@ public partial class AuftragPage : ContentPage
 
     private async void OnDeleteTaskClicked(object sender, EventArgs e)
     {
-        if (_currentTask == null) return;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("delete_task"),
-            Translations.Get("confirm_delete_task"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm) return;
-
-        var result = await _apiService.DeleteAuftragAsync(_currentTask.Id);
-        if (result.Success)
+        try
         {
-            TaskPopupOverlay.IsVisible = false;
-            await LoadDataAsync();
+            if (_currentTask == null) return;
+
+            // Auch der Bestätigungs-Dialog kann werfen (Seite im Teardown) -
+            // async void braucht den Guard um den kompletten Rumpf
+            var confirm = await DisplayAlert(
+                Translations.Get("delete_task"),
+                Translations.Get("confirm_delete_task"),
+                Translations.Get("yes"),
+                Translations.Get("no"));
+
+            if (!confirm) return;
+
+            var result = await _apiService.DeleteAuftragAsync(_currentTask.Id);
+            if (result.Success)
+            {
+                TaskPopupOverlay.IsVisible = false;
+                await LoadDataAsync();
+            }
+            else
+            {
+                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_delete_error"), Translations.Get("ok"));
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_delete_error"), Translations.Get("ok"));
+            // async void: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] Delete error: {ex.Message}");
+            await UiSicher.FehlerAlertAsync();
         }
     }
 
@@ -553,39 +563,48 @@ public partial class AuftragPage : ContentPage
 
     private async void OnAddAnmerkungClicked(object sender, EventArgs e)
     {
-        // If new task, save it first automatically
-        if (_isNewTask)
+        try
         {
-            var name = TaskNameEntry.Text?.Trim();
-            if (string.IsNullOrEmpty(name))
+            // If new task, save it first automatically
+            if (_isNewTask)
             {
-                await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
-                return;
+                var name = TaskNameEntry.Text?.Trim();
+                if (string.IsNullOrEmpty(name))
+                {
+                    await DisplayAlert(Translations.Get("error"), Translations.Get("task_name_required"), Translations.Get("ok"));
+                    return;
+                }
+
+                var plannedDate = $"{TaskDatePicker.Date:yyyy-MM-dd}";
+                int? apartmentId = (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id;
+                int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
+                var hinweis = TaskHinweisEditor.Text;
+
+                var status = _currentStatus;
+
+                var result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
+                if (!result.Success || !result.TaskId.HasValue)
+                {
+                    await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_create_error"), Translations.Get("ok"));
+                    return;
+                }
+
+                // Switch to edit mode
+                _isNewTask = false;
+                _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
+                PopupTitle.Text = Translations.Get("edit_auftrag");
+                BtnDelete.IsVisible = true;
+                _ = LoadDataAsync();
             }
 
-            var plannedDate = $"{TaskDatePicker.Date:yyyy-MM-dd}";
-            int? apartmentId = (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id;
-            int? aufgabenartId = (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id;
-            var hinweis = TaskHinweisEditor.Text;
-
-            var status = _currentStatus;
-
-            var result = await _apiService.CreateAuftragAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, _assignments);
-            if (!result.Success || !result.TaskId.HasValue)
-            {
-                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("task_create_error"), Translations.Get("ok"));
-                return;
-            }
-
-            // Switch to edit mode
-            _isNewTask = false;
-            _currentTask = new Auftrag { Id = result.TaskId.Value, Name = name };
-            PopupTitle.Text = Translations.Get("edit_auftrag");
-            BtnDelete.IsVisible = true;
-            _ = LoadDataAsync();
+            OpenAnmerkungDialog(null);
         }
-
-        OpenAnmerkungDialog(null);
+        catch (Exception ex)
+        {
+            // async void: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] AddAnmerkung error: {ex.Message}");
+            await UiSicher.FehlerAlertAsync();
+        }
     }
 
     private void OpenAnmerkungDialog(ImageListDescription? anmerkung)
@@ -750,57 +769,77 @@ public partial class AuftragPage : ContentPage
 
     private async Task DeletePhotoAsync(int photoId)
     {
-        var confirm = await DisplayAlert(
-            Translations.Get("delete_image"),
-            Translations.Get("delete_image_confirm"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm) return;
-
-        var result = await _apiService.DeleteImageListPhotoAsync(photoId);
-        if (result.Success)
+        try
         {
-            // Refresh anmerkungen
-            if (_currentTask != null)
+            var confirm = await DisplayAlert(
+                Translations.Get("delete_image"),
+                Translations.Get("delete_image_confirm"),
+                Translations.Get("yes"),
+                Translations.Get("no"));
+
+            if (!confirm) return;
+
+            var result = await _apiService.DeleteImageListPhotoAsync(photoId);
+            if (result.Success)
             {
-                LoadAnmerkungen(_currentTask.Id);
-                // Re-open dialog with refreshed data
-                var updated = _anmerkungen.FirstOrDefault(a => a.Id == _currentAnmerkung?.Id);
-                if (updated != null)
-                    OpenAnmerkungDialog(updated);
-                else
-                    ImageListDescriptionDialog.IsVisible = false;
+                // Refresh anmerkungen
+                if (_currentTask != null)
+                {
+                    LoadAnmerkungen(_currentTask.Id);
+                    // Re-open dialog with refreshed data
+                    var updated = _anmerkungen.FirstOrDefault(a => a.Id == _currentAnmerkung?.Id);
+                    if (updated != null)
+                        OpenAnmerkungDialog(updated);
+                    else
+                        ImageListDescriptionDialog.IsVisible = false;
+                }
+            }
+            else
+            {
+                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
             }
         }
-        else
+        catch (Exception ex)
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+            // Wird aus async void Clicked-Lambda aufgerufen - nie werfen lassen
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] DeletePhoto error: {ex.Message}");
+            await UiSicher.FehlerAlertAsync();
         }
     }
 
     private async void OnDeleteAnmerkungClicked(object sender, EventArgs e)
     {
-        if (_currentAnmerkung == null) return;
-
-        var confirm = await DisplayAlert(
-            Translations.Get("delete_note"),
-            Translations.Get("delete_note_confirm"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
-
-        if (!confirm) return;
-
-        var result = await _apiService.DeleteImageListItemAsync(_currentAnmerkung.Id);
-        if (result.Success)
+        try
         {
-            ImageListDescriptionDialog.IsVisible = false;
-            if (_currentTask != null)
-                LoadAnmerkungen(_currentTask.Id);
+            if (_currentAnmerkung == null) return;
+
+            // Auch der Bestätigungs-Dialog kann werfen (Seite im Teardown) -
+            // async void braucht den Guard um den kompletten Rumpf
+            var confirm = await DisplayAlert(
+                Translations.Get("delete_note"),
+                Translations.Get("delete_note_confirm"),
+                Translations.Get("yes"),
+                Translations.Get("no"));
+
+            if (!confirm) return;
+
+            var result = await _apiService.DeleteImageListItemAsync(_currentAnmerkung.Id);
+            if (result.Success)
+            {
+                ImageListDescriptionDialog.IsVisible = false;
+                if (_currentTask != null)
+                    LoadAnmerkungen(_currentTask.Id);
+            }
+            else
+            {
+                await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await DisplayAlert(Translations.Get("error"), result.Error ?? Translations.Get("delete_error"), Translations.Get("ok"));
+            // async void: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[AuftragPage] DeleteAnmerkung error: {ex.Message}");
+            await UiSicher.FehlerAlertAsync();
         }
     }
 
@@ -980,7 +1019,7 @@ public partial class AuftragPage : ContentPage
                 if (!result.Success)
                 {
                     // Check for network error
-                    if (IsNetworkError(result.Error))
+                    if (NetworkErrorHelper.IsNetworkError(result.Error))
                     {
                         // Can't queue updates for existing items easily, show friendly error
                         await DisplayAlert(Translations.Get("no_connection"), Translations.Get("network_error_hint"), Translations.Get("ok"));
@@ -1003,7 +1042,7 @@ public partial class AuftragPage : ContentPage
                 if (!result.Success)
                 {
                     // Check for network error - queue for offline
-                    if (IsNetworkError(result.Error))
+                    if (NetworkErrorHelper.IsNetworkError(result.Error))
                     {
                         await OfflineQueueService.Instance.EnqueueImageListItemAsync(
                             _currentTask.Id, "anmerkung", name, description, _pendingAnmerkungPhotos);
@@ -1023,7 +1062,7 @@ public partial class AuftragPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"Save anmerkung error: {ex.Message}");
             // Check if exception is network related
-            if (IsNetworkError(ex.Message))
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 if (_currentAnmerkung == null)
                 {

@@ -87,36 +87,6 @@ public class Auftrag
 // TaskAssignments is defined in CleaningTask.cs
 
 /// <summary>
-/// Response for my tasks list
-/// </summary>
-public class AuftragsResponse
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-
-    [JsonPropertyName("tasks")]
-    public List<Auftrag>? Tasks { get; set; }
-
-    [JsonPropertyName("error")]
-    public string? Error { get; set; }
-}
-
-/// <summary>
-/// Response for task detail
-/// </summary>
-public class AuftragDetailResponse
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-
-    [JsonPropertyName("task")]
-    public Auftrag? Task { get; set; }
-
-    [JsonPropertyName("error")]
-    public string? Error { get; set; }
-}
-
-/// <summary>
 /// Apartment info for dropdown
 /// </summary>
 public class ApartmentInfo

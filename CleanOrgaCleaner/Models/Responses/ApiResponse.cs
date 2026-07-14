@@ -18,14 +18,6 @@ public class ApiResponse
 
     [JsonPropertyName("task_id")]
     public int? TaskId { get; set; }
-
-    /// <summary>
-    /// Get the error message or a default message
-    /// </summary>
-    public string GetErrorMessage(string defaultMessage = "Ein Fehler ist aufgetreten")
-    {
-        return Error ?? Message ?? defaultMessage;
-    }
 }
 
 /// <summary>

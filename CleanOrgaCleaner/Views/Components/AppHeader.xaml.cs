@@ -1,5 +1,6 @@
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
+using CleanOrgaCleaner.Views;
 
 namespace CleanOrgaCleaner.Views.Components;
 
@@ -18,8 +19,25 @@ public partial class AppHeader : ContentView
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
 
-        // Subscribe to connection status
-        _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+        // Subscribe/Unsubscribe über Loaded/Unloaded statt im Konstruktor:
+        // Header hängen sonst dauerhaft am WebSocket-Singleton (Speicherleck,
+        // und verwaiste Header aktualisieren abgebaute Views -> iOS-Crash)
+        Loaded += (s, e) =>
+        {
+            _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+            _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
+            // Banner mit dem AKTUELLEN Verbindungszustand abgleichen: während
+            // die Seite verdeckt/entladen war, verpasste Statuswechsel würden
+            // sonst bis zum nächsten Event einen falschen Banner zeigen.
+            // Nur wenn schon einmal eine Verbindung bestand - sonst blitzt
+            // der Banner beim allerersten Laden (Connect läuft noch) auf.
+            if (_webSocketService.WarSchonVerbunden)
+                UiSicher.AufMainThread(() => UpdateOfflineBanner(!_webSocketService.IsOnline), "AppHeader");
+        };
+        Unloaded += (s, e) =>
+        {
+            _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
+        };
 
         // Don't show offline banner on initial load
         UpdateOfflineBanner(false);
@@ -72,11 +90,6 @@ public partial class AppHeader : ContentView
         PageTitleLabel.Text = Translations.Get(titleKey);
     }
 
-    public void SetPageTitleDirect(string title)
-    {
-        PageTitleLabel.Text = title;
-    }
-
     public void UpdateUserInfo()
     {
         var username = _apiService.CleanerName ?? Preferences.Get("username", "");
@@ -85,10 +98,7 @@ public partial class AppHeader : ContentView
 
     private void OnConnectionStatusChanged(bool isConnected)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateOfflineBanner(!isConnected);
-        });
+        UiSicher.AufMainThread(() => UpdateOfflineBanner(!isConnected), "AppHeader");
     }
 
     public void UpdateOfflineBanner(bool showOffline)
@@ -153,16 +163,13 @@ public partial class AppHeader : ContentView
                     _isWorking = true;
                     UpdateWorkButton();
                 }
-                else if (IsNetworkError(result.Error))
+                else if (NetworkErrorHelper.IsNetworkError(result.Error))
                 {
                     // Queue for offline sync
                     await OfflineQueueService.Instance.EnqueueWorkStartAsync();
                     _isWorking = true;
                     UpdateWorkButton();
-                    await Shell.Current.CurrentPage.DisplayAlertAsync(
-                        Translations.Get("no_connection"),
-                        Translations.Get("saved_offline"),
-                        Translations.Get("ok"));
+                    await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
                 }
             }
             else
@@ -174,22 +181,16 @@ public partial class AppHeader : ContentView
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[AppHeader] Work toggle error: {ex.Message}");
-            if (IsNetworkError(ex.Message) && !_isWorking)
+            if (NetworkErrorHelper.IsNetworkError(ex.Message) && !_isWorking)
             {
                 await OfflineQueueService.Instance.EnqueueWorkStartAsync();
                 _isWorking = true;
                 UpdateWorkButton();
-                await Shell.Current.CurrentPage.DisplayAlertAsync(
-                    Translations.Get("no_connection"),
-                    Translations.Get("saved_offline"),
-                    Translations.Get("ok"));
+                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
             }
             else
             {
-                await Shell.Current.CurrentPage.DisplayAlertAsync(
-                    Translations.Get("error"),
-                    Translations.Get("network_error_hint"),
-                    Translations.Get("ok"));
+                await UiSicher.FehlerAlertAsync();
             }
         }
     }
@@ -210,30 +211,21 @@ public partial class AppHeader : ContentView
                 await OfflineQueueService.Instance.EnqueueWorkStopAsync();
                 _isWorking = false;
                 UpdateWorkButton();
-                await Shell.Current.CurrentPage.DisplayAlertAsync(
-                    Translations.Get("no_connection"),
-                    Translations.Get("saved_offline"),
-                    Translations.Get("ok"));
+                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
             }
         }
         catch (Exception ex)
         {
-            if (IsNetworkError(ex.Message))
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 await OfflineQueueService.Instance.EnqueueWorkStopAsync();
                 _isWorking = false;
                 UpdateWorkButton();
-                await Shell.Current.CurrentPage.DisplayAlertAsync(
-                    Translations.Get("no_connection"),
-                    Translations.Get("saved_offline"),
-                    Translations.Get("ok"));
+                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
             }
             else
             {
-                await Shell.Current.CurrentPage.DisplayAlertAsync(
-                    Translations.Get("error"),
-                    Translations.Get("network_error_hint"),
-                    Translations.Get("ok"));
+                await UiSicher.FehlerAlertAsync();
             }
         }
         finally
@@ -242,16 +234,6 @@ public partial class AppHeader : ContentView
         }
     }
 
-    private static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") || lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") || lowerError.Contains("connection") ||
-               lowerError.Contains("internet") || lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") || lowerError.Contains("failure") ||
-               lowerError.Contains("host") || lowerError.Contains("refused");
-    }
 
     private void OnWorkStopNoClicked(object sender, EventArgs e)
     {
@@ -281,12 +263,6 @@ public partial class AppHeader : ContentView
     }
 
     private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        MenuVisibilityChanged?.Invoke(this, false);
-    }
-
-    public void HideMenu()
     {
         MenuOverlayGrid.IsVisible = false;
         MenuVisibilityChanged?.Invoke(this, false);
@@ -326,11 +302,26 @@ public partial class AppHeader : ContentView
     {
         MenuOverlayGrid.IsVisible = false;
 
-        var confirm = await Shell.Current.CurrentPage.DisplayAlertAsync(
-            Translations.Get("logout"),
-            Translations.Get("really_logout"),
-            Translations.Get("yes"),
-            Translations.Get("no"));
+        // Shell.Current/CurrentPage können während Navigation null sein -
+        // dann Logout abbrechen statt mit NRE zu crashen (async void!)
+        var seite = Shell.Current?.CurrentPage;
+        if (seite == null)
+            return;
+
+        bool confirm;
+        try
+        {
+            confirm = await seite.DisplayAlertAsync(
+                Translations.Get("logout"),
+                Translations.Get("really_logout"),
+                Translations.Get("yes"),
+                Translations.Get("no"));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Logout] Confirm dialog error: {ex.Message}");
+            return;
+        }
 
         if (!confirm)
             return;

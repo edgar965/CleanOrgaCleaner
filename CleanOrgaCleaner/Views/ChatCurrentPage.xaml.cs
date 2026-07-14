@@ -46,17 +46,32 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         base.OnAppearing();
 
-        // Initialize header (handles translations, user info, work status, offline banner)
-        _ = Header.InitializeAsync();
-        Header.SetPageTitle("chat");
+        try
+        {
+            // Initialize header (handles translations, user info, work status, offline banner)
+            _ = Header.InitializeAsync();
+            Header.SetPageTitle("chat");
 
-        // Update partner header
-        UpdatePartnerHeader();
+            // Update partner header
+            UpdatePartnerHeader();
 
-        ApplyTranslations();
+            ApplyTranslations();
 
-        // Load messages (fire-and-forget to not block UI)
-        _ = LoadMessagesWithPendingAsync();
+            // SOFORT abonnieren (nicht erst nach dem Netz-Roundtrip in
+            // LoadMessagesWithPendingAsync): sonst läuft bei schnellem
+            // Zurücknavigieren das '-=' in OnDisappearing VOR dem '+=' und
+            // die tote Seite bleibt dauerhaft am Singleton abonniert
+            _webSocketService.OnChatMessageReceived -= OnNewMessageReceived;
+            _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
+
+            // Load messages (fire-and-forget to not block UI)
+            _ = LoadMessagesWithPendingAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[ChatCurrentPage] OnAppearing error: {ex.Message}");
+        }
     }
 
     private async Task LoadMessagesWithPendingAsync()
@@ -73,13 +88,15 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             var pending = App.PendingChatMessage;
             App.PendingChatMessage = null;
 
-            if (!_messages.Any(m => m.Id == pending.Id))
+            // Nur anhängen, wenn die Pending-Nachricht zu DIESEM Thread gehört -
+            // App.OnChatMessageReceived setzt PendingChatMessage für JEDE
+            // eingehende Nachricht, auch aus fremden Konversationen.
+            if (GehoertInDiesenThread(pending) && !_messages.Any(m => m.Id == pending.Id))
             {
                 _messages.Add(pending);
             }
         }
 
-        _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
         _ = _webSocketService.ConnectChatAsync();
     }
 
@@ -146,17 +163,38 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         }
     }
 
+    /// <summary>
+    /// Gehört eine eingehende WebSocket-Nachricht in den GERADE offenen Thread?
+    /// Der unified Socket liefert alle Konversationen. Zuordnung über from_admin
+    /// (eindeutiges Server-Signal) bzw. cleaner_id == eigene Id => Admin-Chat.
+    /// Fail-open (true), wenn nicht bestimmbar (weder from_admin noch beide Ids)
+    /// - lieber anzeigen als verschlucken.
+    /// </summary>
+    private bool GehoertInDiesenThread(ChatMessage message)
+    {
+        var meineId = _apiService.CleanerId;
+        bool? istAdmin = message.FromAdmin ? true
+            : (meineId.HasValue && message.CleanerId.HasValue) ? (message.CleanerId == meineId)
+            : (bool?)null;
+        if (istAdmin == null) return true; // nicht bestimmbar -> anzeigen
+        return _partnerId == "admin"
+            ? istAdmin.Value
+            : (!istAdmin.Value && message.CleanerId?.ToString() == _partnerId);
+    }
+
     private void OnNewMessageReceived(ChatMessage message)
     {
-        MainThread.BeginInvokeOnMainThread(() =>
+        // Nur anhängen (kein Clear()+Reload - das blankte den Chat bei
+        // Netzwerkfehlern aus), und nur wenn die Nachricht hierher gehört.
+        UiSicher.AufMainThread(() =>
         {
+            if (!GehoertInDiesenThread(message)) return;
             if (!_messages.Any(m => m.Id == message.Id))
             {
-                // API/WebSocket sendet is_mine korrekt
                 _messages.Add(message);
                 MessagesCollection.ScrollTo(_messages.Count - 1, position: ScrollToPosition.End);
             }
-        });
+        }, "ChatCurrentPage");
     }
 
     private async Task LoadMessagesAsync()
@@ -164,12 +202,16 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         try
         {
             var messages = await _apiService.GetChatMessagesAsync(_partnerId);
-            _messages.Clear();
 
-            // API sendet is_mine korrekt basierend auf der Perspektive des Benutzers
+            // Merge statt Clear+Rebuild: eine live über den WebSocket während
+            // des Ladens eingetroffene Nachricht wird sonst durch Clear()
+            // ausgelöscht. Neue Server-Nachrichten (nach Id) anhängen; ist die
+            // Liste leer, entspricht das dem vollen Erstladen.
+            var vorhanden = new HashSet<int>(_messages.Select(m => m.Id));
             foreach (var msg in messages.OrderBy(m => m.Id))
             {
-                _messages.Add(msg);
+                if (vorhanden.Add(msg.Id))
+                    _messages.Add(msg);
             }
 
             if (_messages.Count > 0)
@@ -222,12 +264,12 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
                 // Bild zurücksetzen
                 ClearSelectedImage();
             }
-            else if (IsNetworkError(response.Error))
+            else if (NetworkErrorHelper.IsNetworkError(response.Error))
             {
                 // Queue for offline sync (only text messages, no images)
                 if (!string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_selectedImagePath))
                 {
-                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text);
+                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text, _partnerId);
 
                     // Add local placeholder message
                     var placeholderMessage = new ChatMessage
@@ -264,12 +306,12 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         }
         catch (Exception ex)
         {
-            if (IsNetworkError(ex.Message))
+            if (NetworkErrorHelper.IsNetworkError(ex.Message))
             {
                 // Queue for offline sync (only text messages)
                 if (!string.IsNullOrEmpty(text) && string.IsNullOrEmpty(_selectedImagePath))
                 {
-                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text);
+                    await OfflineQueueService.Instance.EnqueueChatMessageAsync(text, _partnerId);
 
                     var placeholderMessage = new ChatMessage
                     {
@@ -306,21 +348,6 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
         }
     }
 
-    private static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
-    }
 
     private async void OnPreviewClicked(object sender, EventArgs e)
     {
@@ -561,7 +588,7 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
                 PreviewImage.Source = ImageSource.FromStream(() => new MemoryStream(finalBytes));
                 ImagePreviewContainer.IsVisible = true;
             }
-            else if (IsNetworkError(response.Error))
+            else if (NetworkErrorHelper.IsNetworkError(response.Error))
             {
                 await DisplayAlertAsync(
                     Translations.Get("no_connection"),

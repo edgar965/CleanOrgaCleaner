@@ -52,14 +52,6 @@ public static class Language
     }
 
     /// <summary>
-    /// Get picker display text (e.g., "DE Deutsch")
-    /// </summary>
-    public static string GetPickerText(string code)
-    {
-        return $"{GetFlag(code)} {GetDisplayName(code)}";
-    }
-
-    /// <summary>
     /// Default language
     /// </summary>
     public const string Default = "de";

@@ -4,34 +4,14 @@ using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Views;
 
-// Network error detection helper
-public static class NetworkErrorHelper
-{
-    public static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
-    }
-}
-
 public partial class LoginPage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly BiometricService _biometricService;
     private bool _autoLoginAttempted = false;
-    // true sobald zur TodayPage navigiert wurde: danach duerfen die Controls
+    // true sobald zur TodayPage navigiert wurde: danach dürfen die Controls
     // dieser Seite nicht mehr angefasst werden - ein Button-Update auf der
-    // gerade verlassenen Seite loest auf iOS einen Layout-Pass auf abgebauten
+    // gerade verlassenen Seite löst auf iOS einen Layout-Pass auf abgebauten
     // Views aus (NullReferenceException in Button.LayoutButton, Crashes 14.07.2026)
     private bool _navigiert = false;
     private readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
@@ -92,7 +72,7 @@ public partial class LoginPage : ContentPage
         base.OnAppearing();
 
         // Seite ist (wieder) sichtbar, z.B. nach Logout: Button-Zustand
-        // zuruecksetzen, den das finally der Login-Pfade nach erfolgreicher
+        // zurücksetzen, den das finally der Login-Pfade nach erfolgreicher
         // Navigation bewusst nicht mehr anfasst (iOS-Layout-Crash-Fix)
         _navigiert = false;
         LoginButton.IsEnabled = true;

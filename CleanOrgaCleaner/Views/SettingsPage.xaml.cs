@@ -168,15 +168,23 @@ public partial class SettingsPage : ContentPage
     {
         base.OnAppearing();
 
-        // Initialize header (handles translations, user info, work status, offline banner)
-        _ = Header.InitializeAsync();
-        Header.SetPageTitle("settings");
+        try
+        {
+            // Initialize header (handles translations, user info, work status, offline banner)
+            _ = Header.InitializeAsync();
+            Header.SetPageTitle("settings");
 
-        ApplyTranslations();
-        LoadUserInfo();
-        LoadCurrentAvatar();
-        LoadCurrentLanguage();
-        _ = LoadBiometricSettingsAsync();
+            ApplyTranslations();
+            LoadUserInfo();
+            LoadCurrentAvatar();
+            LoadCurrentLanguage();
+            _ = LoadBiometricSettingsAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] OnAppearing error: {ex.Message}");
+        }
     }
 
     private void LoadCurrentAvatar()
@@ -211,7 +219,8 @@ public partial class SettingsPage : ContentPage
         // App Info
         AppInfoLabel.Text = t("app_info");
         VersionLabel.Text = t("version");
-        VersionValueLabel.Text = Main.Version;
+        // Echte Build-Version statt hartcodierter Konstante (zeigte "1.52")
+        VersionValueLabel.Text = $"{AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
         ServerLabel.Text = t("server");
     }
 
@@ -363,29 +372,50 @@ public partial class SettingsPage : ContentPage
 
     private async void OnBiometricToggled(object? sender, ToggledEventArgs e)
     {
-        if (e.Value)
+        try
         {
-            // User wants to enable biometric - verify they can authenticate
-            var authenticated = await _biometricService.AuthenticateAsync("Biometrie aktivieren");
-
-            if (authenticated)
+            if (e.Value)
             {
-                _biometricService.SetBiometricLoginEnabled(true);
-                System.Diagnostics.Debug.WriteLine("[Settings] Biometric login enabled");
+                // User wants to enable biometric - verify they can authenticate
+                var authenticated = await _biometricService.AuthenticateAsync("Biometrie aktivieren");
+
+                if (authenticated)
+                {
+                    _biometricService.SetBiometricLoginEnabled(true);
+                    System.Diagnostics.Debug.WriteLine("[Settings] Biometric login enabled");
+                }
+                else
+                {
+                    // Authentication failed - revert switch
+                    BiometricSwitch.Toggled -= OnBiometricToggled;
+                    BiometricSwitch.IsToggled = false;
+                    BiometricSwitch.Toggled += OnBiometricToggled;
+                }
             }
             else
             {
-                // Authentication failed - revert switch
-                BiometricSwitch.Toggled -= OnBiometricToggled;
-                BiometricSwitch.IsToggled = false;
-                BiometricSwitch.Toggled += OnBiometricToggled;
+                // Disable biometric
+                _biometricService.SetBiometricLoginEnabled(false);
+                System.Diagnostics.Debug.WriteLine("[Settings] Biometric login disabled");
             }
         }
-        else
+        catch (Exception ex)
         {
-            // Disable biometric
-            _biometricService.SetBiometricLoginEnabled(false);
-            System.Diagnostics.Debug.WriteLine("[Settings] Biometric login disabled");
+            // Biometrie-APIs werfen auf iOS realistisch (Abbruch/Hardware) -
+            // async void darf nie werfen; Switch zurücksetzen. Wieder-Anmelden
+            // im finally, damit der Handler nie dauerhaft abgemeldet bleibt,
+            // falls der IsToggled-Setter selbst wirft.
+            System.Diagnostics.Debug.WriteLine($"[Settings] Biometric toggle error: {ex.Message}");
+            try
+            {
+                BiometricSwitch.Toggled -= OnBiometricToggled;
+                BiometricSwitch.IsToggled = false;
+            }
+            catch { }
+            finally
+            {
+                BiometricSwitch.Toggled += OnBiometricToggled;
+            }
         }
     }
 }

@@ -41,6 +41,11 @@ public class ChatMessage
     [JsonPropertyName("cleaner_id")]
     public int? CleanerId { get; set; }
 
+    // Vom Server NUR in WebSocket-Pushes gesetzt: true = Admin hat gesendet.
+    // Eindeutigstes Signal zur Thread-Zuordnung (Admin- vs. Kollegen-Chat).
+    [JsonPropertyName("from_admin")]
+    public bool FromAdmin { get; set; }
+
 
     #region UI Properties
 

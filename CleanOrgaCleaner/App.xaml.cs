@@ -75,9 +75,9 @@ public partial class App : Application
             {
                 await WebSocketService.Instance.ReconnectAsync();
 
-                // Waehrend des Hintergrunds war der WebSocket getrennt -
-                // Aenderungen (z.B. Aufgabenbeschreibungen) kamen nicht an.
-                // Daten-Reload der offenen Seiten anstossen.
+                // Während des Hintergrunds war der WebSocket getrennt -
+                // Änderungen (z.B. Aufgabenbeschreibungen) kamen nicht an.
+                // Daten-Reload der offenen Seiten anstoßen.
                 WebSocketService.Instance.NotifyTaskUpdate();
             }
         }
@@ -130,28 +130,6 @@ public partial class App : Application
             Log($"InitializeWebSocketAsync ERROR: {ex.Message}");
         }
         Log("InitializeWebSocketAsync END");
-    }
-
-    /// <summary>
-    /// Play notification feedback (haptic + optional TTS)
-    /// </summary>
-    private async Task PlayNotificationSoundAsync(string? messageToSpeak = null)
-    {
-        try
-        {
-            // Haptic feedback
-            HapticFeedback.Default.Perform(HapticFeedbackType.LongPress);
-
-            // Text-to-Speech if message provided (uses MAUI built-in, no background mode needed)
-            if (!string.IsNullOrEmpty(messageToSpeak) && TtsEnabled)
-            {
-                await SpeakTextAsync(messageToSpeak);
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[App] Notification error: {ex.Message}");
-        }
     }
 
     /// <summary>
@@ -290,8 +268,13 @@ public partial class App : Application
                     // Auto-navigate to chat (no popup)
                     if (Shell.Current != null)
                     {
-                        // CleanerId ist null wenn Admin gesendet hat, sonst die Cleaner-ID
-                        var partnerId = message.CleanerId?.ToString() ?? "admin";
+                        // Thread bestimmen: from_admin (bzw. cleaner_id == eigene
+                        // Id) => Admin-Chat, sonst der Kollege (cleaner_id).
+                        // cleaner_id ist serverseitig NIE null.
+                        var meineId = ApiService.Instance.CleanerId;
+                        var istAdmin = message.FromAdmin
+                            || (message.CleanerId.HasValue && meineId.HasValue && message.CleanerId == meineId);
+                        var partnerId = istAdmin ? "admin" : (message.CleanerId?.ToString() ?? "admin");
                         var partnerNameEncoded = Uri.EscapeDataString(senderName);
                         await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerNameEncoded}");
                     }

@@ -13,6 +13,11 @@ public class WebSocketService : IDisposable
 {
     private ClientWebSocket? _socket;
     private CancellationTokenSource? _cts;
+    // Serialisiert ConnectAsync: Reconnect-Backoff, App-Resume und Login
+    // können sonst parallel verbinden und sich gegenseitig den Socket disposen
+    private readonly SemaphoreSlim _connectSperre = new(1, 1);
+    // 0 = keine Reconnect-Kette aktiv, 1 = eine läuft (Interlocked-Guard)
+    private int _reconnecting;
     private int _reconnectAttempts = 0;
     private const int MaxReconnectDelay = 30000; // 30 seconds max
     private const int InitialReconnectDelay = 1000; // 1 second initial
@@ -31,6 +36,13 @@ public class WebSocketService : IDisposable
     public bool IsOnline => _isOnline;
 
     /// <summary>
+    /// True, sobald in dieser App-Sitzung mindestens einmal eine Verbindung
+    /// bestand. Verhindert, dass der Offline-Banner beim allerersten Laden
+    /// (Verbindungsaufbau läuft noch) fälschlich aufblitzt.
+    /// </summary>
+    public bool WarSchonVerbunden { get; private set; }
+
+    /// <summary>
     /// Indicates if chat WebSocket is connected (backward-compatible property)
     /// </summary>
     public bool IsChatConnected => _socket?.State == WebSocketState.Open;
@@ -44,15 +56,34 @@ public class WebSocketService : IDisposable
     public static WebSocketService Instance => _instance ??= new WebSocketService();
 
     /// <summary>
-    /// Connect to the unified WebSocket endpoint (/ws/main/)
+    /// Connect to the unified WebSocket endpoint (/ws/main/).
+    /// Startet bei Misserfolg die (einzige) Reconnect-Kette.
     /// </summary>
     public async Task ConnectAsync()
     {
-        if (_socket?.State == WebSocketState.Open)
-            return;
+        var ok = await VerbindeEinmalAsync().ConfigureAwait(false);
+        if (!ok && _shouldReconnect && !App.IsInBackground)
+            await TryReconnectAsync().ConfigureAwait(false);
+    }
 
+    /// <summary>
+    /// Ein einzelner Verbindungsversuch (per Semaphore serialisiert),
+    /// OHNE Folge-Reconnect - den steuert ausschliesslich TryReconnectAsync.
+    /// </summary>
+    private async Task<bool> VerbindeEinmalAsync()
+    {
+        if (_socket?.State == WebSocketState.Open)
+            return true;
+
+        var fehlgeschlagen = false;
+        await _connectSperre.WaitAsync().ConfigureAwait(false);
         try
         {
+            // Doppel-Check nach der Sperre: ein paralleler Aufruf kann die
+            // Verbindung inzwischen aufgebaut haben
+            if (_socket?.State == WebSocketState.Open)
+                return true;
+
             _cts?.Cancel();
             _cts = new CancellationTokenSource();
 
@@ -79,10 +110,15 @@ public class WebSocketService : IDisposable
 
             if (_socket.State == WebSocketState.Open)
             {
-                _reconnectAttempts = 0;
+                // _reconnectAttempts NICHT hier zurücksetzen: eine flappende
+                // Verbindung (verbindet, schließt sofort wieder) würde sonst
+                // ewig im 1s-Takt neu verbinden. Reset erst bei erstem echten
+                // Nachrichtenempfang (ListenForMessagesAsync) = Beweis, dass die
+                // Verbindung wirklich trägt.
                 var wasOffline = !_isOnline;
                 _isOnline = true;
-                OnConnectionStatusChanged?.Invoke(true);
+                WarSchonVerbunden = true;
+                UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(true), "WS");
                 System.Diagnostics.Debug.WriteLine("WebSocket connected (unified)");
 
                 // Start listening for messages
@@ -99,10 +135,15 @@ public class WebSocketService : IDisposable
         {
             System.Diagnostics.Debug.WriteLine($"WebSocket error: {ex.Message}");
             _isOnline = false;
-            OnConnectionStatusChanged?.Invoke(false);
-            if (_shouldReconnect)
-                await TryReconnectAsync().ConfigureAwait(false);
+            UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(false), "WS");
+            fehlgeschlagen = true;
         }
+        finally
+        {
+            _connectSperre.Release();
+        }
+
+        return !fehlgeschlagen;
     }
 
     /// <summary>
@@ -110,28 +151,35 @@ public class WebSocketService : IDisposable
     /// </summary>
     public Task ConnectChatAsync() => ConnectAsync();
 
-    /// <summary>
-    /// Connect to tasks WebSocket (backward-compatible - calls ConnectAsync)
-    /// </summary>
-    public Task ConnectTasksAsync() => ConnectAsync();
-
     private async Task ListenForMessagesAsync()
     {
         var buffer = new byte[4096];
         var messageBuilder = new StringBuilder();
 
+        // Lokale Kopien von Socket + Token: greift ein Reconnect die Felder
+        // _socket/_cts an, liest dieser (alte) Listener weiter seinen EIGENEN
+        // Socket und beendet sich sauber, statt auf dem neuen Socket parallel
+        // zum neuen Listener zu empfangen.
+        var socket = _socket;
+        var cts = _cts;
+        if (socket == null || cts == null) return;
+
         try
         {
-            while (_socket?.State == WebSocketState.Open && !_cts!.Token.IsCancellationRequested)
+            while (socket.State == WebSocketState.Open && !cts.Token.IsCancellationRequested)
             {
-                var result = await _socket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), _cts.Token).ConfigureAwait(false);
+                var result = await socket.ReceiveAsync(
+                    new ArraySegment<byte>(buffer), cts.Token).ConfigureAwait(false);
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
                     System.Diagnostics.Debug.WriteLine("WebSocket closed by server");
                     break;
                 }
+
+                // Erster echter Empfang = Verbindung trägt -> Backoff-Zähler
+                // zurücksetzen, damit ein späterer Abbruch wieder bei 1s startet.
+                _reconnectAttempts = 0;
 
                 var text = Encoding.UTF8.GetString(buffer, 0, result.Count);
                 messageBuilder.Append(text);
@@ -160,8 +208,13 @@ public class WebSocketService : IDisposable
             if (App.IsInBackground) return;
         }
 
+        // Nur reagieren, wenn dieser Listener noch der aktive ist (sein Socket
+        // == aktuelles Feld). Ein durch Reconnect ersetzter Listener darf
+        // weder Status noch eine weitere Reconnect-Kette auslösen.
+        if (!ReferenceEquals(socket, _socket)) return;
+
         _isOnline = false;
-        OnConnectionStatusChanged?.Invoke(false);
+        UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(false), "WS");
         if (_shouldReconnect && !App.IsInBackground)
             await TryReconnectAsync().ConfigureAwait(false);
     }
@@ -184,10 +237,8 @@ public class WebSocketService : IDisposable
                     var message = JsonSerializer.Deserialize(msgElement.GetRawText(), AppJsonContext.Default.ChatMessage);
                     if (message != null)
                     {
-                        MainThread.BeginInvokeOnMainThread(() =>
-                        {
-                            OnChatMessageReceived?.Invoke(message);
-                        });
+                        // Wirft ein Seiten-Handler, darf das nicht den Main-Thread crashen
+                        UiSicher.AufMainThread(() => OnChatMessageReceived?.Invoke(message), "WS");
                     }
                 }
                 else if (type == "pong")
@@ -197,10 +248,8 @@ public class WebSocketService : IDisposable
                 else
                 {
                     // Task update or any other type
-                    MainThread.BeginInvokeOnMainThread(() =>
-                    {
-                        OnTaskUpdate?.Invoke(type ?? "update");
-                    });
+                    // Wirft ein Seiten-Handler, darf das nicht den Main-Thread crashen
+                    UiSicher.AufMainThread(() => OnTaskUpdate?.Invoke(type ?? "update"), "WS");
                 }
             }
         }
@@ -211,31 +260,56 @@ public class WebSocketService : IDisposable
     }
 
     /// <summary>
-    /// OnTaskUpdate von aussen ausloesen, z.B. nach App-Resume: Waehrend die
-    /// App im Hintergrund war, war der WebSocket getrennt - Aenderungen aus
+    /// OnTaskUpdate von außen auslösen, z.B. nach App-Resume: Während die
+    /// App im Hintergrund war, war der WebSocket getrennt - Änderungen aus
     /// dieser Zeit kamen nie an. Die Seiten reagieren auf "task_updated" mit
     /// einem kompletten Daten-Reload.
     /// </summary>
     public void NotifyTaskUpdate(string type = "task_updated")
     {
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            OnTaskUpdate?.Invoke(type);
-        });
+        // Wirft ein Seiten-Handler, darf das nicht den Main-Thread crashen
+        UiSicher.AufMainThread(() => OnTaskUpdate?.Invoke(type), "WS");
     }
 
     private async Task TryReconnectAsync()
     {
         if (!_shouldReconnect || App.IsInBackground) return;
 
-        _reconnectAttempts++;
-        var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _reconnectAttempts - 1), MaxReconnectDelay);
-        System.Diagnostics.Debug.WriteLine($"WebSocket reconnecting in {delay}ms (attempt {_reconnectAttempts})");
+        // Nur EINE Reconnect-Kette gleichzeitig; der Guard bleibt über den
+        // GESAMTEN Backoff-Zyklus (Delay + Verbindungsversuch) gehalten -
+        // sonst könnte ein zweiter Auslöser während des Connect-Fensters
+        // eine parallele Kette starten.
+        if (Interlocked.CompareExchange(ref _reconnecting, 1, 0) != 0)
+            return;
 
-        await Task.Delay((int)delay).ConfigureAwait(false);
+        try
+        {
+            while (_shouldReconnect && !App.IsInBackground && _socket?.State != WebSocketState.Open)
+            {
+                _reconnectAttempts++;
+                var delay = Math.Min(InitialReconnectDelay * Math.Pow(2, _reconnectAttempts - 1), MaxReconnectDelay);
+                System.Diagnostics.Debug.WriteLine($"WebSocket reconnecting in {delay}ms (attempt {_reconnectAttempts})");
 
-        if (_shouldReconnect && !App.IsInBackground)
-            await ConnectAsync().ConfigureAwait(false);
+                await Task.Delay((int)delay).ConfigureAwait(false);
+
+                if (!_shouldReconnect || App.IsInBackground)
+                    break;
+
+                if (await VerbindeEinmalAsync().ConfigureAwait(false))
+                    break;
+            }
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _reconnecting, 0);
+        }
+
+        // Fenster schließen: Stirbt der Socket genau zwischen erfolgreichem
+        // Verbinden und dem Freigeben des Guards, wird der TryReconnect des
+        // endenden Listeners verworfen. Nach Guard-Freigabe erneut prüfen und
+        // ggf. eine neue Kette starten - sonst bliebe die App dauerhaft offline.
+        if (_shouldReconnect && !App.IsInBackground && _socket?.State != WebSocketState.Open)
+            await TryReconnectAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -282,7 +356,7 @@ public class WebSocketService : IDisposable
         }
 
         _isOnline = false;
-        OnConnectionStatusChanged?.Invoke(false);
+        UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(false), "WS");
     }
 
     public void Dispose()

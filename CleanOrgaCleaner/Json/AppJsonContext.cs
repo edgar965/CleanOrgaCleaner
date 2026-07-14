@@ -35,7 +35,6 @@ namespace CleanOrgaCleaner.Json;
 [JsonSerializable(typeof(WorkTimeResponse))]
 [JsonSerializable(typeof(TodayDataResponse))]
 [JsonSerializable(typeof(LoginResponse))]
-[JsonSerializable(typeof(AuftragDetailResponse))]
 [JsonSerializable(typeof(AuftragsPageDataResponse))]
 [JsonSerializable(typeof(CleanersListResponse))]
 [JsonSerializable(typeof(ChatMessage))]
@@ -43,6 +42,8 @@ namespace CleanOrgaCleaner.Json;
 [JsonSerializable(typeof(TaskAssignments))]
 [JsonSerializable(typeof(CrashReport))]
 [JsonSerializable(typeof(List<CrashReport>))]
+[JsonSerializable(typeof(TaskCacheData))]
+[JsonSerializable(typeof(LoginStateCache))]
 [JsonSourceGenerationOptions(
     PropertyNameCaseInsensitive = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]

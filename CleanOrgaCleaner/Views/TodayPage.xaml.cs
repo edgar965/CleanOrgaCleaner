@@ -38,11 +38,14 @@ public partial class TodayPage : ContentPage
         Log("OnAppearing START");
         base.OnAppearing();
 
-        // Speichere das aktuelle Datum fuer Datumswechsel-Check
+        // Speichere das aktuelle Datum für Datumswechsel-Check
         _pageLoadDate = DateTime.Today;
         StartDateCheckTimer();
 
         Log("Subscribe OnTaskUpdate");
+        // -= vor += : bei doppeltem OnAppearing ohne OnDisappearing (iOS-
+        // Modal/Alert über der Seite) sonst mehrfach abonniert
+        _webSocketService.OnTaskUpdate -= OnTaskUpdate;
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
         Log("Header.InitializeAsync fire-and-forget");
@@ -94,11 +97,11 @@ public partial class TodayPage : ContentPage
         {
             Log($"Datumswechsel erkannt: {_pageLoadDate:d} -> {DateTime.Today:d}");
             _pageLoadDate = DateTime.Today;
-            MainThread.BeginInvokeOnMainThread(async () =>
+            UiSicher.AufMainThread(async () =>
             {
                 await LoadTasksAsync();
                 await Header.LoadWorkStatusAsync();
-            });
+            }, "TodayPage");
         }
     }
 
@@ -111,10 +114,7 @@ public partial class TodayPage : ContentPage
             || updateType == "assignment_update" || updateType == "aufgabe_update"
             || updateType == "image_list_update" || updateType == "problem_update" || updateType == "problem_delete")
         {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                await LoadTasksAsync();
-            });
+            UiSicher.AufMainThread(() => LoadTasksAsync(), "TodayPage");
         }
     }
 
@@ -128,8 +128,8 @@ public partial class TodayPage : ContentPage
             Log($"GetTodayDataAsync call DONE: {data?.Tasks?.Count ?? 0} tasks");
 
             Log("Setting _tasks");
-            _tasks = data.Tasks;
-            Log($"_tasks set: {_tasks?.Count ?? 0}");
+            _tasks = data?.Tasks ?? new List<CleaningTask>();
+            Log($"_tasks set: {_tasks.Count}");
 
             // Cache tasks for offline use
             Log("Caching tasks for offline");
@@ -140,7 +140,7 @@ public partial class TodayPage : ContentPage
 
             // UI updates must be on main thread
             Log("MainThread.BeginInvoke for UI");
-            MainThread.BeginInvokeOnMainThread(() =>
+            UiSicher.AufMainThread(() =>
             {
                 Log("UI update START");
                 NoTasksLabel.Text = Translations.Get("no_tasks");
@@ -148,27 +148,32 @@ public partial class TodayPage : ContentPage
                 BuildTaskGrid();
                 Log("BuildTaskGrid DONE");
                 Log("UI update DONE");
-            });
+            }, "TodayPage");
+        }
+        catch (Exception ex) when (ex is ServerAntwortFehler || ex is System.Text.Json.JsonException)
+        {
+            // Server hat GEANTWORTET (Fehlerstatus ODER 200 mit Nicht-JSON-Body,
+            // z.B. Proxy-/Captive-Portal-/Deploy-Seite): NICHT auf den evtl.
+            // tagealten Cache zurückfallen - sonst arbeitet die Reinigungskraft
+            // nach einem falschen Tagesplan.
+            Log($"LoadTasksAsync SERVER ERROR: {ex.Message}");
+            UiSicher.AufMainThread(() =>
+            {
+                NoTasksLabel.Text = Translations.Get("connection_error");
+                if (_tasks.Count == 0)
+                {
+                    EmptyStateView.IsVisible = true;
+                    TaskRefreshView.IsVisible = false;
+                }
+            }, "TodayPage");
         }
         catch (Exception ex)
         {
-            Log($"LoadTasksAsync ERROR: {ex.Message}");
-
-            // Try to load cached tasks when network fails
-            if (IsNetworkError(ex.Message))
-            {
-                Log("Network error - trying to load cached tasks");
-                await LoadCachedTasksAsync();
-            }
-            else
-            {
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    NoTasksLabel.Text = Translations.Get("connection_error");
-                    EmptyStateView.IsVisible = true;
-                    TaskRefreshView.IsVisible = false;
-                });
-            }
+            // Alles andere ist Transportebene (kein Netz, Timeout, DNS, Socket)
+            // -> Offline-Cache. Klassifikation über den Exception-TYP, nicht
+            // über fehleranfälliges String-Matching der Message.
+            Log($"LoadTasksAsync NETWORK ERROR: {ex.Message}");
+            await LoadCachedTasksAsync();
         }
         Log("LoadTasksAsync END");
     }
@@ -186,54 +191,39 @@ public partial class TodayPage : ContentPage
                 Log($"Loaded {cachedTasks.Count} cached tasks");
                 _tasks = cachedTasks;
 
-                MainThread.BeginInvokeOnMainThread(() =>
+                UiSicher.AufMainThread(() =>
                 {
                     NoTasksLabel.Text = Translations.Get("no_tasks");
                     BuildTaskGrid();
 
                     // Show offline indicator in header
                     Header.UpdateOfflineBanner(true);
-                });
+                }, "TodayPage");
             }
             else
             {
                 Log("No cached tasks available");
-                MainThread.BeginInvokeOnMainThread(() =>
+                UiSicher.AufMainThread(() =>
                 {
                     NoTasksLabel.Text = Translations.Get("no_connection") + "\n" + Translations.Get("network_error_hint");
                     EmptyStateView.IsVisible = true;
                     TaskRefreshView.IsVisible = false;
-                });
+                }, "TodayPage");
             }
         }
         catch (Exception ex)
         {
             Log($"LoadCachedTasksAsync ERROR: {ex.Message}");
-            MainThread.BeginInvokeOnMainThread(() =>
+            UiSicher.AufMainThread(() =>
             {
                 NoTasksLabel.Text = Translations.Get("connection_error");
                 EmptyStateView.IsVisible = true;
                 TaskRefreshView.IsVisible = false;
-            });
+            }, "TodayPage");
         }
         Log("LoadCachedTasksAsync END");
     }
 
-    private static bool IsNetworkError(string? error)
-    {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
-    }
 
     private void BuildTaskGrid()
     {
@@ -298,27 +288,47 @@ public partial class TodayPage : ContentPage
 
     private async Task OnTaskTapped(CleaningTask task)
     {
-        // Close menu if open
-        Header.CloseMenu();
-
-        // Check if work is started
-        if (!Header.IsWorking)
+        try
         {
-            await DisplayAlertAsync(
-                Translations.Get("attention"),
-                Translations.Get("start_work_first"),
-                Translations.Get("ok"));
-            return;
-        }
+            // Close menu if open
+            Header.CloseMenu();
 
-        // Navigate to task detail using Shell navigation
-        await Shell.Current.GoToAsync($"AufgabePage?taskId={task.Id}");
+            // Check if work is started
+            if (!Header.IsWorking)
+            {
+                await DisplayAlertAsync(
+                    Translations.Get("attention"),
+                    Translations.Get("start_work_first"),
+                    Translations.Get("ok"));
+                return;
+            }
+
+            // Navigate to task detail using Shell navigation
+            if (Shell.Current == null) return;
+            await Shell.Current.GoToAsync($"AufgabePage?taskId={task.Id}");
+        }
+        catch (Exception ex)
+        {
+            // Aufrufer ist ein async void Clicked-Lambda - nie werfen lassen
+            Log($"OnTaskTapped error: {ex.Message}");
+        }
     }
 
     private async void OnRefreshing(object sender, EventArgs e)
     {
-        await LoadTasksAsync();
-        await Header.LoadWorkStatusAsync();
-        TaskRefreshView.IsRefreshing = false;
+        try
+        {
+            await LoadTasksAsync();
+            await Header.LoadWorkStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            // async void: ungefangene Exception = App-Crash
+            Log($"OnRefreshing error: {ex.Message}");
+        }
+        finally
+        {
+            try { TaskRefreshView.IsRefreshing = false; } catch { }
+        }
     }
 }

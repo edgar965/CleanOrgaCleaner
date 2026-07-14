@@ -41,10 +41,7 @@ public class OfflineDataService
                 CachedDate = DateTime.Today.ToString("yyyy-MM-dd")
             };
 
-            var json = JsonSerializer.Serialize(cacheData, new JsonSerializerOptions
-            {
-                WriteIndented = false
-            });
+            var json = JsonSerializer.Serialize(cacheData, AppJsonContext.Default.TaskCacheData);
 
             await File.WriteAllTextAsync(_tasksFile, json).ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"[OfflineData] Saved {tasks.Count} tasks to cache");
@@ -70,7 +67,7 @@ public class OfflineDataService
             }
 
             var json = await File.ReadAllTextAsync(_tasksFile).ConfigureAwait(false);
-            var cacheData = JsonSerializer.Deserialize<TaskCacheData>(json);
+            var cacheData = JsonSerializer.Deserialize(json, AppJsonContext.Default.TaskCacheData);
 
             if (cacheData == null || cacheData.Tasks == null)
             {
@@ -124,7 +121,7 @@ public class OfflineDataService
                 IsValid = true
             };
 
-            var json = JsonSerializer.Serialize(state);
+            var json = JsonSerializer.Serialize(state, AppJsonContext.Default.LoginStateCache);
             await File.WriteAllTextAsync(_loginStateFile, json).ConfigureAwait(false);
             System.Diagnostics.Debug.WriteLine($"[OfflineData] Saved login state for {cleanerName}");
         }
@@ -148,7 +145,7 @@ public class OfflineDataService
             }
 
             var json = await File.ReadAllTextAsync(_loginStateFile).ConfigureAwait(false);
-            var state = JsonSerializer.Deserialize<LoginStateCache>(json);
+            var state = JsonSerializer.Deserialize(json, AppJsonContext.Default.LoginStateCache);
 
             if (state == null || !state.IsValid)
             {
@@ -171,48 +168,6 @@ public class OfflineDataService
         {
             System.Diagnostics.Debug.WriteLine($"[OfflineData] Load login state error: {ex.Message}");
             return null;
-        }
-    }
-
-    /// <summary>
-    /// Check if we have valid cached login state
-    /// </summary>
-    public bool HasValidLoginState()
-    {
-        try
-        {
-            if (!File.Exists(_loginStateFile))
-                return false;
-
-            var json = File.ReadAllText(_loginStateFile);
-            var state = JsonSerializer.Deserialize<LoginStateCache>(json);
-
-            if (state == null || !state.IsValid)
-                return false;
-
-            var daysSinceLogin = (DateTime.UtcNow - state.LastLoginAt).TotalDays;
-            return daysSinceLogin <= 7;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Clear login state (on logout)
-    /// </summary>
-    public void ClearLoginState()
-    {
-        try
-        {
-            if (File.Exists(_loginStateFile))
-                File.Delete(_loginStateFile);
-            System.Diagnostics.Debug.WriteLine("[OfflineData] Cleared login state");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[OfflineData] Clear login state error: {ex.Message}");
         }
     }
 
@@ -246,12 +201,49 @@ public class OfflineDataService
     /// </summary>
     private string GetImageCachePath(string url)
     {
-        // Create a safe filename from the URL
-        var hash = url.GetHashCode().ToString("X8");
+        // Stabiler Hash statt url.GetHashCode(): String-Hashcodes sind in
+        // .NET pro Prozessstart randomisiert - der Cache wurde dadurch nach
+        // jedem App-Neustart nie mehr getroffen und wuchs unbegrenzt
+        var bytes = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(url));
+        var hash = Convert.ToHexString(bytes, 0, 8);
         var extension = Path.GetExtension(url);
         if (string.IsNullOrEmpty(extension) || extension.Length > 5)
             extension = ".jpg";
         return Path.Combine(_imageCachePath, $"img_{hash}{extension}");
+    }
+
+    private static bool _cacheAufgeraeumt;
+
+    /// <summary>
+    /// Alte Cache-Dateien entfernen (einmal pro App-Lauf): räumt auch die
+    /// verwaisten Dateien der früheren GetHashCode-Namensgebung ab, die nie
+    /// wieder getroffen werden.
+    /// </summary>
+    private void RaeumeBildCacheAuf()
+    {
+        if (_cacheAufgeraeumt) return;
+        _cacheAufgeraeumt = true;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                if (!Directory.Exists(_imageCachePath)) return;
+                var grenze = DateTime.UtcNow.AddDays(-14);
+                foreach (var datei in Directory.GetFiles(_imageCachePath, "img_*"))
+                {
+                    try
+                    {
+                        if (File.GetLastWriteTimeUtc(datei) < grenze)
+                            File.Delete(datei);
+                    }
+                    catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OfflineData] Cache cleanup error: {ex.Message}");
+            }
+        });
     }
 
     /// <summary>
@@ -263,6 +255,8 @@ public class OfflineDataService
         {
             if (string.IsNullOrEmpty(url) || imageBytes == null || imageBytes.Length == 0)
                 return null;
+
+            RaeumeBildCacheAuf();
 
             // Ensure cache directory exists
             if (!Directory.Exists(_imageCachePath))
@@ -281,45 +275,6 @@ public class OfflineDataService
     }
 
     /// <summary>
-    /// Get cached image bytes if available
-    /// </summary>
-    public async Task<byte[]?> GetCachedImageAsync(string url)
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(url))
-                return null;
-
-            var cachePath = GetImageCachePath(url);
-            if (!File.Exists(cachePath))
-            {
-                System.Diagnostics.Debug.WriteLine($"[OfflineData] Image not cached: {url}");
-                return null;
-            }
-
-            var bytes = await File.ReadAllBytesAsync(cachePath).ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"[OfflineData] Loaded cached image: {url} ({bytes.Length} bytes)");
-            return bytes;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[OfflineData] Get cached image error: {ex.Message}");
-            return null;
-        }
-    }
-
-    /// <summary>
-    /// Check if an image is cached
-    /// </summary>
-    public bool IsImageCached(string url)
-    {
-        if (string.IsNullOrEmpty(url))
-            return false;
-        var cachePath = GetImageCachePath(url);
-        return File.Exists(cachePath);
-    }
-
-    /// <summary>
     /// Get the local file path for a cached image (for direct use with ImageSource.FromFile)
     /// </summary>
     public string? GetCachedImagePath(string url)
@@ -328,58 +283,6 @@ public class OfflineDataService
             return null;
         var cachePath = GetImageCachePath(url);
         return File.Exists(cachePath) ? cachePath : null;
-    }
-
-    /// <summary>
-    /// Clear old cached images (older than specified days)
-    /// </summary>
-    public void CleanupOldImages(int maxAgeDays = 7)
-    {
-        try
-        {
-            if (!Directory.Exists(_imageCachePath))
-                return;
-
-            var cutoff = DateTime.Now.AddDays(-maxAgeDays);
-            var files = Directory.GetFiles(_imageCachePath, "img_*");
-            int deleted = 0;
-
-            foreach (var file in files)
-            {
-                var fileInfo = new FileInfo(file);
-                if (fileInfo.LastWriteTime < cutoff)
-                {
-                    File.Delete(file);
-                    deleted++;
-                }
-            }
-
-            if (deleted > 0)
-                System.Diagnostics.Debug.WriteLine($"[OfflineData] Cleaned up {deleted} old cached images");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[OfflineData] Cleanup images error: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Clear all cached images
-    /// </summary>
-    public void ClearImageCache()
-    {
-        try
-        {
-            if (Directory.Exists(_imageCachePath))
-            {
-                Directory.Delete(_imageCachePath, true);
-                System.Diagnostics.Debug.WriteLine("[OfflineData] Cleared image cache");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[OfflineData] Clear image cache error: {ex.Message}");
-        }
     }
 
     #endregion
