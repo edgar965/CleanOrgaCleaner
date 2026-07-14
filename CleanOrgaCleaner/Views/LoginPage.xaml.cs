@@ -29,6 +29,11 @@ public partial class LoginPage : ContentPage
     private readonly ApiService _apiService;
     private readonly BiometricService _biometricService;
     private bool _autoLoginAttempted = false;
+    // true sobald zur TodayPage navigiert wurde: danach duerfen die Controls
+    // dieser Seite nicht mehr angefasst werden - ein Button-Update auf der
+    // gerade verlassenen Seite loest auf iOS einen Layout-Pass auf abgebauten
+    // Views aus (NullReferenceException in Button.LayoutButton, Crashes 14.07.2026)
+    private bool _navigiert = false;
     private readonly System.Diagnostics.Stopwatch _sw = System.Diagnostics.Stopwatch.StartNew();
     private readonly List<string> _logLines = new();
 
@@ -85,6 +90,13 @@ public partial class LoginPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+
+        // Seite ist (wieder) sichtbar, z.B. nach Logout: Button-Zustand
+        // zuruecksetzen, den das finally der Login-Pfade nach erfolgreicher
+        // Navigation bewusst nicht mehr anfasst (iOS-Layout-Crash-Fix)
+        _navigiert = false;
+        LoginButton.IsEnabled = true;
+        LoginButton.Text = Translations.Get("login_title");
 
         // Starte neues File-Logging (löscht alte Datei)
         ApiService.InitFileLogging();
@@ -191,6 +203,8 @@ public partial class LoginPage : ContentPage
         LoginButton.Text = Translations.Get("loading");
         Log("LoginAsync START");
 
+        _navigiert = false;
+
         try
         {
             // 1. Pure login (runs on thread pool)
@@ -262,6 +276,7 @@ public partial class LoginPage : ContentPage
             await Task.Yield();
 
             Log("GoToAsync START");
+            _navigiert = true;
             await Shell.Current.GoToAsync("//MainTabs/TodayPage");
             Log("GoToAsync DONE");
             return;
@@ -282,8 +297,11 @@ public partial class LoginPage : ContentPage
         }
         finally
         {
-            LoginButton.IsEnabled = true;
-            LoginButton.Text = Translations.Get("login_title");
+            if (!_navigiert)
+            {
+                LoginButton.IsEnabled = true;
+                LoginButton.Text = Translations.Get("login_title");
+            }
             Log("TryAutoLogin END");
         }
     }
@@ -354,6 +372,7 @@ public partial class LoginPage : ContentPage
 
             // Navigate to main page - it will load cached tasks
             Log("GoToAsync (offline mode) START");
+            _navigiert = true;
             await Shell.Current.GoToAsync("//MainTabs/TodayPage");
             Log("GoToAsync (offline mode) DONE");
         }
@@ -364,8 +383,11 @@ public partial class LoginPage : ContentPage
         }
         finally
         {
-            LoginButton.IsEnabled = true;
-            LoginButton.Text = Translations.Get("login_title");
+            if (!_navigiert)
+            {
+                LoginButton.IsEnabled = true;
+                LoginButton.Text = Translations.Get("login_title");
+            }
             Log("TryOfflineLogin END");
         }
     }
@@ -416,6 +438,8 @@ public partial class LoginPage : ContentPage
         }
 
         Log("LoginAsync START");
+
+        _navigiert = false;
 
         try
         {
@@ -499,6 +523,7 @@ public partial class LoginPage : ContentPage
                 await Task.Yield();
 
                 Log("GoToAsync START");
+                _navigiert = true;
                 await Shell.Current.GoToAsync("//MainTabs/TodayPage");
                 Log("GoToAsync DONE");
             }
@@ -515,10 +540,13 @@ public partial class LoginPage : ContentPage
         }
         finally
         {
-            // Checkbox-Status wiederherstellen
-            RememberMeCheckbox.IsChecked = originalRememberMe;
-            LoginButton.IsEnabled = true;
-            LoginButton.Text = Translations.Get("login_title");
+            if (!_navigiert)
+            {
+                // Checkbox-Status wiederherstellen
+                RememberMeCheckbox.IsChecked = originalRememberMe;
+                LoginButton.IsEnabled = true;
+                LoginButton.Text = Translations.Get("login_title");
+            }
             Log("ManualLogin END");
         }
     }

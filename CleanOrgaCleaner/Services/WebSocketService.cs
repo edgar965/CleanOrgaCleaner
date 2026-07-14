@@ -210,6 +210,20 @@ public class WebSocketService : IDisposable
         }
     }
 
+    /// <summary>
+    /// OnTaskUpdate von aussen ausloesen, z.B. nach App-Resume: Waehrend die
+    /// App im Hintergrund war, war der WebSocket getrennt - Aenderungen aus
+    /// dieser Zeit kamen nie an. Die Seiten reagieren auf "task_updated" mit
+    /// einem kompletten Daten-Reload.
+    /// </summary>
+    public void NotifyTaskUpdate(string type = "task_updated")
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            OnTaskUpdate?.Invoke(type);
+        });
+    }
+
     private async Task TryReconnectAsync()
     {
         if (!_shouldReconnect || App.IsInBackground) return;

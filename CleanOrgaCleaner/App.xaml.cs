@@ -74,6 +74,11 @@ public partial class App : Application
             if (isLoggedIn)
             {
                 await WebSocketService.Instance.ReconnectAsync();
+
+                // Waehrend des Hintergrunds war der WebSocket getrennt -
+                // Aenderungen (z.B. Aufgabenbeschreibungen) kamen nicht an.
+                // Daten-Reload der offenen Seiten anstossen.
+                WebSocketService.Instance.NotifyTaskUpdate();
             }
         }
         catch (Exception ex)
