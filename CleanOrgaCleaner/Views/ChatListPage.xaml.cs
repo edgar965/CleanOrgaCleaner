@@ -8,15 +8,14 @@ namespace CleanOrgaCleaner.Views;
 public partial class ChatListPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private ObservableCollection<CleanerInfo> _cleaners;
-    private string _adminAvatar = "A";
+    private ObservableCollection<CleanerInfo> _partners;
 
     public ChatListPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
-        _cleaners = new ObservableCollection<CleanerInfo>();
-        CleanersCollection.ItemsSource = _cleaners;
+        _partners = new ObservableCollection<CleanerInfo>();
+        BindableLayout.SetItemsSource(ChatPartnersContainer, _partners);
     }
 
     protected override async void OnAppearing()
@@ -44,8 +43,6 @@ public partial class ChatListPage : ContentPage
     {
         var t = Translations.Get;
         MessagesLabel.Text = t("messages");
-        AdminSectionLabel.Text = t("administration").ToUpper();
-        ColleaguesSectionLabel.Text = t("colleagues").ToUpper();
     }
 
     private async Task LoadCleanersAsync()
@@ -58,28 +55,25 @@ public partial class ChatListPage : ContentPage
             if (response != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[ChatListPage] Got {response.Cleaners.Count} cleaners from API");
-                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Admin avatar: '{response.AdminAvatar}'");
 
-                _cleaners.Clear();
+                _partners.Clear();
+
+                // Admin immer als erster Eintrag
+                _partners.Add(new CleanerInfo
+                {
+                    Id = 0,
+                    Name = "Admin",
+                    Avatar = response.AdminAvatar,
+                    IsAdmin = true
+                });
+
+                // danach die aktiven Kollegen
                 foreach (var c in response.Cleaners)
                 {
                     System.Diagnostics.Debug.WriteLine($"[ChatListPage] Adding cleaner: {c.Name} (ID: {c.Id})");
-                    _cleaners.Add(c);
+                    _partners.Add(c);
                 }
-                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Collection now has {_cleaners.Count} items");
-
-                // Set admin avatar
-                if (!string.IsNullOrEmpty(response.AdminAvatar))
-                {
-                    _adminAvatar = response.AdminAvatar;
-                    AdminAvatarLabel.Text = _adminAvatar;
-                    AdminAvatarLabel.FontSize = 32;
-                }
-                else
-                {
-                    AdminAvatarLabel.Text = "A";
-                    AdminAvatarLabel.FontSize = 20;
-                }
+                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Collection now has {_partners.Count} items");
             }
         }
         catch (Exception ex)
@@ -89,36 +83,24 @@ public partial class ChatListPage : ContentPage
         }
     }
 
-    private async void OnAdminChatTapped(object sender, EventArgs e)
+    private async void OnPartnerChatTapped(object sender, EventArgs e)
     {
         try
         {
             if (Shell.Current == null) return;
-            var avatarEncoded = Uri.EscapeDataString(_adminAvatar);
-            await Shell.Current.GoToAsync($"ChatCurrentPage?partner=admin&partnerName=Admin&partnerAvatar={avatarEncoded}");
-        }
-        catch (Exception ex)
-        {
-            // async void + Navigation: Shell.Current kann null sein, GoToAsync werfen
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Admin chat nav error: {ex.Message}");
-        }
-    }
-
-    private async void OnCleanerChatTapped(object sender, EventArgs e)
-    {
-        try
-        {
-            if (Shell.Current == null) return;
-            if (sender is Button btn && btn.CommandParameter is CleanerInfo cleaner)
+            if (sender is Button btn && btn.CommandParameter is CleanerInfo partner)
             {
-                var partnerName = Uri.EscapeDataString(cleaner.Name ?? "Kollege");
-                var partnerAvatar = Uri.EscapeDataString(cleaner.Avatar ?? "");
-                await Shell.Current.GoToAsync($"ChatCurrentPage?partner={cleaner.Id}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
+                // Admin => partner=admin, sonst die Cleaner-Id
+                var partnerId = partner.IsAdmin ? "admin" : partner.Id.ToString();
+                var partnerName = Uri.EscapeDataString(partner.Name ?? (partner.IsAdmin ? "Admin" : "Kollege"));
+                var partnerAvatar = Uri.EscapeDataString(partner.Avatar ?? "");
+                await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Cleaner chat nav error: {ex.Message}");
+            // async void + Navigation: Shell.Current kann null sein, GoToAsync werfen
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Chat nav error: {ex.Message}");
         }
     }
 }

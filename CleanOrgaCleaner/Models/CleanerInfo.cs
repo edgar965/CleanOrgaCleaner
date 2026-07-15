@@ -29,6 +29,11 @@ public class CleanerInfo
 
     [JsonPropertyName("is_working")]
     public bool IsWorking { get; set; }
+
+    // Kein Server-Feld: markiert den synthetischen Admin-Eintrag (erster Eintrag
+    // der Chat-Liste), damit Tap-Navigation zwischen Admin und Kollege unterscheidet.
+    [JsonIgnore]
+    public bool IsAdmin { get; set; }
 }
 
 /// <summary>

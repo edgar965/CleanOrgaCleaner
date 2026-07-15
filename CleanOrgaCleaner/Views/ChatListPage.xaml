@@ -22,59 +22,39 @@
                     <Label x:Name="MessagesLabel" Text="Nachrichten" FontSize="20" FontAttributes="Bold" TextColor="#333"/>
                 </Border>
 
-                <!-- Admin Section -->
+                <!-- Eine Liste fuer alle Chat-Partner: Admin als erster Eintrag,
+                     danach die aktiven Kollegen. BindableLayout (nicht CollectionView),
+                     weil eine CollectionView in einer ScrollView unbegrenzte Hoehe
+                     bekommt und auf Android auf 0 kollabiert. -->
                 <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
-                    <VerticalStackLayout>
-                        <Label x:Name="AdminSectionLabel" Text="ADMINISTRATION" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
+                    <VerticalStackLayout x:Name="ChatPartnersContainer">
+                        <BindableLayout.EmptyView>
+                            <VerticalStackLayout Padding="20" HorizontalOptions="Center">
+                                <Label Text="Keine Chats verfuegbar" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
+                            </VerticalStackLayout>
+                        </BindableLayout.EmptyView>
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
+                                    <!-- Avatar in circular border (like Django client) -->
+                                    <Border Grid.Column="0"
+                                            WidthRequest="50"
+                                            HeightRequest="50"
+                                            StrokeShape="RoundRectangle 25"
+                                            Stroke="#e0e0e0"
+                                            BackgroundColor="#f0f0f0">
+                                        <Label Text="{Binding DisplayAvatar}"
+                                               FontSize="28"
+                                               HorizontalOptions="Center"
+                                               VerticalOptions="Center"/>
+                                    </Border>
 
-                        <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
-                            <!-- Admin avatar in circular border (like Django client) -->
-                            <Border Grid.Column="0" WidthRequest="50" HeightRequest="50" StrokeShape="RoundRectangle 25" Stroke="#e0e0e0" BackgroundColor="#f0f0f0">
-                                <Label x:Name="AdminAvatarLabel" Text="&#x1F468;&#x200D;&#x1F4BC;" FontSize="28" HorizontalOptions="Center" VerticalOptions="Center"/>
-                            </Border>
+                                    <Label Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" FontAttributes="Bold" TextColor="#333" Margin="15,0,0,0" VerticalOptions="Center"/>
 
-                            <Label Grid.Column="1" Text="Admin" FontSize="16" FontAttributes="Bold" TextColor="#333" Margin="15,0,0,0" VerticalOptions="Center"/>
-
-                            <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" Clicked="OnAdminChatTapped"/>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Colleagues Section -->
-                <Border BackgroundColor="White" StrokeShape="RoundRectangle 15" Stroke="Transparent" Padding="0">
-                    <VerticalStackLayout>
-                        <Label x:Name="ColleaguesSectionLabel" Text="KOLLEGEN" FontSize="12" FontAttributes="Bold" TextColor="#666" Padding="20,12" BackgroundColor="#f8f9fa"/>
-
-                        <CollectionView x:Name="CleanersCollection" SelectionMode="None">
-                            <CollectionView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Padding="15" ColumnDefinitions="Auto,*,Auto">
-                                        <!-- Avatar in circular border (like Django client) -->
-                                        <Border Grid.Column="0"
-                                                WidthRequest="50"
-                                                HeightRequest="50"
-                                                StrokeShape="RoundRectangle 25"
-                                                Stroke="#e0e0e0"
-                                                BackgroundColor="#f0f0f0">
-                                            <Label Text="{Binding DisplayAvatar}"
-                                                   FontSize="28"
-                                                   HorizontalOptions="Center"
-                                                   VerticalOptions="Center"/>
-                                        </Border>
-
-                                        <Label Grid.Column="1" Text="{Binding DisplayName}" FontSize="16" FontAttributes="Bold" TextColor="#333" Margin="15,0,0,0" VerticalOptions="Center"/>
-
-                                        <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" CommandParameter="{Binding .}" Clicked="OnCleanerChatTapped"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </CollectionView.ItemTemplate>
-
-                            <CollectionView.EmptyView>
-                                <VerticalStackLayout Padding="20" HorizontalOptions="Center">
-                                    <Label Text="Keine Kollegen verfuegbar" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
-                                </VerticalStackLayout>
-                            </CollectionView.EmptyView>
-                        </CollectionView>
+                                    <Button Grid.Column="2" Text="Chat" FontSize="14" WidthRequest="70" HeightRequest="40" CornerRadius="20" BackgroundColor="#2196F3" TextColor="White" CommandParameter="{Binding .}" Clicked="OnPartnerChatTapped"/>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
                     </VerticalStackLayout>
                 </Border>
 
