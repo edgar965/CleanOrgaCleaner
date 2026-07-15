@@ -30,7 +30,7 @@
                     <VerticalStackLayout x:Name="ChatPartnersContainer">
                         <BindableLayout.EmptyView>
                             <VerticalStackLayout Padding="20" HorizontalOptions="Center">
-                                <Label Text="Keine Chats verfuegbar" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
+                                <Label Text="Keine Chats verfügbar" FontSize="14" TextColor="#888" HorizontalOptions="Center"/>
                             </VerticalStackLayout>
                         </BindableLayout.EmptyView>
                         <BindableLayout.ItemTemplate>

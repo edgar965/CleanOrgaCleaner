@@ -112,12 +112,19 @@ public static class PushService
             if (string.IsNullOrEmpty(partner))
                 partner = "admin";
 
+            daten.TryGetValue("partnerName", out var partnerName);
+
             MainThread.BeginInvokeOnMainThread(async () =>
             {
                 try
                 {
                     if (Shell.Current != null)
-                        await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partner}");
+                    {
+                        var route = $"ChatCurrentPage?partner={partner}";
+                        if (!string.IsNullOrEmpty(partnerName))
+                            route += $"&partnerName={Uri.EscapeDataString(partnerName)}";
+                        await Shell.Current.GoToAsync(route);
+                    }
                 }
                 catch (Exception ex)
                 {

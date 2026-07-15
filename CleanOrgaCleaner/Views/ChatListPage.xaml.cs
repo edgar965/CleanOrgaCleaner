@@ -52,21 +52,21 @@ public partial class ChatListPage : ContentPage
             System.Diagnostics.Debug.WriteLine("[ChatListPage] Loading cleaners...");
             var response = await _apiService.GetCleanersListAsync();
 
+            _partners.Clear();
+
+            // Admin IMMER als erster Eintrag - auch wenn die Kollegenliste offline
+            // nicht geladen werden kann, muss der Admin-Chat erreichbar bleiben.
+            _partners.Add(new CleanerInfo
+            {
+                Id = 0,
+                Name = "Admin",
+                Avatar = response?.AdminAvatar ?? "",
+                IsAdmin = true
+            });
+
             if (response != null)
             {
                 System.Diagnostics.Debug.WriteLine($"[ChatListPage] Got {response.Cleaners.Count} cleaners from API");
-
-                _partners.Clear();
-
-                // Admin immer als erster Eintrag
-                _partners.Add(new CleanerInfo
-                {
-                    Id = 0,
-                    Name = "Admin",
-                    Avatar = response.AdminAvatar,
-                    IsAdmin = true
-                });
-
                 // danach die aktiven Kollegen
                 foreach (var c in response.Cleaners)
                 {
