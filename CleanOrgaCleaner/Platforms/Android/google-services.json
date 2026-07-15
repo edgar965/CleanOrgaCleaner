@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "431411896964",
+    "project_id": "cleanorga-3c1f0",
+    "storage_bucket": "cleanorga-3c1f0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:431411896964:android:4e7744c175467069b818d1",
+        "android_client_info": {
+          "package_name": "com.cleanorga.cleaner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmQ8GoZuuKQU6_bqS-wyTOEFQxT2FcDFs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

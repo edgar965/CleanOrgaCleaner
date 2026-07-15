@@ -34,6 +34,8 @@
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">
 		<!-- Required for App Store icon to appear correctly -->
 		<IpaIncludeArtwork>true</IpaIncludeArtwork>
+		<!-- Push-Benachrichtigungen (APNs) -->
+		<CodesignEntitlements>Platforms\iOS\Entitlements.plist</CodesignEntitlements>
 	</PropertyGroup>
 
 	<!-- Android specific settings -->
@@ -80,9 +82,24 @@
 		<PackageReference Include="SQLitePCLRaw.bundle_green" Version="2.1.10" />
 	</ItemGroup>
 
+	<!-- Firebase Cloud Messaging (native Push) - nur Android + iOS -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-android')) Or $(TargetFramework.Contains('-ios'))">
+		<PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.2" />
+	</ItemGroup>
+
 	<!-- Android-specific packages for Edge-to-Edge support -->
 	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
 		<PackageReference Include="Xamarin.AndroidX.Activity.Ktx" Version="1.10.1.3" />
+	</ItemGroup>
+
+	<!-- Firebase Android-Konfiguration -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-android'))">
+		<GoogleServicesJson Include="Platforms\Android\google-services.json" />
+	</ItemGroup>
+
+	<!-- Firebase iOS-Konfiguration (nur wenn GoogleService-Info.plist vorhanden) -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-ios')) And Exists('Platforms\iOS\GoogleService-Info.plist')">
+		<BundleResource Include="Platforms\iOS\GoogleService-Info.plist" />
 	</ItemGroup>
 
 </Project>

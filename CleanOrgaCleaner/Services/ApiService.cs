@@ -1183,6 +1183,53 @@ public class ApiService
         }
     }
 
+    /// <summary>
+    /// Registriert das FCM-Push-Token dieses Geräts beim Server.
+    /// platform: "android" oder "ios".
+    /// </summary>
+    public async Task<ApiResponse> RegisterPushTokenAsync(string token, string platform)
+    {
+        try
+        {
+            var data = new { token = token, platform = platform };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/mobile/api/push/register/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
+    /// <summary>
+    /// Meldet das FCM-Push-Token dieses Geräts beim Server ab (z.B. bei Logout).
+    /// </summary>
+    public async Task<ApiResponse> UnregisterPushTokenAsync(string token)
+    {
+        try
+        {
+            var data = new { token = token };
+            var json = JsonSerializer.Serialize(data);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("/mobile/api/push/unregister/", content).ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            return JsonSerializer.Deserialize<ApiResponse>(responseText, _jsonOptions)
+                ?? new ApiResponse { Success = response.IsSuccessStatusCode };
+        }
+        catch (Exception ex)
+        {
+            return new ApiResponse { Success = false, Error = ex.Message };
+        }
+    }
+
     #endregion
 
     #region Settings

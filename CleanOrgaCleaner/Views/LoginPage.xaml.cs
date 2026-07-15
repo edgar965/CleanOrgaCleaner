@@ -247,6 +247,7 @@ public partial class LoginPage : ContentPage
 
             Log("InitializeWebSocketAsync");
             _ = App.InitializeWebSocketAsync();
+            _ = PushService.InitializeAsync();
             Log("WebSocket started");
 
             // Send pending crash reports in background
@@ -494,6 +495,7 @@ public partial class LoginPage : ContentPage
 
                 Log("InitializeWebSocketAsync");
                 _ = App.InitializeWebSocketAsync();
+                _ = PushService.InitializeAsync();
                 Log("WebSocket fire-and-forget done");
 
                 // Send pending crash reports in background

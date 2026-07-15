@@ -63,6 +63,9 @@ public static class Main
         // Nur is_logged_in löschen - property_id und username behalten für "Anmeldedaten merken"
         Preferences.Remove("is_logged_in");
 
+        // FCM-Token abmelden, solange die Session noch gültig ist (vor Logout)
+        await PushService.UnregisterAsync();
+
         // Clear API service session (sends offline status to server)
         await ApiService.Instance.LogoutAsync();
 
