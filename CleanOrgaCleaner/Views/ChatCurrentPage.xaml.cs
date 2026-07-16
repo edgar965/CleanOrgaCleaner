@@ -237,6 +237,13 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             return;
         }
 
+        // Tastatur schliessen (sonst bleibt sie nach dem Senden offen und man
+        // muss erst manuell auf den Haken tippen). Unfocus() allein schliesst
+        // die Android-Tastatur NICHT zuverlaessig -> zusaetzlich die MAUI-API
+        // HideSoftInputAsync verwenden (per Appium-Test UI01 verifiziert).
+        MessageEntry.Unfocus();
+        try { await MessageEntry.HideSoftInputAsync(System.Threading.CancellationToken.None); } catch { }
+
         SendButton.IsEnabled = false;
 
         try

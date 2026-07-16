@@ -188,6 +188,13 @@ public class ApiService
             {
                 using var webResp = (System.Net.HttpWebResponse)webReq.GetResponse();
                 DbgLog($"GetResponse DONE -> {webResp.StatusCode}");
+                // WICHTIG (iOS): Session-Cookie direkt aus der Login-Antwort greifen.
+                // Der native NSUrlSessionHandler synchronisiert das Cookie-Storage NICHT
+                // zuverlaessig in den managed CookieContainer, den GetCookieHeader() fuer
+                // den WebSocket ausliest -> der WS-Handshake ging ohne sessionid raus (403).
+                // Aus den Set-Cookie-Headern der Antwort lesen wir sessionid/ws_auth direkt
+                // (HttpOnly betrifft nur JS, nicht den HTTP-Client) und legen sie ab.
+                ExtractAuthCookies(webResp);
                 using var respStream = webResp.GetResponseStream();
                 using var reader = new System.IO.StreamReader(respStream);
                 responseJson = reader.ReadToEnd();
@@ -413,13 +420,89 @@ public class ApiService
     private void ClearCookies()
     {
         _handler.CookieContainer = new System.Net.CookieContainer();
+        // Auch die fuer den WebSocket abgelegten Auth-Cookies verwerfen,
+        // sonst wuerde sich ein neuer Login mit altem Token verbinden.
+        foreach (var (_, pref) in _wsCookieNamen)
+            Preferences.Remove(pref);
     }
 
     /// <summary>
     /// Get session cookies for WebSocket connections
     /// </summary>
+    // Namen der Cookies, die wir fuer den WebSocket-Handshake persistieren.
+    private static readonly (string Name, string Pref)[] _wsCookieNamen =
+    {
+        ("sessionid", "ws_sessionid"),
+        ("ws_auth", "ws_auth"),
+        ("csrftoken", "ws_csrftoken"),
+        ("property_id", "ws_property_id"),
+    };
+
+    /// <summary>
+    /// Liest die auth-relevanten Cookies direkt aus der (Login-)Antwort und legt
+    /// sie in den Preferences ab. Notwendig auf iOS, weil der managed
+    /// CookieContainer dort nicht zuverlaessig befuellt wird (siehe LoginSync).
+    /// </summary>
+    private void ExtractAuthCookies(System.Net.HttpWebResponse resp)
+    {
+        try
+        {
+            // 1) Bevorzugt die geparste Cookie-Collection der Antwort
+            foreach (System.Net.Cookie c in resp.Cookies)
+                SpeichereWsCookie(c.Name, c.Value);
+
+            // 2) Zusaetzlich roh aus dem Set-Cookie-Header (iOS: Cookies-Collection
+            //    kann leer sein, der Header ist aber vorhanden). Pro bekannter Name
+            //    per Regex den Wert ziehen - robust gegen zusammengefaltete Header.
+            var raw = resp.Headers["Set-Cookie"];
+            if (!string.IsNullOrEmpty(raw))
+            {
+                foreach (var (name, _) in _wsCookieNamen)
+                {
+                    var m = System.Text.RegularExpressions.Regex.Match(
+                        raw, name + @"=([^;,\s]+)");
+                    if (m.Success)
+                        SpeichereWsCookie(name, m.Groups[1].Value);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Cookie] ExtractAuthCookies-Fehler: {ex.Message}");
+        }
+    }
+
+    private void SpeichereWsCookie(string name, string value)
+    {
+        if (string.IsNullOrEmpty(value)) return;
+        foreach (var (n, pref) in _wsCookieNamen)
+        {
+            if (n == name)
+            {
+                Preferences.Set(pref, value);
+                return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Cookie-Header fuer WebSocket-Verbindungen. Baut ihn bevorzugt aus den beim
+    /// Login direkt aus der Antwort gegriffenen Cookies (zuverlaessig auf iOS), da
+    /// der managed CookieContainer dort veraltet/leer sein kann. Fallback: Container.
+    /// </summary>
     public string GetCookieHeader()
     {
+        var parts = new List<string>();
+        foreach (var (name, pref) in _wsCookieNamen)
+        {
+            var v = Preferences.Get(pref, "");
+            if (!string.IsNullOrEmpty(v))
+                parts.Add($"{name}={v}");
+        }
+        if (parts.Count > 0)
+            return string.Join("; ", parts);
+
+        // Fallback (Android/Desktop, wo der managed Container funktioniert)
         var cookies = _handler.CookieContainer.GetCookies(new Uri(BaseUrl));
         if (cookies.Count == 0) return "";
 
