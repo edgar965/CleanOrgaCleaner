@@ -424,6 +424,28 @@ public class ApiService
         // sonst wuerde sich ein neuer Login mit altem Token verbinden.
         foreach (var (_, pref) in _wsCookieNamen)
             Preferences.Remove(pref);
+        Preferences.Remove("push_registered");
+
+        // iOS: der managed CookieContainer wird vom nativen Handler nicht
+        // zuverlaessig gepflegt - alte Cookies (z.B. ein veraltetes property_id)
+        // ueberleben und landen sonst im WebSocket-Handshake. Nativen
+        // Cookie-Speicher explizit leeren, damit ein neuer Login sauber startet.
+#if IOS
+        try
+        {
+            var storage = Foundation.NSHttpCookieStorage.SharedStorage;
+            var cookies = storage.Cookies;
+            if (cookies != null)
+            {
+                foreach (var c in cookies)
+                    storage.DeleteCookie(c);
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[Cookie] Nativer Cookie-Reset fehlgeschlagen: {ex.Message}");
+        }
+#endif
     }
 
     /// <summary>

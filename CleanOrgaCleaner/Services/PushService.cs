@@ -50,6 +50,64 @@ public static class PushService
     }
 
     /// <summary>
+    /// Vom Einstellungen-Button aufrufbar: fordert die Push-Berechtigung an,
+    /// holt das Token und registriert es beim Server. Gibt (ok, Status) zurück -
+    /// bei Misserfolg enthält Status den konkreten Grund (Berechtigung/APNs/
+    /// Firebase), damit der Nutzer/Support sieht, warum kein Push ankommt.
+    /// </summary>
+    public static async Task<(bool ok, string status)> EnsureRegistrationAsync()
+    {
+        try
+        {
+            if (!_eventsAbonniert)
+            {
+                CrossFirebaseCloudMessaging.Current.TokenChanged += OnTokenChanged;
+                CrossFirebaseCloudMessaging.Current.NotificationTapped += OnNotificationTapped;
+                _eventsAbonniert = true;
+            }
+
+            // Berechtigung anfragen/prüfen (wirft, wenn verweigert/nicht verfügbar)
+            await CrossFirebaseCloudMessaging.Current.CheckIfValidAsync().ConfigureAwait(false);
+
+            var token = await CrossFirebaseCloudMessaging.Current.GetTokenAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(token))
+                return (false, "Kein Push-Token erhalten (APNs/Firebase nicht bereit)");
+
+            _aktuellesToken = token;
+            var platform = DeviceInfo.Platform == DevicePlatform.iOS ? "ios" : "android";
+            var res = await ApiService.Instance.RegisterPushTokenAsync(token, platform).ConfigureAwait(false);
+            Debug.WriteLine($"[Push] EnsureRegistration ({platform}): success={res.Success}");
+            return res.Success
+                ? (true, "Mitteilungen aktiviert")
+                : (false, "Server-Registrierung fehlgeschlagen: " + (res.Error ?? "unbekannt"));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Push] EnsureRegistration-Fehler: {ex.Message}");
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Aktueller Berechtigungs-Zustand OHNE einen Dialog anzuzeigen (für die
+    /// Statusanzeige in den Einstellungen). true = erlaubt, false = nicht,
+    /// null = unbekannt (z.B. wenn die Plattform-Abfrage nicht verfügbar ist).
+    /// </summary>
+    public static async Task<bool?> IstErlaubtAsync()
+    {
+        try
+        {
+            var status = await Permissions.CheckStatusAsync<Permissions.PostNotifications>().ConfigureAwait(false);
+            return status == PermissionStatus.Granted;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Push] Status-Abfrage nicht verfügbar: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Bei Logout aufrufen: aktuelles Token beim Server abmelden, damit das
     /// Gerät keine Pushes mehr für den abgemeldeten Nutzer bekommt.
     /// </summary>
@@ -89,6 +147,8 @@ public static class PushService
         _aktuellesToken = token;
         var platform = DeviceInfo.Platform == DevicePlatform.iOS ? "ios" : "android";
         var res = await ApiService.Instance.RegisterPushTokenAsync(token, platform).ConfigureAwait(false);
+        if (res.Success)
+            Preferences.Set("push_registered", true);
         Debug.WriteLine($"[Push] Token registriert ({platform}): success={res.Success}");
     }
 

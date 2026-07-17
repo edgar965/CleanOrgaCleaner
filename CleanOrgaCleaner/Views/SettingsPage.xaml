@@ -173,6 +173,41 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Notifications -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Label x:Name="NotificationsTitleLabel"
+                               Text="Mitteilungen"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               TextColor="#333"/>
+
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <Label x:Name="NotificationsLabel"
+                                   Text="Push-Mitteilungen"
+                                   TextColor="#333"
+                                   FontSize="15"
+                                   VerticalOptions="Center"/>
+                            <Switch x:Name="NotificationsSwitch"
+                                    Grid.Column="1"
+                                    OnColor="#2196F3"
+                                    Toggled="OnNotificationsToggled"/>
+                            <Label Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   x:Name="NotificationsStatusLabel"
+                                   Text=""
+                                   FontSize="12"
+                                   TextColor="#888"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- App Info -->
                 <Border BackgroundColor="White"
                         StrokeShape="RoundRectangle 15"

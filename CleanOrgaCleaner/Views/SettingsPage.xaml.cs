@@ -179,6 +179,7 @@ public partial class SettingsPage : ContentPage
             LoadCurrentAvatar();
             LoadCurrentLanguage();
             _ = LoadBiometricSettingsAsync();
+            _ = AktualisiereMitteilungsZustandAsync();
         }
         catch (Exception ex)
         {
@@ -280,6 +281,68 @@ public partial class SettingsPage : ContentPage
         {
             System.Diagnostics.Debug.WriteLine($"SetLanguage error: {ex.Message}");
             await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
+        }
+    }
+
+    // Verhindert, dass das programmatische Setzen des Schalters (Statusanzeige)
+    // den Toggled-Handler auslöst.
+    private bool _mitteilungenSetzenLaeuft;
+
+    private void SetzeMitteilungsSchalter(bool an, string status, bool fehler = false)
+    {
+        _mitteilungenSetzenLaeuft = true;
+        NotificationsSwitch.IsToggled = an;
+        _mitteilungenSetzenLaeuft = false;
+        NotificationsStatusLabel.Text = status;
+        NotificationsStatusLabel.TextColor = fehler ? Color.FromArgb("#d32f2f")
+            : (an ? Color.FromArgb("#00a884") : Color.FromArgb("#888"));
+    }
+
+    /// <summary>Zeigt beim Öffnen den aktuellen Mitteilungs-Zustand an.</summary>
+    private async Task AktualisiereMitteilungsZustandAsync()
+    {
+        var erlaubt = await PushService.IstErlaubtAsync();       // null = unbekannt (iOS)
+        var registriert = Preferences.Get("push_registered", false);
+        bool an = erlaubt ?? registriert;
+        SetzeMitteilungsSchalter(an, an ? "Aktiviert" : "Nicht aktiviert");
+    }
+
+    private async void OnNotificationsToggled(object? sender, ToggledEventArgs e)
+    {
+        if (_mitteilungenSetzenLaeuft)
+            return;
+
+        if (e.Value)
+        {
+            NotificationsStatusLabel.Text = "…";
+            NotificationsStatusLabel.TextColor = Color.FromArgb("#888");
+            var (ok, status) = await PushService.EnsureRegistrationAsync();
+            if (ok)
+            {
+                Preferences.Set("push_registered", true);
+                SetzeMitteilungsSchalter(true, "Aktiviert");
+            }
+            else
+            {
+                Preferences.Set("push_registered", false);
+                SetzeMitteilungsSchalter(false, "Nicht aktiv: " + status, fehler: true);
+                // Auf iOS lässt sich eine verweigerte Berechtigung nicht erneut
+                // per Dialog anfragen -> in die Geräte-Einstellungen leiten.
+                bool oeffnen = await DisplayAlert(
+                    "Mitteilungen",
+                    "Mitteilungen sind nicht aktiv. Bitte in den Geräte-Einstellungen für CleanOrga erlauben.",
+                    "Einstellungen öffnen", "Abbrechen");
+                if (oeffnen)
+                {
+                    try { AppInfo.Current.ShowSettingsUI(); } catch { }
+                }
+            }
+        }
+        else
+        {
+            await PushService.UnregisterAsync();
+            Preferences.Set("push_registered", false);
+            SetzeMitteilungsSchalter(false, "Deaktiviert");
         }
     }
 
