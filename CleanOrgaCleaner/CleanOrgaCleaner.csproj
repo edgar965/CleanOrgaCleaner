@@ -84,9 +84,9 @@
 
 	<!-- Firebase Cloud Messaging (native Push) + Firestore/Auth (Echtzeit-Chat) - nur Android + iOS -->
 	<ItemGroup Condition="$(TargetFramework.Contains('-android')) Or $(TargetFramework.Contains('-ios'))">
-		<PackageReference Include="Plugin.Firebase.CloudMessaging" Version="3.1.1" />
-		<PackageReference Include="Plugin.Firebase.Firestore" Version="3.1.1" />
-		<PackageReference Include="Plugin.Firebase.Auth" Version="3.1.1" />
+		<PackageReference Include="Plugin.Firebase.CloudMessaging" Version="4.0.0" />
+		<PackageReference Include="Plugin.Firebase.Firestore" Version="4.0.0" />
+		<PackageReference Include="Plugin.Firebase.Auth" Version="4.0.0" />
 	</ItemGroup>
 
 	<!-- Android-specific packages for Edge-to-Edge support -->
