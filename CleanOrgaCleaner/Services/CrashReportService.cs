@@ -181,18 +181,26 @@ public class CrashReportService
 
             // Sent-Flags in der AKTUELLEN Datei setzen (nicht die alte Liste
             // zurückschreiben - während des Sendens kann SaveCrashReport neue
-            // Reports angehängt haben, die sonst verloren gingen).
+            // Reports angehängt haben, die sonst verloren gingen). Jeder
+            // gesendete Report "verbraucht" genau EINEN Datei-Eintrag: zwei
+            // feldgleiche Reports werden sonst beide als gesendet markiert,
+            // obwohl nur einer beim Server ankam.
             lock (_dateiSperre)
             {
                 var aktuell = LoadCrashReports();
+                var offen = new List<CrashReport>(gesendet);
                 foreach (var r in aktuell)
                 {
-                    if (!r.Sent && gesendet.Any(g =>
-                            g.Timestamp == r.Timestamp &&
-                            g.ExceptionType == r.ExceptionType &&
-                            g.Message == r.Message))
+                    if (r.Sent)
+                        continue;
+                    var passt = offen.FindIndex(g =>
+                        g.Timestamp == r.Timestamp &&
+                        g.ExceptionType == r.ExceptionType &&
+                        g.Message == r.Message);
+                    if (passt >= 0)
                     {
                         r.Sent = true;
+                        offen.RemoveAt(passt);
                     }
                 }
                 var json = JsonSerializer.Serialize(aktuell, Json.AppJsonContext.Default.ListCrashReport);

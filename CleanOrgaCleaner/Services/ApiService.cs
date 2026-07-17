@@ -148,25 +148,32 @@ public class ApiService
     /// z.B. die Firebase-iOS-Init durchläuft. Fire-and-forget, nie werfend.
     /// </summary>
     public static void WriteServerDiag(string tag, string message)
+        => _ = Task.Run(() => WriteServerDiagAsync(tag, message));
+
+    /// <summary>Wie WriteServerDiag, aber mit Erfolgsrückmeldung - z.B. damit
+    /// der Aufrufer ein "schon gemeldet"-Flag nur bei Zustellung setzt.</summary>
+    public static async Task<bool> WriteServerDiagAsync(string tag, string message)
     {
-        _ = Task.Run(async () =>
+        try
         {
-            try
+            // Denselben Sende-Pfad wie echte Crash-Reports nutzen, damit
+            // Feldnamen/Formate nicht auseinanderdriften. cleaner_name fest
+            // "diag", damit Diagnosen nie einem echten Nutzer zugeschrieben
+            // werden.
+            return await Instance.SendCrashReportAsync(new CrashReport
             {
-                // Denselben Sende-Pfad wie echte Crash-Reports nutzen, damit
-                // Feldnamen/Formate nicht auseinanderdriften.
-                await Instance.SendCrashReportAsync(new CrashReport
-                {
-                    Timestamp = DateTime.UtcNow,
-                    Source = tag,
-                    ExceptionType = "Diagnose",
-                    Message = message,
-                    DeviceInfo = $"{DeviceInfo.Platform} {DeviceInfo.VersionString}",
-                    AppVersion = $"{AppInfo.VersionString} ({AppInfo.BuildString})",
-                }).ConfigureAwait(false);
-            }
-            catch { }
-        });
+                Timestamp = DateTime.UtcNow,
+                Source = tag,
+                ExceptionType = "Diagnose",
+                Message = message,
+                DeviceInfo = $"{DeviceInfo.Platform} {DeviceInfo.VersionString}",
+                AppVersion = $"{AppInfo.VersionString} ({AppInfo.BuildString})",
+            }, cleanerName: "diag").ConfigureAwait(false);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -1880,7 +1887,7 @@ public class ApiService
     /// <summary>
     /// Send a crash report to the server
     /// </summary>
-    public async Task<bool> SendCrashReportAsync(CrashReport report)
+    public async Task<bool> SendCrashReportAsync(CrashReport report, string? cleanerName = null)
     {
         try
         {
@@ -1896,8 +1903,9 @@ public class ApiService
                 new KeyValuePair<string, string>("app_version", report.AppVersion),
                 // Vor dem Login ist CleanerName noch null (Startup-Send) -
                 // dann den zuletzt eingeloggten Benutzer aus den Preferences
-                // nehmen, damit der Report zuordenbar bleibt.
-                new KeyValuePair<string, string>("cleaner_name", ErmittleCrashReportName()),
+                // nehmen, damit der Report zuordenbar bleibt. Diagnosen
+                // uebergeben explizit "diag".
+                new KeyValuePair<string, string>("cleaner_name", cleanerName ?? ErmittleCrashReportName()),
             });
 
             var response = await _httpClient.PostAsync("/api/crash-report/", content).ConfigureAwait(false);
@@ -1917,9 +1925,9 @@ public class ApiService
             return CleanerName;
         try
         {
-            var username = Preferences.Get("username", "");
-            if (!string.IsNullOrEmpty(username))
-                return username;
+            // Zentraler Username-Zugriff (Main.UserName = Preferences "username")
+            if (!string.IsNullOrEmpty(Main.UserName))
+                return Main.UserName;
         }
         catch { }
         return "Unknown";

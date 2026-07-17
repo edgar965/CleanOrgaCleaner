@@ -37,7 +37,10 @@ public class AppDelegate : MauiUIApplicationDelegate
 		// Diagnose an den Server (unauth /api/crash-report/), damit wir OHNE
 		// Gerät sehen, ob die Firebase-Init auf iOS durchläuft. Um das Server-
 		// Crash-Log nicht zu fluten: Fehler immer melden, "OK" nur einmal pro
-		// App-Version (nicht bei jedem Start).
+		// App-Version. Das "schon gemeldet"-Flag wird erst gesetzt, wenn die
+		// Zustellung wirklich geklappt hat - sonst würde ein fehlgeschlagener
+		// Erst-Versuch (z.B. offline beim ersten Start) das OK für diese
+		// Version dauerhaft verschlucken.
 		var diagKey = "fb_diag_ok_build";
 		if (diag != "OK")
 		{
@@ -45,8 +48,15 @@ public class AppDelegate : MauiUIApplicationDelegate
 		}
 		else if (Preferences.Get(diagKey, "") != AppInfo.BuildString)
 		{
-			Preferences.Set(diagKey, AppInfo.BuildString);
-			ApiService.WriteServerDiag("firebase-init-ios", diag);
+			_ = Task.Run(async () =>
+			{
+				try
+				{
+					if (await ApiService.WriteServerDiagAsync("firebase-init-ios", diag))
+						Preferences.Set(diagKey, AppInfo.BuildString);
+				}
+				catch { }
+			});
 		}
 
 		return base.FinishedLaunching(application, launchOptions);

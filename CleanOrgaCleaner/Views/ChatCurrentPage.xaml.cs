@@ -64,6 +64,13 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
             _webSocketService.OnChatMessageReceived -= OnNewMessageReceived;
             _webSocketService.OnChatMessageReceived += OnNewMessageReceived;
 
+            // Nach App-Resume/WS-Reconnect Historie nachladen: Nachrichten, die
+            // ankamen, während das Gerät gesperrt war (WS getrennt), würden auf
+            // der bereits offenen Chat-Seite sonst NIE erscheinen - OnAppearing
+            // feuert bei App-Resume nicht.
+            _webSocketService.OnConnectionStatusChanged -= OnVerbindungGeaendert;
+            _webSocketService.OnConnectionStatusChanged += OnVerbindungGeaendert;
+
             // Load messages (fire-and-forget to not block UI)
             _ = LoadMessagesWithPendingAsync();
         }
@@ -104,6 +111,19 @@ public partial class ChatCurrentPage : ContentPage, IQueryAttributable
     {
         base.OnDisappearing();
         _webSocketService.OnChatMessageReceived -= OnNewMessageReceived;
+        _webSocketService.OnConnectionStatusChanged -= OnVerbindungGeaendert;
+    }
+
+    /// <summary>
+    /// WS wieder verbunden (App-Resume oder Reconnect): verpasste Nachrichten
+    /// nachladen. LoadMessagesWithPendingAsync ist gegen Parallel-Läufe
+    /// geschützt und dedupliziert per Nachrichten-Id.
+    /// </summary>
+    private void OnVerbindungGeaendert(bool verbunden)
+    {
+        if (!verbunden)
+            return;
+        MainThread.BeginInvokeOnMainThread(() => _ = LoadMessagesWithPendingAsync());
     }
 
     private void ApplyTranslations()
