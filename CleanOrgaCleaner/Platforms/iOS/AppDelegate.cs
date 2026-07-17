@@ -1,5 +1,6 @@
 using Foundation;
 using UIKit;
+using CleanOrgaCleaner.Services;
 using Plugin.Firebase.Core;
 using Plugin.Firebase.Core.Platforms.iOS;
 
@@ -10,7 +11,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 {
 	protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
 
-	public override bool FinishedLaunching(UIApplication application, NSDictionary launchOptions)
+	public override bool FinishedLaunching(UIApplication application, NSDictionary? launchOptions)
 	{
 		// Firebase MUSS hier initialisiert werden - kanonische, früheste Stelle,
 		// VOR base.FinishedLaunching. Nur so ist die Default-FirebaseApp
@@ -34,7 +35,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 
 		// Diagnose an den Server (unauth /api/crash-report/), damit wir OHNE
 		// Gerät sehen, ob die Firebase-Init auf iOS wirklich durchläuft.
-		Services.ApiService.WriteServerDiag("firebase-init-ios", diag);
+		ApiService.WriteServerDiag("firebase-init-ios", diag);
 
 		return base.FinishedLaunching(application, launchOptions);
 	}
