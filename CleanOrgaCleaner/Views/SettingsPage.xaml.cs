@@ -223,6 +223,10 @@ public partial class SettingsPage : ContentPage
         // Echte Build-Version statt hartcodierter Konstante (zeigte "1.52")
         VersionValueLabel.Text = $"{AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
         ServerLabel.Text = t("server");
+
+        // Mitteilungen
+        NotificationsTitleLabel.Text = t("notifications");
+        NotificationsLabel.Text = t("push_notifications");
     }
 
     private void LoadUserInfo()
@@ -304,7 +308,8 @@ public partial class SettingsPage : ContentPage
         var erlaubt = await PushService.IstErlaubtAsync();       // null = unbekannt (iOS)
         var registriert = Preferences.Get("push_registered", false);
         bool an = erlaubt ?? registriert;
-        SetzeMitteilungsSchalter(an, an ? "Aktiviert" : "Nicht aktiviert");
+        var t = Translations.Get;
+        SetzeMitteilungsSchalter(an, an ? t("enabled") : t("not_enabled"));
     }
 
     private async void OnNotificationsToggled(object? sender, ToggledEventArgs e)
@@ -312,6 +317,7 @@ public partial class SettingsPage : ContentPage
         if (_mitteilungenSetzenLaeuft)
             return;
 
+        var t = Translations.Get;
         if (e.Value)
         {
             NotificationsStatusLabel.Text = "…";
@@ -320,18 +326,19 @@ public partial class SettingsPage : ContentPage
             if (ok)
             {
                 Preferences.Set("push_registered", true);
-                SetzeMitteilungsSchalter(true, "Aktiviert");
+                SetzeMitteilungsSchalter(true, t("enabled"));
             }
             else
             {
                 Preferences.Set("push_registered", false);
-                SetzeMitteilungsSchalter(false, "Nicht aktiv: " + status, fehler: true);
+                // status ist eine technische Diagnose (bewusst unübersetzt)
+                SetzeMitteilungsSchalter(false, t("not_active") + ": " + status, fehler: true);
                 // Auf iOS lässt sich eine verweigerte Berechtigung nicht erneut
                 // per Dialog anfragen -> in die Geräte-Einstellungen leiten.
                 bool oeffnen = await DisplayAlert(
-                    "Mitteilungen",
-                    "Mitteilungen sind nicht aktiv. Bitte in den Geräte-Einstellungen für CleanOrga erlauben.",
-                    "Einstellungen öffnen", "Abbrechen");
+                    t("notifications"),
+                    t("notifications_denied_hint"),
+                    t("open_settings"), t("cancel"));
                 if (oeffnen)
                 {
                     try { AppInfo.Current.ShowSettingsUI(); } catch { }
@@ -342,7 +349,7 @@ public partial class SettingsPage : ContentPage
         {
             await PushService.UnregisterAsync();
             Preferences.Set("push_registered", false);
-            SetzeMitteilungsSchalter(false, "Deaktiviert");
+            SetzeMitteilungsSchalter(false, t("disabled"));
         }
     }
 
