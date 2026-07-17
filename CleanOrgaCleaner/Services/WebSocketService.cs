@@ -306,6 +306,18 @@ public class WebSocketService : IDisposable
         UiSicher.AufMainThread(() => OnTaskUpdate?.Invoke(type), "WS");
     }
 
+    /// <summary>
+    /// Von aussen (Firestore-Empfang) eine Chat-Nachricht in denselben Event
+    /// einspeisen, den auch der WebSocket nutzt. So bleibt die UI unveraendert;
+    /// Duplikate (WS + Firestore) fangen die Seiten per Id-Dedup ab.
+    /// </summary>
+    public void NotifyChatMessage(ChatMessage message)
+    {
+        if (message == null)
+            return;
+        UiSicher.AufMainThread(() => OnChatMessageReceived?.Invoke(message), "FS");
+    }
+
     private async Task TryReconnectAsync()
     {
         if (!_shouldReconnect || App.IsInBackground) return;

@@ -104,6 +104,30 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Holt das Firebase-Custom-Token und startet den Firestore-Chat-Listener.
+    /// </summary>
+    public static async Task InitializeFirestoreChatAsync()
+    {
+        try
+        {
+            var t = await ApiService.Instance.GetFirebaseTokenAsync().ConfigureAwait(false);
+            if (t == null)
+            {
+                Log("Firestore: kein Token - uebersprungen");
+                return;
+            }
+            await FirestoreChatService.Instance
+                .StartAsync(t.Value.cleanerId, t.Value.propertyId, t.Value.token)
+                .ConfigureAwait(false);
+            Log("Firestore-Chat gestartet");
+        }
+        catch (Exception ex)
+        {
+            Log($"Firestore-Init-Fehler: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Initialize WebSocket connection after successful login
     /// </summary>
     public static async Task InitializeWebSocketAsync()
@@ -114,6 +138,10 @@ public partial class App : Application
             Log("WebSocketService.ConnectAsync START");
             await WebSocketService.Instance.ConnectAsync().ConfigureAwait(false);
             Log("WebSocketService.ConnectAsync DONE");
+
+            // Firestore-Echtzeit-Chat starten (stabiler Ersatz/Ergaenzung zum
+            // WebSocket - SDK managt Reconnect/Offline/Hintergrund selbst).
+            _ = InitializeFirestoreChatAsync();
 
             // Warm up TTS engine in background (Android needs initialization time)
             _ = Task.Run(async () =>

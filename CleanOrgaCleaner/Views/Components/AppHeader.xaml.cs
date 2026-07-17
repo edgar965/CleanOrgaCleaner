@@ -335,6 +335,9 @@ public partial class AppHeader : ContentView
             // Ignore errors - we're logging out anyway
         }
 
+        // Firestore-Listener beenden + von Firebase abmelden
+        try { FirestoreChatService.Instance.Stop(); } catch { }
+
         // Clear stored credentials
         try
         {

@@ -1292,6 +1292,37 @@ public class ApiService
     /// Registriert das FCM-Push-Token dieses Geräts beim Server.
     /// platform: "android" oder "ios".
     /// </summary>
+    /// <summary>
+    /// Holt ein Firebase-Custom-Token vom Server (nach dem Login). Damit meldet
+    /// sich die App bei Firebase Auth an und darf ihren Firestore-Posteingang lesen.
+    /// Rueckgabe: (token, cleanerId, propertyId) oder null.
+    /// </summary>
+    public async Task<(string token, int cleanerId, int propertyId)?> GetFirebaseTokenAsync()
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"{BaseUrl}/mobile/api/firebase-token/").ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode)
+                return null;
+            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (!(root.TryGetProperty("success", out var s) && s.GetBoolean()))
+                return null;
+            var token = root.TryGetProperty("token", out var t) ? t.GetString() : null;
+            if (string.IsNullOrEmpty(token))
+                return null;
+            var cid = root.TryGetProperty("cleaner_id", out var c) ? c.GetInt32() : 0;
+            var pid = root.TryGetProperty("property_id", out var p) ? p.GetInt32() : 1;
+            return (token, cid, pid);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[FS] Firebase-Token holen fehlgeschlagen: {ex.Message}");
+            return null;
+        }
+    }
+
     public async Task<ApiResponse> RegisterPushTokenAsync(string token, string platform)
     {
         try
