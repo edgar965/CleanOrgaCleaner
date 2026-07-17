@@ -1,0 +1,5 @@
+/* System-Berechtigungsdialoge in Geraetesprache (ro) */
+"NSCameraUsageDescription" = "CleanOrga are nevoie de acces la cameră pentru a putea face o fotografie direct pentru o sarcină de curățenie – de exemplu, pentru a documenta o problemă raportată într-un apartament sau o curățenie finalizată.";
+"NSPhotoLibraryUsageDescription" = "CleanOrga are nevoie de acces la fotografiile tale pentru a putea adăuga imagini existente la o sarcină de curățenie – de exemplu, pentru a documenta o problemă raportată într-un apartament sau o curățenie finalizată.";
+"NSPhotoLibraryAddUsageDescription" = "CleanOrga salvează fotografiile pe care le faci pentru o sarcină de curățenie în biblioteca ta foto – de exemplu, documentarea unei probleme sau a unei curățenii finalizate – ca să le poți refolosi mai târziu.";
+"NSFaceIDUsageDescription" = "CleanOrga folosește Face ID pentru autentificare rapidă și sigură.";

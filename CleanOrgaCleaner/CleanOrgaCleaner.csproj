@@ -18,8 +18,8 @@
 		<ApplicationId>com.cleanorga.cleaner</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.79</ApplicationDisplayVersion>
-		<ApplicationVersion>179</ApplicationVersion>
+		<ApplicationDisplayVersion>1.80</ApplicationDisplayVersion>
+		<ApplicationVersion>180</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -107,6 +107,21 @@
 	     Platforms/iOS/ - kanonisches Plugin.Firebase-Setup). -->
 	<ItemGroup Condition="$(TargetFramework.Contains('-ios')) And Exists('Platforms/iOS/GoogleService-Info.plist')">
 		<BundleResource Include="Platforms/iOS/GoogleService-Info.plist" Link="GoogleService-Info.plist" />
+	</ItemGroup>
+
+	<!-- Lokalisierte System-Berechtigungsdialoge (Kamera/Fotos/Face ID):
+	     iOS waehlt die InfoPlist.strings der Geraetesprache, Fallback ist die
+	     englische Info.plist (CFBundleDevelopmentRegion=en). WICHTIG:
+	     Forward-Slashes + Link in den lproj-Bundle-Root (macOS-CI!). -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-ios'))">
+		<BundleResource Include="Platforms/iOS/Localization/en.lproj/InfoPlist.strings" Link="en.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/de.lproj/InfoPlist.strings" Link="de.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/es.lproj/InfoPlist.strings" Link="es.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/ro.lproj/InfoPlist.strings" Link="ro.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/pl.lproj/InfoPlist.strings" Link="pl.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/ru.lproj/InfoPlist.strings" Link="ru.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/uk.lproj/InfoPlist.strings" Link="uk.lproj/InfoPlist.strings" />
+		<BundleResource Include="Platforms/iOS/Localization/vi.lproj/InfoPlist.strings" Link="vi.lproj/InfoPlist.strings" />
 	</ItemGroup>
 
 </Project>

@@ -2,19 +2,37 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Camera Permission -->
+	<!-- Lokalisierung: iOS zeigt System-Dialoge (Mitteilungen, Face ID, Kamera …)
+	     in der Geraetesprache, wenn sie hier deklariert ist - sonst im
+	     Development-Region-Fallback (Englisch). Die uebersetzten Texte liegen
+	     in Platforms/iOS/Localization/<lang>.lproj/InfoPlist.strings. -->
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>de</string>
+		<string>es</string>
+		<string>ro</string>
+		<string>pl</string>
+		<string>ru</string>
+		<string>uk</string>
+		<string>vi</string>
+	</array>
+
+	<!-- Camera Permission (englischer Fallback - Uebersetzungen in InfoPlist.strings) -->
 	<key>NSCameraUsageDescription</key>
-	<string>CleanOrga benötigt Zugriff auf die Kamera, damit du direkt ein Foto zu einer Reinigungsaufgabe aufnehmen kannst – zum Beispiel, um ein gemeldetes Problem in einem Apartment oder eine fertig gereinigte Wohnung zu dokumentieren.</string>
+	<string>CleanOrga needs access to the camera so you can take a photo directly for a cleaning task – for example, to document a reported problem in an apartment or a finished cleaning.</string>
 
 	<!-- Photo Library Permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>CleanOrga benötigt Zugriff auf deine Fotos, damit du vorhandene Bilder zu einer Reinigungsaufgabe hinzufügen kannst – zum Beispiel, um ein gemeldetes Problem in einem Apartment oder eine fertig gereinigte Wohnung zu dokumentieren.</string>
+	<string>CleanOrga needs access to your photos so you can add existing pictures to a cleaning task – for example, to document a reported problem in an apartment or a finished cleaning.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>CleanOrga speichert Fotos, die du zu einer Reinigungsaufgabe aufnimmst, in deiner Fotobibliothek – zum Beispiel die Dokumentation eines Problems oder einer fertig gereinigten Wohnung –, damit du sie später erneut verwenden kannst.</string>
+	<string>CleanOrga saves photos you take for a cleaning task to your photo library – for example, the documentation of a problem or a finished cleaning – so you can reuse them later.</string>
 
 	<!-- Face ID Permission -->
 	<key>NSFaceIDUsageDescription</key>
-	<string>CleanOrga verwendet Face ID für die schnelle und sichere Anmeldung.</string>
+	<string>CleanOrga uses Face ID for quick and secure sign-in.</string>
 
 	<!-- Background Modes -->
 	<key>UIBackgroundModes</key>

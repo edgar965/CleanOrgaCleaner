@@ -1,0 +1,5 @@
+/* System-Berechtigungsdialoge in Geraetesprache (pl) */
+"NSCameraUsageDescription" = "CleanOrga potrzebuje dostępu do aparatu, aby można było zrobić zdjęcie bezpośrednio do zadania sprzątania – na przykład, aby udokumentować zgłoszony problem w apartamencie lub zakończone sprzątanie.";
+"NSPhotoLibraryUsageDescription" = "CleanOrga potrzebuje dostępu do Twoich zdjęć, aby można było dodać istniejące zdjęcia do zadania sprzątania – na przykład, aby udokumentować zgłoszony problem w apartamencie lub zakończone sprzątanie.";
+"NSPhotoLibraryAddUsageDescription" = "CleanOrga zapisuje zdjęcia zrobione do zadania sprzątania w Twojej bibliotece zdjęć – na przykład dokumentację problemu lub zakończonego sprzątania – aby można było je później ponownie wykorzystać.";
+"NSFaceIDUsageDescription" = "CleanOrga używa Face ID do szybkiego i bezpiecznego logowania.";

@@ -1,0 +1,5 @@
+/* System-Berechtigungsdialoge in Geraetesprache (vi) */
+"NSCameraUsageDescription" = "CleanOrga cần quyền truy cập máy ảnh để bạn có thể chụp ảnh trực tiếp cho một công việc dọn dẹp – ví dụ, để ghi lại sự cố được báo cáo trong căn hộ hoặc một căn hộ đã dọn xong.";
+"NSPhotoLibraryUsageDescription" = "CleanOrga cần quyền truy cập ảnh của bạn để bạn có thể thêm ảnh có sẵn vào một công việc dọn dẹp – ví dụ, để ghi lại sự cố được báo cáo trong căn hộ hoặc một căn hộ đã dọn xong.";
+"NSPhotoLibraryAddUsageDescription" = "CleanOrga lưu các ảnh bạn chụp cho một công việc dọn dẹp vào thư viện ảnh của bạn – ví dụ, tài liệu về sự cố hoặc căn hộ đã dọn xong – để bạn có thể dùng lại sau.";
+"NSFaceIDUsageDescription" = "CleanOrga dùng Face ID để đăng nhập nhanh và an toàn.";
