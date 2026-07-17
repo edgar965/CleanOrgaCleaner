@@ -89,6 +89,10 @@ public class WebSocketService : IDisposable
 
             _socket?.Dispose();
             _socket = new ClientWebSocket();
+            // Keepalive: iOS trennt untaetige WS-Verbindungen nach ~1 Min. Der
+            // managed KeepAliveInterval wird auf iOS nicht zuverlaessig umgesetzt,
+            // daher zusaetzlich ein eigener App-Ping (KeepAliveLoopAsync).
+            _socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(20);
 
             // Add session cookies for authentication
             var cookieHeader = ApiService.Instance.GetCookieHeader();
@@ -123,6 +127,10 @@ public class WebSocketService : IDisposable
 
                 // Start listening for messages
                 _ = ListenForMessagesAsync();
+
+                // App-Keepalive-Ping, damit iOS die Verbindung nicht als untaetig
+                // trennt (Server antwortet mit 'pong'). Nutzt denselben Socket/Token.
+                _ = KeepAliveLoopAsync(_socket, _cts);
 
                 // Process offline queue if we were offline
                 if (wasOffline)
@@ -217,6 +225,33 @@ public class WebSocketService : IDisposable
         UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(false), "WS");
         if (_shouldReconnect && !App.IsInBackground)
             await TryReconnectAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Sendet alle 20s einen App-Ping, solange die Verbindung offen ist. Ohne
+    /// diesen Verkehr trennt iOS die WS-Verbindung nach ~1 Min als untaetig
+    /// (Flappen). Laeuft auf dem EIGENEN Socket/Token - ein Reconnect beendet
+    /// diesen Loop sauber, der neue Connect startet einen neuen.
+    /// </summary>
+    private static async Task KeepAliveLoopAsync(ClientWebSocket socket, CancellationTokenSource cts)
+    {
+        var ping = Encoding.UTF8.GetBytes("{\"type\":\"ping\"}");
+        try
+        {
+            while (socket.State == WebSocketState.Open && !cts.Token.IsCancellationRequested)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(20), cts.Token).ConfigureAwait(false);
+                if (socket.State != WebSocketState.Open || cts.Token.IsCancellationRequested)
+                    break;
+                await socket.SendAsync(new ArraySegment<byte>(ping),
+                    WebSocketMessageType.Text, true, cts.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[WS] KeepAlive beendet: {ex.Message}");
+        }
     }
 
     private void ProcessMessage(string json)
