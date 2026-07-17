@@ -25,12 +25,19 @@ public class FirestoreChatService
     private IDisposable? _listener;
     private bool _ersterSnapshot = true;
 
+    // Ob wir tatsächlich per Firebase-Auth angemeldet sind. NUR dann darf Stop()
+    // SignOutAsync() aufrufen. CrossFirebaseAuth.Current -> Auth.auth() macht auf
+    // iOS einen fatalError (SIGTRAP), wenn die Default-FirebaseApp (noch) nicht
+    // konfiguriert ist - dieser Zugriff darf also nie "blind" passieren.
+    private bool _angemeldet;
+
     /// <summary>Nach dem Login aufrufen: Firebase-Anmeldung + Listener starten.</summary>
     public async Task StartAsync(int cleanerId, int propertyId, string customToken)
     {
         try
         {
             await CrossFirebaseAuth.Current.SignInWithCustomTokenAsync(customToken).ConfigureAwait(false);
+            _angemeldet = true;
 
             _listener?.Dispose();
             _ersterSnapshot = true;
@@ -75,7 +82,16 @@ public class FirestoreChatService
         {
             _listener?.Dispose();
             _listener = null;
-            _ = CrossFirebaseAuth.Current.SignOutAsync();
+
+            // NUR abmelden, wenn wir vorher wirklich angemeldet waren. Sonst
+            // würde der bloße Zugriff auf CrossFirebaseAuth.Current (Auth.auth())
+            // die App auf iOS mit fatalError/SIGTRAP killen (Default-FirebaseApp
+            // nicht konfiguriert). Genau das war der Login-Crash von 1.74.
+            if (_angemeldet)
+            {
+                _angemeldet = false;
+                _ = CrossFirebaseAuth.Current.SignOutAsync();
+            }
         }
         catch (Exception ex)
         {

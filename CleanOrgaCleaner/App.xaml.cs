@@ -128,9 +128,10 @@ public partial class App : Application
             }
             if (!t.Value.firestoreEnabled)
             {
-                // In Django deaktiviert -> keinen Listener starten, WebSocket bleibt.
+                // In Django deaktiviert -> KEINEN Firebase-Aufruf machen (auch kein
+                // Stop()/SignOut). Der bloße Zugriff auf FirebaseAuth crasht iOS,
+                // wenn nie angemeldet wurde. WebSocket bleibt der Chat-Weg.
                 Log("Firestore serverseitig deaktiviert - WebSocket bleibt aktiv");
-                FirestoreChatService.Instance.Stop();
                 return;
             }
             await FirestoreChatService.Instance
