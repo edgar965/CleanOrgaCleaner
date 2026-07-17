@@ -64,7 +64,14 @@ public static class MauiProgram
 #elif IOS
 			events.AddiOS(ios => ios.FinishedLaunching((app, launchOptions) =>
 			{
-				try { CrossFirebase.Initialize(); }
+				try
+				{
+					CrossFirebase.Initialize();
+					// iOS-FCM-Setup: verbindet den APNs-Token mit Firebase, damit
+					// GetTokenAsync() ein FCM-Token liefert. Fehlte bisher -> iOS
+					// registrierte NIE ein Push-Token (0 iOS-Tokens am Server).
+					Plugin.Firebase.CloudMessaging.FirebaseCloudMessagingImplementation.Initialize();
+				}
 				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] iOS-Init übersprungen: {ex.Message}"); }
 				return false;
 			}));

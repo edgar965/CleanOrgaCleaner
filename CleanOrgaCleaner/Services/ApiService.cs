@@ -1297,7 +1297,7 @@ public class ApiService
     /// sich die App bei Firebase Auth an und darf ihren Firestore-Posteingang lesen.
     /// Rueckgabe: (token, cleanerId, propertyId) oder null.
     /// </summary>
-    public async Task<(string token, int cleanerId, int propertyId)?> GetFirebaseTokenAsync()
+    public async Task<(string token, int cleanerId, int propertyId, bool firestoreEnabled)?> GetFirebaseTokenAsync()
     {
         try
         {
@@ -1314,7 +1314,9 @@ public class ApiService
                 return null;
             var cid = root.TryGetProperty("cleaner_id", out var c) ? c.GetInt32() : 0;
             var pid = root.TryGetProperty("property_id", out var p) ? p.GetInt32() : 1;
-            return (token, cid, pid);
+            // Firestore ist serverseitig umschaltbar; fehlt das Flag -> an (Default).
+            var fsOn = !root.TryGetProperty("firestore_enabled", out var fe) || fe.GetBoolean();
+            return (token, cid, pid, fsOn);
         }
         catch (Exception ex)
         {

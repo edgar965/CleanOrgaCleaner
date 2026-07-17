@@ -116,6 +116,13 @@ public partial class App : Application
                 Log("Firestore: kein Token - uebersprungen");
                 return;
             }
+            if (!t.Value.firestoreEnabled)
+            {
+                // In Django deaktiviert -> keinen Listener starten, WebSocket bleibt.
+                Log("Firestore serverseitig deaktiviert - WebSocket bleibt aktiv");
+                FirestoreChatService.Instance.Stop();
+                return;
+            }
             await FirestoreChatService.Instance
                 .StartAsync(t.Value.cleanerId, t.Value.propertyId, t.Value.token)
                 .ConfigureAwait(false);
