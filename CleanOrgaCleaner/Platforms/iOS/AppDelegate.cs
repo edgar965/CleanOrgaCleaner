@@ -25,6 +25,7 @@ public class AppDelegate : MauiUIApplicationDelegate
 			// FCM-Setup: verbindet den APNs-Token mit Firebase, damit
 			// GetTokenAsync() ein Token liefert.
 			Plugin.Firebase.CloudMessaging.FirebaseCloudMessagingImplementation.Initialize();
+			FirebaseStatus.Ready = true;
 			diag = "OK";
 		}
 		catch (Exception ex)
@@ -34,8 +35,19 @@ public class AppDelegate : MauiUIApplicationDelegate
 		}
 
 		// Diagnose an den Server (unauth /api/crash-report/), damit wir OHNE
-		// Gerät sehen, ob die Firebase-Init auf iOS wirklich durchläuft.
-		ApiService.WriteServerDiag("firebase-init-ios", diag);
+		// Gerät sehen, ob die Firebase-Init auf iOS durchläuft. Um das Server-
+		// Crash-Log nicht zu fluten: Fehler immer melden, "OK" nur einmal pro
+		// App-Version (nicht bei jedem Start).
+		var diagKey = "fb_diag_ok_build";
+		if (diag != "OK")
+		{
+			ApiService.WriteServerDiag("firebase-init-ios", diag);
+		}
+		else if (Preferences.Get(diagKey, "") != AppInfo.BuildString)
+		{
+			Preferences.Set(diagKey, AppInfo.BuildString);
+			ApiService.WriteServerDiag("firebase-init-ios", diag);
+		}
 
 		return base.FinishedLaunching(application, launchOptions);
 	}

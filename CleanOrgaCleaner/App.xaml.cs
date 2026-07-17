@@ -28,11 +28,7 @@ public partial class App : Application
         // noch VOR Login, WebSocket und Firestore-Init. So kommt ein Absturz
         // direkt nach dem Login auch in einer Crash-Schleife beim naechsten
         // Start durch (der Endpoint /api/crash-report/ ist ohne Login erreichbar).
-        _ = Task.Run(async () =>
-        {
-            try { await CrashReportService.Instance.SendPendingReportsAsync(); }
-            catch { }
-        });
+        CrashReportService.Instance.TrySendPendingReportsInBackground();
 
         // Subscribe to chat messages for global notifications
         WebSocketService.Instance.OnChatMessageReceived += OnChatMessageReceived;
@@ -128,10 +124,12 @@ public partial class App : Application
             }
             if (!t.Value.firestoreEnabled)
             {
-                // In Django deaktiviert -> KEINEN Firebase-Aufruf machen (auch kein
-                // Stop()/SignOut). Der bloße Zugriff auf FirebaseAuth crasht iOS,
-                // wenn nie angemeldet wurde. WebSocket bleibt der Chat-Weg.
+                // In Django deaktiviert -> laufenden Listener beenden (Kill-Switch
+                // muss auch eine bereits aktive Firestore-Verbindung stoppen).
+                // Stop() ist crash-sicher: es fasst FirebaseAuth nur an, wenn
+                // FirebaseStatus.Ready gesetzt ist. WebSocket bleibt der Chat-Weg.
                 Log("Firestore serverseitig deaktiviert - WebSocket bleibt aktiv");
+                FirestoreChatService.Instance.Stop();
                 return;
             }
             await FirestoreChatService.Instance

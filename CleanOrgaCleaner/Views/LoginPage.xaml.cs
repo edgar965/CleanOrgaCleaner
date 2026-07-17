@@ -251,7 +251,7 @@ public partial class LoginPage : ContentPage
             Log("WebSocket started");
 
             // Send pending crash reports in background
-            _ = Task.Run(async () => await CrashReportService.Instance.SendPendingReportsAsync());
+            CrashReportService.Instance.TrySendPendingReportsInBackground();
 
             // iOS: UI thread atmen lassen vor Navigation
             await Task.Yield();
@@ -499,7 +499,7 @@ public partial class LoginPage : ContentPage
                 Log("WebSocket fire-and-forget done");
 
                 // Send pending crash reports in background
-                _ = Task.Run(async () => await CrashReportService.Instance.SendPendingReportsAsync());
+                CrashReportService.Instance.TrySendPendingReportsInBackground();
 
                 // iOS: UI thread atmen lassen vor Navigation
                 await Task.Yield();

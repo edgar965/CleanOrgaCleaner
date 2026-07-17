@@ -28,6 +28,14 @@ public static class PushService
     {
         try
         {
+            // Ohne initialisiertes Firebase crasht der Zugriff auf
+            // CrossFirebaseCloudMessaging.Current auf iOS nativ (SIGTRAP).
+            if (!FirebaseStatus.Ready)
+            {
+                Debug.WriteLine("[Push] Firebase nicht initialisiert - Push übersprungen");
+                return;
+            }
+
             if (!_eventsAbonniert)
             {
                 CrossFirebaseCloudMessaging.Current.TokenChanged += OnTokenChanged;
@@ -59,6 +67,9 @@ public static class PushService
     {
         try
         {
+            if (!FirebaseStatus.Ready)
+                return (false, "Firebase nicht initialisiert (Start-Konfiguration fehlgeschlagen)");
+
             if (!_eventsAbonniert)
             {
                 CrossFirebaseCloudMessaging.Current.TokenChanged += OnTokenChanged;

@@ -153,15 +153,17 @@ public class ApiService
         {
             try
             {
-                var content = new FormUrlEncodedContent(new[]
+                // Denselben Sende-Pfad wie echte Crash-Reports nutzen, damit
+                // Feldnamen/Formate nicht auseinanderdriften.
+                await Instance.SendCrashReportAsync(new CrashReport
                 {
-                    new KeyValuePair<string, string>("source", tag),
-                    new KeyValuePair<string, string>("message", message),
-                    new KeyValuePair<string, string>("app_version", $"{AppInfo.VersionString} ({AppInfo.BuildString})"),
-                    new KeyValuePair<string, string>("device_info", $"{DeviceInfo.Platform} {DeviceInfo.VersionString}"),
-                    new KeyValuePair<string, string>("cleaner_name", "diag"),
-                });
-                await Instance._httpClient.PostAsync("/api/crash-report/", content).ConfigureAwait(false);
+                    Timestamp = DateTime.UtcNow,
+                    Source = tag,
+                    ExceptionType = "Diagnose",
+                    Message = message,
+                    DeviceInfo = $"{DeviceInfo.Platform} {DeviceInfo.VersionString}",
+                    AppVersion = $"{AppInfo.VersionString} ({AppInfo.BuildString})",
+                }).ConfigureAwait(false);
             }
             catch { }
         });
@@ -1892,7 +1894,10 @@ public class ApiService
                 new KeyValuePair<string, string>("inner_exception", report.InnerException ?? ""),
                 new KeyValuePair<string, string>("device_info", report.DeviceInfo),
                 new KeyValuePair<string, string>("app_version", report.AppVersion),
-                new KeyValuePair<string, string>("cleaner_name", CleanerName ?? "Unknown"),
+                // Vor dem Login ist CleanerName noch null (Startup-Send) -
+                // dann den zuletzt eingeloggten Benutzer aus den Preferences
+                // nehmen, damit der Report zuordenbar bleibt.
+                new KeyValuePair<string, string>("cleaner_name", ErmittleCrashReportName()),
             });
 
             var response = await _httpClient.PostAsync("/api/crash-report/", content).ConfigureAwait(false);
@@ -1904,6 +1909,20 @@ public class ApiService
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Send error: {ex.Message}");
             return false;
         }
+    }
+
+    private string ErmittleCrashReportName()
+    {
+        if (!string.IsNullOrEmpty(CleanerName))
+            return CleanerName;
+        try
+        {
+            var username = Preferences.Get("username", "");
+            if (!string.IsNullOrEmpty(username))
+                return username;
+        }
+        catch { }
+        return "Unknown";
     }
 
     #endregion

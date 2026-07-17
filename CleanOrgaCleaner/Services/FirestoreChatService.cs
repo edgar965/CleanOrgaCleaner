@@ -25,19 +25,41 @@ public class FirestoreChatService
     private IDisposable? _listener;
     private bool _ersterSnapshot = true;
 
-    // Ob wir tatsächlich per Firebase-Auth angemeldet sind. NUR dann darf Stop()
-    // SignOutAsync() aufrufen. CrossFirebaseAuth.Current -> Auth.auth() macht auf
-    // iOS einen fatalError (SIGTRAP), wenn die Default-FirebaseApp (noch) nicht
-    // konfiguriert ist - dieser Zugriff darf also nie "blind" passieren.
-    private bool _angemeldet;
+    // Generation-Zähler gegen das Login/Logout-Race: Stop() erhöht die
+    // Generation. Ein StartAsync, dessen SignIn erst NACH einem Stop() fertig
+    // wird, erkennt das (Generation passt nicht mehr), meldet sich wieder ab
+    // und hängt KEINEN Listener an - sonst würde das Gerät nach dem Logout
+    // weiter Chats des alten Kontos empfangen.
+    private int _generation;
 
     /// <summary>Nach dem Login aufrufen: Firebase-Anmeldung + Listener starten.</summary>
     public async Task StartAsync(int cleanerId, int propertyId, string customToken)
     {
+        // Ohne initialisiertes Firebase crasht der bloße Zugriff auf
+        // CrossFirebaseAuth.Current auf iOS nativ (SIGTRAP) - hart abbrechen.
+        if (!FirebaseStatus.Ready)
+        {
+            Debug.WriteLine("[FS] Firebase nicht initialisiert - Start übersprungen");
+            return;
+        }
+
+        var meineGeneration = _generation;
         try
         {
             await CrossFirebaseAuth.Current.SignInWithCustomTokenAsync(customToken).ConfigureAwait(false);
-            _angemeldet = true;
+
+            if (meineGeneration != _generation)
+            {
+                // Während des SignIn kam ein Stop() (Logout) - nicht starten,
+                // sondern die gerade erzeugte Anmeldung gleich wieder beenden.
+                Debug.WriteLine("[FS] Stop während SignIn - Listener wird nicht gestartet");
+                _ = Task.Run(async () =>
+                {
+                    try { await CrossFirebaseAuth.Current.SignOutAsync().ConfigureAwait(false); }
+                    catch (Exception ex) { Debug.WriteLine($"[FS] Nach-Race-SignOut-Fehler: {ex.Message}"); }
+                });
+                return;
+            }
 
             _listener?.Dispose();
             _ersterSnapshot = true;
@@ -75,22 +97,30 @@ public class FirestoreChatService
         }
     }
 
-    /// <summary>Bei Logout aufrufen: Listener beenden + Firebase abmelden.</summary>
-    public void Stop()
+    /// <summary>
+    /// Listener beenden. Bei Logout mit abmelden=true aufrufen, damit auch die
+    /// (vom SDK über Neustarts persistierte) Firebase-Anmeldung entfernt wird.
+    /// </summary>
+    public void Stop(bool abmelden = true)
     {
         try
         {
+            _generation++; // laufende StartAsync-SignIns ungültig machen (Race-Schutz)
             _listener?.Dispose();
             _listener = null;
 
-            // NUR abmelden, wenn wir vorher wirklich angemeldet waren. Sonst
-            // würde der bloße Zugriff auf CrossFirebaseAuth.Current (Auth.auth())
-            // die App auf iOS mit fatalError/SIGTRAP killen (Default-FirebaseApp
-            // nicht konfiguriert). Genau das war der Login-Crash von 1.74.
-            if (_angemeldet)
+            // SignOut nur, wenn Firebase initialisiert ist - sonst crasht der
+            // Zugriff auf CrossFirebaseAuth.Current auf iOS nativ (SIGTRAP,
+            // Login-Crash 1.74). Wenn Ready, IMMER abmelden: Firebase Auth
+            // persistiert die Anmeldung über App-Neustarts, ein In-Memory-Flag
+            // würde die Abmeldung nach Neustart fälschlich überspringen.
+            if (abmelden && FirebaseStatus.Ready)
             {
-                _angemeldet = false;
-                _ = CrossFirebaseAuth.Current.SignOutAsync();
+                _ = Task.Run(async () =>
+                {
+                    try { await CrossFirebaseAuth.Current.SignOutAsync().ConfigureAwait(false); }
+                    catch (Exception ex) { Debug.WriteLine($"[FS] SignOut-Fehler: {ex.Message}"); }
+                });
             }
         }
         catch (Exception ex)

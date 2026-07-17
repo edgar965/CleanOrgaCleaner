@@ -13,6 +13,13 @@ public class CrashReportService
     private readonly string _crashReportPath;
     private readonly string _crashReportFile;
 
+    // Serialisiert Sende-Läufe: Startup-Send und Sofort-Send nach SaveCrashReport
+    // können sonst parallel dieselben ungesendeten Reports laden und doppelt posten.
+    private readonly SemaphoreSlim _sendeSperre = new(1, 1);
+
+    // Schützt Lese-/Schreibzugriffe auf crash_reports.json.
+    private readonly object _dateiSperre = new();
+
     private CrashReportService()
     {
         _crashReportPath = FileSystem.AppDataDirectory;
@@ -66,17 +73,20 @@ public class CrashReportService
                 AppVersion = GetAppVersion()
             };
 
-            var reports = LoadCrashReports();
-            reports.Add(report);
-
-            // Keep only last 10 reports
-            if (reports.Count > 10)
+            lock (_dateiSperre)
             {
-                reports = reports.Skip(reports.Count - 10).ToList();
-            }
+                var reports = LoadCrashReports();
+                reports.Add(report);
 
-            var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
-            File.WriteAllText(_crashReportFile, json);
+                // Keep only last 10 reports
+                if (reports.Count > 10)
+                {
+                    reports = reports.Skip(reports.Count - 10).ToList();
+                }
+
+                var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
+                File.WriteAllText(_crashReportFile, json);
+            }
 
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Saved crash report: {ex.Message}");
 
@@ -84,10 +94,7 @@ public class CrashReportService
             // weiter (SetObserved), dann kommt der Report noch in dieser Session
             // durch. Bei einem toedlichen Crash schlaegt es fehl - dann greift
             // der Startup-Send beim naechsten App-Start (siehe App-Konstruktor).
-            _ = Task.Run(async () =>
-            {
-                try { await SendPendingReportsAsync(); } catch { }
-            });
+            TrySendPendingReportsInBackground();
         }
         catch (Exception saveEx)
         {
@@ -116,14 +123,33 @@ public class CrashReportService
     }
 
     /// <summary>
+    /// Fire-and-forget-Hintergrund-Send - der EINE Weg, den alle Aufrufstellen
+    /// (App-Start, nach SaveCrashReport, LoginPage) nutzen sollen.
+    /// </summary>
+    public void TrySendPendingReportsInBackground()
+    {
+        _ = Task.Run(async () =>
+        {
+            try { await SendPendingReportsAsync(); }
+            catch { }
+        });
+    }
+
+    /// <summary>
     /// Send pending crash reports to server
     /// </summary>
     public async Task SendPendingReportsAsync()
     {
+        // Single-Flight: parallele Läufe (App-Start + Sofort-Send) würden
+        // dieselben ungesendeten Reports laden und doppelt posten.
+        await _sendeSperre.WaitAsync().ConfigureAwait(false);
         try
         {
-            var reports = LoadCrashReports();
-            var pendingReports = reports.Where(r => !r.Sent).ToList();
+            List<CrashReport> pendingReports;
+            lock (_dateiSperre)
+            {
+                pendingReports = LoadCrashReports().Where(r => !r.Sent).ToList();
+            }
 
             if (pendingReports.Count == 0)
             {
@@ -134,6 +160,7 @@ public class CrashReportService
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Sending {pendingReports.Count} crash report(s)");
 
             var apiService = ApiService.Instance;
+            var gesendet = new List<CrashReport>();
 
             foreach (var report in pendingReports)
             {
@@ -142,7 +169,7 @@ public class CrashReportService
                     var success = await apiService.SendCrashReportAsync(report);
                     if (success)
                     {
-                        report.Sent = true;
+                        gesendet.Add(report);
                         System.Diagnostics.Debug.WriteLine($"[CrashReport] Sent report from {report.Timestamp}");
                     }
                 }
@@ -152,9 +179,25 @@ public class CrashReportService
                 }
             }
 
-            // Save updated reports (with Sent flags)
-            var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
-            File.WriteAllText(_crashReportFile, json);
+            // Sent-Flags in der AKTUELLEN Datei setzen (nicht die alte Liste
+            // zurückschreiben - während des Sendens kann SaveCrashReport neue
+            // Reports angehängt haben, die sonst verloren gingen).
+            lock (_dateiSperre)
+            {
+                var aktuell = LoadCrashReports();
+                foreach (var r in aktuell)
+                {
+                    if (!r.Sent && gesendet.Any(g =>
+                            g.Timestamp == r.Timestamp &&
+                            g.ExceptionType == r.ExceptionType &&
+                            g.Message == r.Message))
+                    {
+                        r.Sent = true;
+                    }
+                }
+                var json = JsonSerializer.Serialize(aktuell, Json.AppJsonContext.Default.ListCrashReport);
+                File.WriteAllText(_crashReportFile, json);
+            }
 
             // Clean up old sent reports (keep only last 5 sent ones)
             CleanupOldReports();
@@ -162,6 +205,10 @@ public class CrashReportService
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[CrashReport] SendPendingReportsAsync error: {ex.Message}");
+        }
+        finally
+        {
+            _sendeSperre.Release();
         }
     }
 
@@ -172,15 +219,18 @@ public class CrashReportService
     {
         try
         {
-            var reports = LoadCrashReports();
-            var sentReports = reports.Where(r => r.Sent).OrderByDescending(r => r.Timestamp).Take(5);
-            var unsentReports = reports.Where(r => !r.Sent);
-            var keepReports = unsentReports.Concat(sentReports).ToList();
-
-            if (keepReports.Count < reports.Count)
+            lock (_dateiSperre)
             {
-                var json = JsonSerializer.Serialize(keepReports, Json.AppJsonContext.Default.ListCrashReport);
-                File.WriteAllText(_crashReportFile, json);
+                var reports = LoadCrashReports();
+                var sentReports = reports.Where(r => r.Sent).OrderByDescending(r => r.Timestamp).Take(5);
+                var unsentReports = reports.Where(r => !r.Sent);
+                var keepReports = unsentReports.Concat(sentReports).ToList();
+
+                if (keepReports.Count < reports.Count)
+                {
+                    var json = JsonSerializer.Serialize(keepReports, Json.AppJsonContext.Default.ListCrashReport);
+                    File.WriteAllText(_crashReportFile, json);
+                }
             }
         }
         catch { }

@@ -58,7 +58,11 @@ public static class MauiProgram
 #if ANDROID
 			events.AddAndroid(android => android.OnCreate((activity, _) =>
 			{
-				try { CrossFirebase.Initialize(activity); }
+				try
+				{
+					CrossFirebase.Initialize(activity);
+					Services.FirebaseStatus.Ready = true;
+				}
 				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] Android-Init übersprungen: {ex.Message}"); }
 			}));
 #endif
