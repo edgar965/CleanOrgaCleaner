@@ -99,9 +99,14 @@
 		<GoogleServicesJson Include="Platforms\Android\google-services.json" />
 	</ItemGroup>
 
-	<!-- Firebase iOS-Konfiguration (nur wenn GoogleService-Info.plist vorhanden) -->
-	<ItemGroup Condition="$(TargetFramework.Contains('-ios')) And Exists('Platforms\iOS\GoogleService-Info.plist')">
-		<BundleResource Include="Platforms\iOS\GoogleService-Info.plist" />
+	<!-- Firebase iOS-Konfiguration. Belegt kaputt bis Build 177: die plist kam
+	     im macOS-CI-Build NICHT ins Bundle-Root -> FirebaseApp.configure() fand
+	     keine Konfiguration (Login-Crash 1.74, keine iOS-FCM-Tokens).
+	     Deshalb: Forward-Slashes (Exists mit Backslash ist auf macOS unzuverlässig)
+	     UND Link=Dateiname (legt die Datei ans Bundle-Root statt unter
+	     Platforms/iOS/ - kanonisches Plugin.Firebase-Setup). -->
+	<ItemGroup Condition="$(TargetFramework.Contains('-ios')) And Exists('Platforms/iOS/GoogleService-Info.plist')">
+		<BundleResource Include="Platforms/iOS/GoogleService-Info.plist" Link="GoogleService-Info.plist" />
 	</ItemGroup>
 
 </Project>
