@@ -79,6 +79,15 @@ public class CrashReportService
             File.WriteAllText(_crashReportFile, json);
 
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Saved crash report: {ex.Message}");
+
+            // Sofort-Sendeversuch: Bei UnobservedTaskException laeuft die App
+            // weiter (SetObserved), dann kommt der Report noch in dieser Session
+            // durch. Bei einem toedlichen Crash schlaegt es fehl - dann greift
+            // der Startup-Send beim naechsten App-Start (siehe App-Konstruktor).
+            _ = Task.Run(async () =>
+            {
+                try { await SendPendingReportsAsync(); } catch { }
+            });
         }
         catch (Exception saveEx)
         {

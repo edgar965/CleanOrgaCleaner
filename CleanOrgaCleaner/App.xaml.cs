@@ -24,6 +24,16 @@ public partial class App : Application
         // Initialize crash reporting
         CrashReportService.Instance.Initialize();
 
+        // Crash-Reports der vorherigen Session SOFORT beim App-Start senden -
+        // noch VOR Login, WebSocket und Firestore-Init. So kommt ein Absturz
+        // direkt nach dem Login auch in einer Crash-Schleife beim naechsten
+        // Start durch (der Endpoint /api/crash-report/ ist ohne Login erreichbar).
+        _ = Task.Run(async () =>
+        {
+            try { await CrashReportService.Instance.SendPendingReportsAsync(); }
+            catch { }
+        });
+
         // Subscribe to chat messages for global notifications
         WebSocketService.Instance.OnChatMessageReceived += OnChatMessageReceived;
     }

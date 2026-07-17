@@ -18,8 +18,8 @@
 		<ApplicationId>com.cleanorga.cleaner</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.74</ApplicationDisplayVersion>
-		<ApplicationVersion>174</ApplicationVersion>
+		<ApplicationDisplayVersion>1.75</ApplicationDisplayVersion>
+		<ApplicationVersion>175</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
