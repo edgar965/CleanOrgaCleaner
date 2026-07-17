@@ -61,21 +61,12 @@ public static class MauiProgram
 				try { CrossFirebase.Initialize(activity); }
 				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] Android-Init übersprungen: {ex.Message}"); }
 			}));
-#elif IOS
-			events.AddiOS(ios => ios.FinishedLaunching((app, launchOptions) =>
-			{
-				try
-				{
-					CrossFirebase.Initialize();
-					// iOS-FCM-Setup: verbindet den APNs-Token mit Firebase, damit
-					// GetTokenAsync() ein FCM-Token liefert. Fehlte bisher -> iOS
-					// registrierte NIE ein Push-Token (0 iOS-Tokens am Server).
-					Plugin.Firebase.CloudMessaging.FirebaseCloudMessagingImplementation.Initialize();
-				}
-				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] iOS-Init übersprungen: {ex.Message}"); }
-				return false;
-			}));
 #endif
+			// iOS: Firebase-Init passiert NICHT hier, sondern direkt im
+			// AppDelegate.FinishedLaunching (kanonische, deterministisch früheste
+			// Stelle - VOR base.FinishedLaunching). Das Lifecycle-Event lief zu
+			// spaet/uneindeutig, sodass die Default-FirebaseApp bei Auth-Zugriff
+			// nicht konfiguriert war (SIGTRAP in Auth.auth()).
 		});
 		return builder;
 	}

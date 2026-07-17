@@ -143,6 +143,31 @@ public class ApiService
     private static void DbgLog(string msg) => WriteLog($"[API] {msg}");
 
     /// <summary>
+    /// Schickt eine Diagnose-Zeile an den Server (unauth /api/crash-report/,
+    /// steht ohne Login offen). Damit lässt sich OHNE Gerät nachvollziehen, ob
+    /// z.B. die Firebase-iOS-Init durchläuft. Fire-and-forget, nie werfend.
+    /// </summary>
+    public static void WriteServerDiag(string tag, string message)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var content = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("source", tag),
+                    new KeyValuePair<string, string>("message", message),
+                    new KeyValuePair<string, string>("app_version", $"{AppInfo.VersionString} ({AppInfo.BuildString})"),
+                    new KeyValuePair<string, string>("device_info", $"{DeviceInfo.Platform} {DeviceInfo.VersionString}"),
+                    new KeyValuePair<string, string>("cleaner_name", "diag"),
+                });
+                await Instance._httpClient.PostAsync("/api/crash-report/", content).ConfigureAwait(false);
+            }
+            catch { }
+        });
+    }
+
+    /// <summary>
     /// Komplett synchroner Login - kein async/await, kein SynchronizationContext.
     /// Muss von Task.Run() aufgerufen werden um UI nicht zu blockieren.
     /// </summary>
