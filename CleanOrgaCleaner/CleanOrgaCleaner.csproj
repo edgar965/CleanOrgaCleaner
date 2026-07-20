@@ -25,7 +25,8 @@
 
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
-		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21</SupportedOSPlatformVersion>
+		<!-- 23 statt 21: Firebase Auth 4.x (Google Play Services) verlangt minSdk 23 (Android 6.0). -->
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">23</SupportedOSPlatformVersion>
 		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
 	</PropertyGroup>
@@ -41,6 +42,11 @@
 	<!-- Android specific settings -->
 	<PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">
 		<RuntimeIdentifiers>android-arm;android-arm64;android-x86;android-x64</RuntimeIdentifiers>
+		<!-- Legacy-Merger: die Firebase/GMS-Bindings (Plugin.Firebase 4.x) deklarieren
+		     denselben Namespace in mehreren Library-Manifesten; der strikte
+		     manifestmerger.jar bricht deshalb mit 58x XAAMM0000 ab. Der legacy-Merger
+		     verlangt keine eindeutigen Namespaces und paketiert korrekt. -->
+		<AndroidManifestMerger>legacy</AndroidManifestMerger>
 	</PropertyGroup>
 
 	<!-- Android Release Signing -->

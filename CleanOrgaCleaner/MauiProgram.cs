@@ -60,7 +60,10 @@ public static class MauiProgram
 			{
 				try
 				{
-					CrossFirebase.Initialize(activity);
+					// Plugin.Firebase 4.0.0: Android-Initialize verlangt zusätzlich
+					// einen activityLocator (Func<Activity>), der bei Bedarf die
+					// aktuelle Activity liefert. In 3.x genügte Initialize(activity).
+					CrossFirebase.Initialize(activity, () => Microsoft.Maui.ApplicationModel.Platform.CurrentActivity);
 					Services.FirebaseStatus.Ready = true;
 				}
 				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] Android-Init übersprungen: {ex.Message}"); }
