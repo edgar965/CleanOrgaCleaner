@@ -37,7 +37,7 @@ public partial class AuftragPage : ContentPage
         try
         {
             await Header.InitializeAsync();
-            Header.SetPageTitle("task");
+            Header.SetPageTitle("new_task");
             ApplyTranslations();
             await LoadDataAsync();
         }
@@ -66,6 +66,8 @@ public partial class AuftragPage : ContentPage
         LabelTaskType.Text = t("task_type");
         LabelHint.Text = t("task_tab");
         TaskHinweisEditor.Placeholder = t("optional_hint");
+        LabelAufgabeFotos.Text = t("photos");
+        AddAufgabeFotoButton.Text = "📷 " + t("add_photo");
         LabelAssignCleaners.Text = t("assign_cleaners");
         AddAnmerkungButton.Text = t("add_note");
         NoAnmerkungenLabel.Text = t("no_notes");
@@ -173,6 +175,9 @@ public partial class AuftragPage : ContentPage
         BtnDelete.IsVisible = false;
         AufgabenartPicker.SelectedIndex = -1;
 
+        // Neue Aufgabe: Fotos duerfen hinzugefuegt und wieder entfernt werden
+        AufgabeFotosZuruecksetzen(nurAnsehen: false);
+
         UpdateCleanersList();
         UpdateAnmerkungenDisplay();
         ShowTab("details");
@@ -226,6 +231,15 @@ public partial class AuftragPage : ContentPage
 
         // Load anmerkungen
         LoadAnmerkungen(task.Id);
+
+        // Fotos einer mir zugewiesenen Aufgabe sind eine Anweisung des Bueros -
+        // dann nur ansehen. Dieselbe Regel setzt der Server durch.
+        var mirZugewiesen = _apiService.CleanerId is int meineId
+            && ((_assignments.Cleaning?.Contains(meineId) ?? false)
+                || _assignments.Check == meineId
+                || (_assignments.Repare?.Contains(meineId) ?? false));
+        AufgabeFotosZuruecksetzen(nurAnsehen: mirZugewiesen);
+        _ = AufgabeFotosLadenAsync(task.Id);
 
         UpdateCleanersList();
         ShowTab("details");
@@ -346,6 +360,14 @@ public partial class AuftragPage : ContentPage
 
             if (result.Success)
             {
+                // Fotos zur Aufgabe anhaengen - bei einer neuen Aufgabe kommt die
+                // Id erst mit der Antwort zurueck.
+                var zielId = _isNewTask ? result.TaskId : _currentTask?.Id;
+                if (zielId is int fotoTaskId)
+                {
+                    await AufgabeFotosHochladenAsync(fotoTaskId);
+                }
+
                 // Close dialog and refresh data for all cases
                 TaskPopupOverlay.IsVisible = false;
                 await LoadDataAsync();

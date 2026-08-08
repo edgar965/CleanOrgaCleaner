@@ -68,7 +68,7 @@ public partial class AppHeader : ContentView
         // Menu items with emojis
         MenuTodayButton.Text = "🏠 " + t("today");
         MenuChatButton.Text = "💬 " + t("chat");
-        MenuAuftragButton.Text = "📋 " + t("task");
+        MenuAuftragButton.Text = "📋 " + t("new_task");
         MenuSettingsButton.Text = "⚙️ " + t("settings");
         MenuLogoutButton.Text = "🚪 " + t("logout");
 

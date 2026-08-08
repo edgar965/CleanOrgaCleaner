@@ -144,7 +144,7 @@
                             HorizontalOptions="Fill"
                             Clicked="OnMenuChatClicked"/>
                     <BoxView HeightRequest="1" Color="#3a6a9c" Margin="15,0"/>
-                    <Button x:Name="MenuAuftragButton" Text="📋 Auftrag"
+                    <Button x:Name="MenuAuftragButton" Text="📋 Neue Aufgabe"
                             BackgroundColor="Transparent"
                             TextColor="White"
                             FontSize="16"

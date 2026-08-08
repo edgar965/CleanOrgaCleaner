@@ -14,6 +14,7 @@ SUITEN = {
     'offline': 'test_offline.py',
     'chat': 'test_chat.py',
     'funktionen': 'test_funktionen.py',
+    'fotos': 'test_aufgabe_fotos.py',
 }
 
 

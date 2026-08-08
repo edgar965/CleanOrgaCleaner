@@ -10,6 +10,7 @@ Voraussetzungen (siehe README.md):
 
 Testzugang: Property 1, User tom / Passwort tom (Cleaner id 9). Admin id 11.
 """
+import os
 import subprocess
 import time
 
@@ -165,8 +166,12 @@ def login(d, prop='1', user='tom', pw='tom') -> bool:
 
 
 def screenshot(d, name):
+    """Legt den Screenshot neben dieser Datei ab - der Pfad war frueher fest
+    auf D:\\Daten verdrahtet und lief auf anderen Rechnern ins Leere."""
     try:
-        d.get_screenshot_as_file(rf'D:\Daten\CleanOrga\CleanOrgaCleaner\Tests\screenshots\{name}.png')
+        ordner = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'screenshots')
+        os.makedirs(ordner, exist_ok=True)
+        d.get_screenshot_as_file(os.path.join(ordner, f'{name}.png'))
     except Exception:
         pass
 

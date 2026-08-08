@@ -70,7 +70,8 @@ public static class Translations
             ["completed"] = "Abgeschlossen",
 
             // Task Detail
-            ["task"] = "Auftrag",
+            ["task"] = "Aufgabe",
+            ["new_task"] = "Neue Aufgabe",
             ["notes"] = "Anmerkungen",
             ["report_problem"] = "Problem melden",
             ["edit_problem"] = "Problem bearbeiten",
@@ -79,6 +80,7 @@ public static class Translations
             ["no_problems"] = "Keine Probleme gemeldet",
             ["description"] = "Beschreibung",
             ["photos"] = "Fotos",
+            ["add_photo"] = "Foto hinzufügen",
             ["save"] = "Speichern",
             ["saved"] = "Gespeichert",
             ["delete_problem_title"] = "Problem löschen",
@@ -112,8 +114,8 @@ public static class Translations
             ["delete_task"] = "Aufgabe löschen",
 
             // Neue Aufgabe / My Tasks
-            ["create_auftrag"] = "Auftrag erstellen",
-            ["edit_auftrag"] = "Auftrag bearbeiten",
+            ["create_auftrag"] = "Neue Aufgabe",
+            ["edit_auftrag"] = "Aufgabe bearbeiten",
             ["messages"] = "Nachrichten",
             ["administration"] = "Verwaltung",
             ["colleagues"] = "Kollegen",
@@ -243,6 +245,7 @@ public static class Translations
             ["completed"] = "Completed",
 
             ["task"] = "Task",
+            ["new_task"] = "New Task",
             ["notes"] = "Notes",
             ["report_problem"] = "Report problem",
             ["edit_problem"] = "Edit problem",
@@ -251,6 +254,7 @@ public static class Translations
             ["no_problems"] = "No problems reported",
             ["description"] = "Description",
             ["photos"] = "Photos",
+            ["add_photo"] = "Add photo",
             ["save"] = "Save",
             ["saved"] = "Saved",
             ["delete_problem_title"] = "Delete problem",
@@ -283,8 +287,8 @@ public static class Translations
             ["delete_task"] = "Delete task",
 
             // Neue Aufgabe / My Tasks
-            ["create_auftrag"] = "Create Order",
-            ["edit_auftrag"] = "Edit Order",
+            ["create_auftrag"] = "New Task",
+            ["edit_auftrag"] = "Edit Task",
             ["messages"] = "Messages",
             ["administration"] = "Administration",
             ["colleagues"] = "Colleagues",
@@ -408,6 +412,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Tarea",
+            ["new_task"] = "Nueva Tarea",
             ["notes"] = "Notas",
             ["report_problem"] = "Reportar problema",
             ["edit_problem"] = "Editar problema",
@@ -417,6 +422,7 @@ public static class Translations
             ["no_problems"] = "Sin problemas reportados",
             ["description"] = "Descripción",
             ["photos"] = "Fotos",
+            ["add_photo"] = "Añadir foto",
             ["save"] = "Guardar",
             ["saved"] = "Guardado",
             ["delete_problem_title"] = "Eliminar problema",
@@ -449,8 +455,8 @@ public static class Translations
             ["delete_task"] = "Eliminar tarea",
 
             // My Tasks
-            ["create_auftrag"] = "Crear Pedido",
-            ["edit_auftrag"] = "Editar Pedido",
+            ["create_auftrag"] = "Nueva Tarea",
+            ["edit_auftrag"] = "Editar Tarea",
             ["messages"] = "Mensajes",
             ["administration"] = "Administración",
             ["colleagues"] = "Colegas",
@@ -585,6 +591,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Sarcină",
+            ["new_task"] = "Sarcină Nouă",
             ["notes"] = "Note",
             ["report_problem"] = "Raportează problemă",
             ["edit_problem"] = "Editează problemă",
@@ -594,6 +601,7 @@ public static class Translations
             ["no_problems"] = "Nicio problemă raportată",
             ["description"] = "Descriere",
             ["photos"] = "Fotografii",
+            ["add_photo"] = "Adaugă fotografie",
             ["save"] = "Salvează",
             ["saved"] = "Salvat",
             ["delete_problem_title"] = "Șterge problema",
@@ -626,8 +634,8 @@ public static class Translations
             ["delete_task"] = "Șterge sarcina",
 
             // My Tasks
-            ["create_auftrag"] = "Creare Comandă",
-            ["edit_auftrag"] = "Editare Comandă",
+            ["create_auftrag"] = "Sarcină Nouă",
+            ["edit_auftrag"] = "Editare Sarcină",
             ["messages"] = "Mesaje",
             ["administration"] = "Administrație",
             ["colleagues"] = "Colegi",
@@ -762,6 +770,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Zadanie",
+            ["new_task"] = "Nowe Zadanie",
             ["notes"] = "Notatki",
             ["report_problem"] = "Zgłoś problem",
             ["edit_problem"] = "Edytuj problem",
@@ -771,6 +780,7 @@ public static class Translations
             ["no_problems"] = "Brak zgłoszonych problemów",
             ["description"] = "Opis",
             ["photos"] = "Zdjęcia",
+            ["add_photo"] = "Dodaj zdjęcie",
             ["save"] = "Zapisz",
             ["saved"] = "Zapisano",
             ["delete_problem_title"] = "Usuń problem",
@@ -803,8 +813,8 @@ public static class Translations
             ["delete_task"] = "Usuń zadanie",
 
             // My Tasks
-            ["create_auftrag"] = "Utwórz Zlecenie",
-            ["edit_auftrag"] = "Edytuj Zlecenie",
+            ["create_auftrag"] = "Nowe Zadanie",
+            ["edit_auftrag"] = "Edytuj Zadanie",
             ["messages"] = "Wiadomości",
             ["administration"] = "Administracja",
             ["colleagues"] = "Koledzy",
@@ -939,6 +949,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Задача",
+            ["new_task"] = "Новая задача",
             ["notes"] = "Заметки",
             ["report_problem"] = "Сообщить о проблеме",
             ["edit_problem"] = "Редактировать проблему",
@@ -948,6 +959,7 @@ public static class Translations
             ["no_problems"] = "Нет проблем",
             ["description"] = "Описание",
             ["photos"] = "Фотографии",
+            ["add_photo"] = "Добавить фото",
             ["save"] = "Сохранить",
             ["saved"] = "Сохранено",
             ["delete_problem_title"] = "Удалить проблему",
@@ -980,8 +992,8 @@ public static class Translations
             ["delete_task"] = "Удалить задачу",
 
             // My Tasks
-            ["create_auftrag"] = "Создать Заказ",
-            ["edit_auftrag"] = "Редактировать Заказ",
+            ["create_auftrag"] = "Новая задача",
+            ["edit_auftrag"] = "Редактировать задачу",
             ["messages"] = "Сообщения",
             ["administration"] = "Администрация",
             ["colleagues"] = "Коллеги",
@@ -1116,6 +1128,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Завдання",
+            ["new_task"] = "Нове завдання",
             ["notes"] = "Нотатки",
             ["report_problem"] = "Повідомити про проблему",
             ["edit_problem"] = "Редагувати проблему",
@@ -1125,6 +1138,7 @@ public static class Translations
             ["no_problems"] = "Немає проблем",
             ["description"] = "Опис",
             ["photos"] = "Фотографії",
+            ["add_photo"] = "Додати фото",
             ["save"] = "Зберегти",
             ["saved"] = "Збережено",
             ["delete_problem_title"] = "Видалити проблему",
@@ -1157,8 +1171,8 @@ public static class Translations
             ["delete_task"] = "Видалити завдання",
 
             // My Tasks
-            ["create_auftrag"] = "Створити Замовлення",
-            ["edit_auftrag"] = "Редагувати Замовлення",
+            ["create_auftrag"] = "Нове завдання",
+            ["edit_auftrag"] = "Редагувати завдання",
             ["messages"] = "Повідомлення",
             ["administration"] = "Адміністрація",
             ["colleagues"] = "Колеги",
@@ -1293,6 +1307,7 @@ public static class Translations
 
             // Task Detail
             ["task"] = "Công việc",
+            ["new_task"] = "Công việc mới",
             ["notes"] = "Ghi chú",
             ["report_problem"] = "Báo cáo vấn đề",
             ["edit_problem"] = "Chỉnh sửa vấn đề",
@@ -1302,6 +1317,7 @@ public static class Translations
             ["no_problems"] = "Không có vấn đề",
             ["description"] = "Mô tả",
             ["photos"] = "Ảnh",
+            ["add_photo"] = "Thêm ảnh",
             ["save"] = "Lưu",
             ["saved"] = "Đã lưu",
             ["delete_problem_title"] = "Xóa vấn đề",
@@ -1334,8 +1350,8 @@ public static class Translations
             ["delete_task"] = "Xóa công việc",
 
             // My Tasks
-            ["create_auftrag"] = "Tạo Đơn hàng",
-            ["edit_auftrag"] = "Sửa Đơn hàng",
+            ["create_auftrag"] = "Công việc mới",
+            ["edit_auftrag"] = "Sửa công việc",
             ["messages"] = "Tin nhắn",
             ["administration"] = "Quản trị",
             ["colleagues"] = "Đồng nghiệp",

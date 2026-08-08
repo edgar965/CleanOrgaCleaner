@@ -10,16 +10,23 @@ in **diesem Verzeichnis** und sind jederzeit über `run_all.py` aufrufbar.
 | `common.py` | Gemeinsame Helfer (adb, Netz-Toggle, Appium-Treiber, Login, Menü-Navigation, Server-Verifikation, Protokoll) |
 | `test_offline.py` | Offline-Verhalten (Cache, Queue, Reconnect, Banner) — 12 Fälle |
 | `test_chat.py` | Chat (senden, empfangen, Echtzeit, Hintergrund, offline) — 8 Fälle, mit Server-Injektion |
-| `test_funktionen.py` | Übrige Client-Funktionen (Navigation, Arbeitszeit, Auftrag, Einstellungen, Logout) — 11 Fälle |
+| `test_funktionen.py` | Übrige Client-Funktionen (Navigation, Arbeitszeit, Aufgaben, Einstellungen, Logout) — 11 Fälle |
+| `test_aufgabe_fotos.py` | Umbenennung „Neue Aufgabe" + Fotos zur Aufgabe (Reihenfolge im Tab Details, Hinzufügen/Löschen, Nur-Ansicht bei zugewiesener Aufgabe) — 12 Fälle |
 | `run_all.py` | Runner für alle Suiten nacheinander |
 | `offline_testcases.md` / `chat_testcases.md` | Fachliche Testfall-Beschreibungen |
 | `screenshots/` | Automatisch abgelegte Screenshots je Testschritt |
 
 ## Voraussetzungen (einmalig)
 
-1. **Android-Emulator** (Pixel 7, API 36) läuft als `emulator-5554`:
+1. **Android-Emulator** läuft als `emulator-5554`:
    ```powershell
-   & "$env:ANDROID_HOME\emulator\emulator.exe" -avd pixel_7_-_api_36
+   & "$env:ANDROID_HOME\emulator\emulator.exe" -avd <AVD-Name>
+   ```
+   Der AVD-Name ist rechnerabhängig (`emulator -list-avds` zeigt die vorhandenen);
+   die App braucht mindestens API 23. **`ANDROID_HOME` muss gesetzt sein** — sonst
+   verweigert Appium die Sitzung („Neither ANDROID_HOME nor ANDROID_SDK_ROOT …"):
+   ```powershell
+   $env:ANDROID_HOME = "C:\Program Files (x86)\Android\android-sdk"
    ```
 2. **Appium 3 + UiAutomator2-Treiber**:
    ```powershell
@@ -32,9 +39,16 @@ in **diesem Verzeichnis** und sind jederzeit über `run_all.py` aufrufbar.
    (WICHTIG: ohne `EmbedAssembliesIntoApk` überlebt die App kein `pm clear`):
    ```powershell
    cd ..\CleanOrgaCleaner
+   Remove-Item -Recurse -Force bin, obj      # sonst bleibt der Fast-Deployment-Stand liegen
    dotnet build -f net10.0-android -c Debug -p:EmbedAssembliesIntoApk=true -p:AndroidFastDeploymentType=
-   adb install -r bin\Debug\net10.0-android\com.cleanorga.cleaner-Signed.apk
+   adb uninstall com.cleanorga.cleaner       # Downgrade/Neuinstallation sauber trennen
+   adb install bin\Debug\net10.0-android\com.cleanorga.cleaner-Signed.apk
    ```
+   **`bin`/`obj` wirklich löschen**: Wird erst ohne und danach mit diesen Flags in
+   dasselbe Ausgabeverzeichnis gebaut, entsteht eine APK ohne `classes.dex`. Sie ist
+   dann größer als die Fast-Deployment-Variante und trotzdem nicht installierbar
+   (`INSTALL_FAILED_INVALID_APK: … code is missing`). Prüfen lässt sich das an den
+   Einträgen der APK: `classes.dex` muss enthalten sein.
 4. **SSH-Zugang** zu `root@91.99.235.72` (für Server-Verifikation der Chat-/Offline-Fälle).
 
 ## Aufruf

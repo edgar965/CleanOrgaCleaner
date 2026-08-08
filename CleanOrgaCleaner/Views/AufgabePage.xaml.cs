@@ -98,6 +98,7 @@ public partial class AufgabePage : ContentPage
 
         // Empty state labels
         NoTaskDescriptionLabel.Text = t("no_task_description");
+        AufgabeFotosLabel.Text = t("photos");
         NoProblemsLabel.Text = t("no_problems");
         NoAnmerkungenLabel.Text = t("no_notes");
         NoLogsLabel.Text = t("no_logs");
@@ -234,6 +235,7 @@ public partial class AufgabePage : ContentPage
             UpdateStartStopButton();
             BuildProblems();
             BuildAnmerkungen();
+            _ = AufgabeFotosLadenAsync();
             SelectTab(_currentTab);
         }
         catch (Exception ex)

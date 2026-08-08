@@ -28,7 +28,7 @@
             ContentTemplate="{DataTemplate views:ChatListPage}" />
 
         <ShellContent
-            Title="Auftrag"
+            Title="Neue Aufgabe"
             Icon="home_icon.png"
             Route="AuftragPage"
             ContentTemplate="{DataTemplate views:AuftragPage}" />

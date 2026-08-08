@@ -1653,6 +1653,46 @@ public class ApiService
     /// <summary>
     /// Get anmerkungen (ImageListDescription items) for a task
     /// </summary>
+    /// <summary>
+    /// Laedt Eintraege eines beliebigen Typs zu einer Aufgabe
+    /// ('problem', 'anmerkung' oder 'aufgabe' fuer Fotos zur Aufgabenbeschreibung).
+    /// </summary>
+    public async Task<List<ImageListDescription>> GetTaskItemsAsync(int taskId, string itemType)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/task/{taskId}/items/{itemType}/").ConfigureAwait(false);
+            var responseText = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[GetTaskItems] {itemType} fuer Task {taskId}: {response.StatusCode}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = JsonSerializer.Deserialize<ImageListItemsResponse>(responseText, _jsonOptions);
+                if (result?.Items != null)
+                {
+                    foreach (var item in result.Items)
+                    {
+                        if (item.Photos == null) continue;
+                        foreach (var photo in item.Photos)
+                        {
+                            if (!string.IsNullOrEmpty(photo.Url) && !photo.Url.StartsWith("http"))
+                                photo.Url = $"{BaseUrl}{photo.Url}";
+                            if (!string.IsNullOrEmpty(photo.ThumbnailUrl) && !photo.ThumbnailUrl.StartsWith("http"))
+                                photo.ThumbnailUrl = $"{BaseUrl}{photo.ThumbnailUrl}";
+                        }
+                    }
+                    return result.Items;
+                }
+            }
+            return new List<ImageListDescription>();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[GetTaskItems] Fehler: {ex.Message}");
+            return new List<ImageListDescription>();
+        }
+    }
+
     public async Task<List<ImageListDescription>> GetTaskAnmerkungenAsync(int taskId)
     {
         try
