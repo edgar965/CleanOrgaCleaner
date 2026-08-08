@@ -154,13 +154,22 @@ def main():
                           or finde(d, 'Gallery', 3) is not None)
             p('AF07', 'Auswahl Kamera/Galerie erscheint', auswahl_da)
             screenshot(d, 'af07_fotoquelle')
-            # Auswahl wieder schliessen
+
+            # AF07b: Die Auswahl muss sich abbrechen lassen. Ohne Kamera (z. B.
+            # im Emulator) blieb der Dialog frueher stehen und die App war nur
+            # noch durch Beenden zu retten.
             abbrechen = finde(d, 'Cancel', 4)
-            if abbrechen:
+            if abbrechen is not None:
                 abbrechen.click()
-                time.sleep(1)
+                time.sleep(2)
+            # Bedienbar? Dann ist der Tab "Details" wieder erreichbar
+            wieder_bedienbar = finde(d, 'Details', 6) is not None
+            p('AF13', 'Foto-Auswahl laesst sich abbrechen, App bleibt bedienbar',
+              wieder_bedienbar)
+            screenshot(d, 'af13_nach_abbruch')
         else:
             p('AF07', 'Auswahl Kamera/Galerie erscheint', False, 'Knopf fehlt')
+            p('AF13', 'Foto-Auswahl laesst sich abbrechen', False, 'uebersprungen')
 
         # Dialog schliessen
         abbrechen = finde(d, 'Cancel', 5)

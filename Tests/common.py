@@ -15,6 +15,12 @@ import subprocess
 import time
 
 ADB = r'C:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe'
+
+# Zielgeraet: Emulator (Standard) oder ein angeschlossenes Telefon.
+# Ueberschreibbar per Umgebungsvariable, z. B.
+#   $env:CLEANORGA_GERAET = "N550000000000126920"
+GERAET = os.environ.get('CLEANORGA_GERAET', 'emulator-5554')
+
 PAKET = 'com.cleanorga.cleaner'
 ACTIVITY = 'crc64872e68f2eafd0b30.MainActivity'
 APPIUM_URL = 'http://127.0.0.1:4723'
@@ -28,7 +34,8 @@ from appium.webdriver.common.appiumby import AppiumBy
 
 # ---------------------------------------------------------------- adb / Netz
 def adb(*args):
-    return subprocess.run([ADB, *args], capture_output=True, text=True, timeout=60).stdout.strip()
+    return subprocess.run([ADB, '-s', GERAET, *args],
+                          capture_output=True, text=True, timeout=60).stdout.strip()
 
 
 def netz(an: bool):
@@ -85,7 +92,7 @@ def django(code: str) -> str:
 def treiber():
     o = UiAutomator2Options()
     o.platform_name = 'Android'
-    o.device_name = 'emulator-5554'
+    o.device_name = GERAET
     o.app_package = PAKET
     o.app_activity = ACTIVITY
     o.no_reset = True

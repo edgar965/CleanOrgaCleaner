@@ -18,9 +18,10 @@
 		<ApplicationId>com.cleanorga.cleaner</ApplicationId>
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.81</ApplicationDisplayVersion>
-		<!-- Build-Nummer: muss je Upload eindeutig sein. 181 liegt bereits in
-		     App Store Connect (Build ohne die WebSocket-Ergaenzung). -->
+		<!-- Gleiche Nummer wie der Django-Server, damit Web und App zusammenpassen -->
+		<ApplicationDisplayVersion>2.08</ApplicationDisplayVersion>
+		<!-- Build-Nummer: muss je Upload eindeutig und aufsteigend sein.
+		     181 liegt bereits in App Store Connect. -->
 		<ApplicationVersion>182</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>

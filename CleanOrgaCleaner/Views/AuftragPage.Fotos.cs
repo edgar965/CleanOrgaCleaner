@@ -74,13 +74,22 @@ public partial class AuftragPage
 
         try
         {
+            // Die Kamera nur anbieten, wenn das Geraet eine hat - sonst laeuft
+            // der Aufruf ins Leere und der Dialog laesst sich nicht mehr
+            // schliessen (Emulator ohne Kamera).
+            var kameraMoeglich = MediaPicker.Default.IsCaptureSupported;
+
+            var auswahlmoeglichkeiten = kameraMoeglich
+                ? new[] { Translations.Get("camera"), Translations.Get("gallery") }
+                : new[] { Translations.Get("gallery") };
+
             var quelle = await DisplayActionSheet(
                 Translations.Get("add_photo"),
                 Translations.Get("cancel"),
                 null,
-                Translations.Get("camera"),
-                Translations.Get("gallery"));
+                auswahlmoeglichkeiten);
 
+            // Abbrechen liefert je nach Plattform den Abbrechen-Text oder null
             if (string.IsNullOrEmpty(quelle) || quelle == Translations.Get("cancel"))
                 return;
 
@@ -99,39 +108,75 @@ public partial class AuftragPage
                     }
                 }
 
-                var foto = await MediaPicker.Default.CapturePhotoAsync();
-                if (foto != null)
+                try
                 {
-                    using var stream = await foto.OpenReadAsync();
-                    using var speicher = new MemoryStream();
-                    await stream.CopyToAsync(speicher);
-                    bytes = speicher.ToArray();
+                    var foto = await MediaPicker.Default.CapturePhotoAsync();
+                    if (foto != null)
+                    {
+                        using var stream = await foto.OpenReadAsync();
+                        using var speicher = new MemoryStream();
+                        await stream.CopyToAsync(speicher);
+                        bytes = speicher.ToArray();
+                    }
+                }
+                catch (FeatureNotSupportedException)
+                {
+                    await DisplayAlert(Translations.Get("error"),
+                        "Kamera nicht verfügbar", Translations.Get("ok"));
+                    return;
                 }
             }
             else
             {
-                var auswahl = await FilePicker.Default.PickAsync(new PickOptions
+                try
                 {
-                    PickerTitle = Translations.Get("add_photo"),
-                    FileTypes = FilePickerFileType.Images
-                });
-                if (auswahl != null)
+                    // MediaPicker statt FilePicker: oeffnet den schlanken
+                    // System-Fotowaehler statt des Dateimanagers. Der braucht
+                    // spuerbar weniger Speicher - auf knappen Geraeten wurde die
+                    // App sonst im Hintergrund beendet, waehrend der Waehler offen war.
+                    var auswahl = await MediaPicker.Default.PickPhotoAsync(new MediaPickerOptions
+                    {
+                        Title = Translations.Get("add_photo")
+                    });
+                    if (auswahl != null)
+                    {
+                        using var stream = await auswahl.OpenReadAsync();
+                        using var speicher = new MemoryStream();
+                        await stream.CopyToAsync(speicher);
+                        bytes = speicher.ToArray();
+                    }
+                }
+                catch (Exception auswahlFehler)
                 {
-                    using var stream = await auswahl.OpenReadAsync();
-                    using var speicher = new MemoryStream();
-                    await stream.CopyToAsync(speicher);
-                    bytes = speicher.ToArray();
+                    // Abbruch oder gar keine App zum Auswaehlen: still zurueck,
+                    // damit der Dialog nicht offen haengen bleibt.
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[AufgabeFotos] Auswahl abgebrochen: {auswahlFehler.Message}");
+                    return;
                 }
             }
 
-            if (bytes == null) return;
+            // Nichts ausgewaehlt (abgebrochen) - einfach zurueck
+            if (bytes == null || bytes.Length == 0) return;
 
-            // Markieren: dieselbe Seite wie bei Problemen und Notizen
+            // Markieren: dieselbe Seite wie bei Problemen und Notizen.
+            // Das Disappearing MUSS vor dem Oeffnen haengen - sonst kann es
+            // verpasst werden und die Seite wartet endlos.
             var markierSeite = new ImageAnnotationPage(bytes);
-            await Navigation.PushModalAsync(markierSeite);
-
             var fertig = new TaskCompletionSource<bool>();
             markierSeite.Disappearing += (s, ev) => fertig.TrySetResult(true);
+
+            try
+            {
+                await Navigation.PushModalAsync(markierSeite);
+            }
+            catch (Exception oeffnenFehler)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AufgabeFotos] Bildeditor liess sich nicht oeffnen: {oeffnenFehler.Message}");
+                return;
+            }
+
             await fertig.Task;
 
             var ergebnis = markierSeite.WasSaved && markierSeite.AnnotatedImageBytes != null
