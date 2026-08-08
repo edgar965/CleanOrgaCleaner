@@ -19,7 +19,9 @@
 
 		<!-- Versions -->
 		<ApplicationDisplayVersion>1.81</ApplicationDisplayVersion>
-		<ApplicationVersion>181</ApplicationVersion>
+		<!-- Build-Nummer: muss je Upload eindeutig sein. 181 liegt bereits in
+		     App Store Connect (Build ohne die WebSocket-Ergaenzung). -->
+		<ApplicationVersion>182</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 

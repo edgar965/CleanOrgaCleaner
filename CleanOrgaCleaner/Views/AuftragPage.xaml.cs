@@ -11,6 +11,7 @@ namespace CleanOrgaCleaner.Views;
 public partial class AuftragPage : ContentPage
 {
     private readonly ApiService _apiService;
+    private readonly WebSocketService _webSocketService;
     private List<Auftrag> _tasks = new();
     private List<ApartmentInfo> _apartments = new();
     private List<AufgabenartInfo> _aufgabenarten = new();
@@ -29,6 +30,7 @@ public partial class AuftragPage : ContentPage
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
+        _webSocketService = WebSocketService.Instance;
     }
 
     protected override async void OnAppearing()
@@ -39,12 +41,55 @@ public partial class AuftragPage : ContentPage
             await Header.InitializeAsync();
             Header.SetPageTitle("new_task");
             ApplyTranslations();
+
+            // -= vor += : bei doppeltem OnAppearing ohne OnDisappearing sonst
+            // doppelte Registrierung
+            _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+            _webSocketService.OnTaskUpdate += OnTaskUpdate;
+
             await LoadDataAsync();
         }
         catch (Exception ex)
         {
             // async void Lifecycle-Handler: ungefangene Exception = App-Crash
             System.Diagnostics.Debug.WriteLine($"[AuftragPage] OnAppearing error: {ex.Message}");
+        }
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _webSocketService.OnTaskUpdate -= OnTaskUpdate;
+    }
+
+    /// <summary>
+    /// Änderungen von anderer Seite (z. B. das Büro hängt ein Foto an).
+    /// Über die Leitung kommt nur die Meldung - die Bilder holt die Seite nach.
+    /// </summary>
+    private void OnTaskUpdate(string updateType)
+    {
+        System.Diagnostics.Debug.WriteLine($"[AuftragPage] Task update received: {updateType}");
+
+        if (updateType == "image_list_update")
+        {
+            // Nur die Fotoreihe der offenen Aufgabe nachladen. Ein kompletter
+            // Neuaufbau wuerde den geoeffneten Dialog samt noch nicht
+            // gespeicherter Eingaben verwerfen.
+            if (!_isNewTask && _currentTask != null && TaskPopupOverlay.IsVisible)
+            {
+                UiSicher.AufMainThread(() => AufgabeFotosLadenAsync(_currentTask.Id), "AuftragPage");
+            }
+            return;
+        }
+
+        if (updateType == "task_created" || updateType == "task_updated" || updateType == "task_deleted"
+            || updateType == "assignment_update" || updateType == "aufgabe_update")
+        {
+            // Liste nur auffrischen, solange kein Dialog offen ist
+            if (!TaskPopupOverlay.IsVisible)
+            {
+                UiSicher.AufMainThread(() => LoadDataAsync(), "AuftragPage");
+            }
         }
     }
 
