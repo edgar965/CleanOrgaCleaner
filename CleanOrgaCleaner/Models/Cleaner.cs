@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Cleaner information from the server
+/// Stammdaten einer Arbeitskraft, wie der Server sie bei der Anmeldung liefert.
 /// </summary>
 public class Cleaner
 {
@@ -13,6 +13,7 @@ public class Cleaner
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
+    /// <summary>Sprachcode der Oberfläche, z. B. "de".</summary>
     [JsonPropertyName("language")]
     public string Language { get; set; } = "de";
 
@@ -24,7 +25,4 @@ public class Cleaner
 
     [JsonPropertyName("avatar")]
     public string? Avatar { get; set; }
-
-    // UI helper
-    public string DisplayName => string.IsNullOrEmpty(Name) ? "Unbekannt" : Name;
 }

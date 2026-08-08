@@ -1,67 +1,48 @@
-using System.Text.Json;
-
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// Service for capturing, storing and sending crash reports
+/// Fängt Abstürze ab, hält sie lokal fest und schickt sie an den Server.
+///
+/// Die Dateiverwaltung steckt in <see cref="CrashReportSpeicher"/>, das
+/// Versenden in der Api-Schicht - hier bleiben nur die Handler und der
+/// Sendelauf.
 /// </summary>
 public class CrashReportService
 {
-    private static CrashReportService? _instance;
-    public static CrashReportService Instance => _instance ??= new CrashReportService();
+    private static readonly Lazy<CrashReportService> _instanz = new(() => new CrashReportService());
 
-    private readonly string _crashReportPath;
-    private readonly string _crashReportFile;
+    /// <summary>Die eine Instanz der App.</summary>
+    public static CrashReportService Instance => _instanz.Value;
 
-    // Serialisiert Sende-Läufe: Startup-Send und Sofort-Send nach SaveCrashReport
-    // können sonst parallel dieselben ungesendeten Reports laden und doppelt posten.
+    private readonly CrashReportSpeicher _speicher;
+
+    // Einer nach dem anderen: Start-Versand und Sofort-Versand würden sonst
+    // dieselben offenen Berichte laden und doppelt schicken.
     private readonly SemaphoreSlim _sendeSperre = new(1, 1);
-
-    // Schützt Lese-/Schreibzugriffe auf crash_reports.json.
-    private readonly object _dateiSperre = new();
 
     private CrashReportService()
     {
-        _crashReportPath = FileSystem.AppDataDirectory;
-        _crashReportFile = Path.Combine(_crashReportPath, "crash_reports.json");
+        _speicher = new CrashReportSpeicher(Path.Combine(FileSystem.AppDataDirectory, "crash_reports.json"));
     }
 
-    /// <summary>
-    /// Initialize crash handlers - call this in App.xaml.cs
-    /// </summary>
+    /// <summary>Handler einhängen - im App-Konstruktor aufrufen.</summary>
     public void Initialize()
     {
-        // Catch unhandled exceptions in the app domain
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-
-        // Catch unhandled exceptions in tasks
-        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        AppDomain.CurrentDomain.UnhandledException += BeiUnbehandelterAusnahme;
+        TaskScheduler.UnobservedTaskException += BeiUnbeobachteterTaskAusnahme;
 
         System.Diagnostics.Debug.WriteLine("[CrashReport] Crash handlers initialized");
     }
 
-    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
-    {
-        if (e.ExceptionObject is Exception ex)
-        {
-            SaveCrashReport(ex, "AppDomain.UnhandledException");
-        }
-    }
+    /// <summary>Alle gespeicherten Berichte.</summary>
+    public List<CrashReport> LoadCrashReports() => _speicher.Lies();
 
-    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
-    {
-        SaveCrashReport(e.Exception, "TaskScheduler.UnobservedTaskException");
-        e.SetObserved(); // Prevent app termination
-    }
-
-    /// <summary>
-    /// Save a crash report to local storage
-    /// </summary>
+    /// <summary>Bericht ablegen und sofort einen Sendeversuch anstoßen.</summary>
     public void SaveCrashReport(Exception ex, string source)
     {
         try
         {
-            var report = new CrashReport
+            _speicher.Ergaenze(new CrashReport
             {
                 Timestamp = DateTime.UtcNow,
                 Source = source,
@@ -69,108 +50,63 @@ public class CrashReportService
                 Message = ex.Message,
                 StackTrace = ex.StackTrace ?? "",
                 InnerException = ex.InnerException?.Message,
-                DeviceInfo = GetDeviceInfo(),
-                AppVersion = GetAppVersion()
-            };
-
-            lock (_dateiSperre)
-            {
-                var reports = LoadCrashReports();
-                reports.Add(report);
-
-                // Keep only last 10 reports
-                if (reports.Count > 10)
-                {
-                    reports = reports.Skip(reports.Count - 10).ToList();
-                }
-
-                var json = JsonSerializer.Serialize(reports, Json.AppJsonContext.Default.ListCrashReport);
-                File.WriteAllText(_crashReportFile, json);
-            }
+                DeviceInfo = ErmittleGeraet(),
+                AppVersion = ErmittleVersion()
+            });
 
             System.Diagnostics.Debug.WriteLine($"[CrashReport] Saved crash report: {ex.Message}");
 
-            // Sofort-Sendeversuch: Bei UnobservedTaskException laeuft die App
-            // weiter (SetObserved), dann kommt der Report noch in dieser Session
-            // durch. Bei einem toedlichen Crash schlaegt es fehl - dann greift
-            // der Startup-Send beim naechsten App-Start (siehe App-Konstruktor).
+            // Sofortversuch: bei UnobservedTaskException läuft die App weiter
+            // (SetObserved), dann kommt der Bericht noch in dieser Sitzung durch.
+            // Bei einem tödlichen Absturz schlägt es fehl - dann greift der
+            // Start-Versand beim nächsten App-Start.
             TrySendPendingReportsInBackground();
         }
-        catch (Exception saveEx)
+        catch (Exception speicherFehler)
         {
-            System.Diagnostics.Debug.WriteLine($"[CrashReport] Failed to save crash report: {saveEx.Message}");
+            System.Diagnostics.Debug.WriteLine($"[CrashReport] Failed to save crash report: {speicherFehler.Message}");
         }
     }
 
     /// <summary>
-    /// Load existing crash reports from local storage
-    /// </summary>
-    public List<CrashReport> LoadCrashReports()
-    {
-        try
-        {
-            if (File.Exists(_crashReportFile))
-            {
-                var json = File.ReadAllText(_crashReportFile);
-                return JsonSerializer.Deserialize(json, Json.AppJsonContext.Default.ListCrashReport) ?? new List<CrashReport>();
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[CrashReport] Failed to load crash reports: {ex.Message}");
-        }
-        return new List<CrashReport>();
-    }
-
-    /// <summary>
-    /// Fire-and-forget-Hintergrund-Send - der EINE Weg, den alle Aufrufstellen
-    /// (App-Start, nach SaveCrashReport, LoginPage) nutzen sollen.
+    /// Hintergrund-Versand ohne Warten - der EINE Weg, den alle Aufrufstellen
+    /// (App-Start, nach SaveCrashReport, Anmeldeseite) nutzen sollen.
     /// </summary>
     public void TrySendPendingReportsInBackground()
     {
         _ = Task.Run(async () =>
         {
-            try { await SendPendingReportsAsync(); }
+            try { await SendPendingReportsAsync().ConfigureAwait(false); }
             catch { }
         });
     }
 
-    /// <summary>
-    /// Send pending crash reports to server
-    /// </summary>
+    /// <summary>Offene Berichte an den Server schicken.</summary>
     public async Task SendPendingReportsAsync()
     {
-        // Single-Flight: parallele Läufe (App-Start + Sofort-Send) würden
-        // dieselben ungesendeten Reports laden und doppelt posten.
         await _sendeSperre.WaitAsync().ConfigureAwait(false);
         try
         {
-            List<CrashReport> pendingReports;
-            lock (_dateiSperre)
-            {
-                pendingReports = LoadCrashReports().Where(r => !r.Sent).ToList();
-            }
-
-            if (pendingReports.Count == 0)
+            var offene = _speicher.LiesOffene();
+            if (offene.Count == 0)
             {
                 System.Diagnostics.Debug.WriteLine("[CrashReport] No pending reports to send");
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"[CrashReport] Sending {pendingReports.Count} crash report(s)");
+            System.Diagnostics.Debug.WriteLine($"[CrashReport] Sending {offene.Count} crash report(s)");
 
-            var apiService = ApiService.Instance;
+            var api = ApiService.Instance;
             var gesendet = new List<CrashReport>();
 
-            foreach (var report in pendingReports)
+            foreach (var bericht in offene)
             {
                 try
                 {
-                    var success = await apiService.SendCrashReportAsync(report);
-                    if (success)
+                    if (await api.SendCrashReportAsync(bericht).ConfigureAwait(false))
                     {
-                        gesendet.Add(report);
-                        System.Diagnostics.Debug.WriteLine($"[CrashReport] Sent report from {report.Timestamp}");
+                        gesendet.Add(bericht);
+                        System.Diagnostics.Debug.WriteLine($"[CrashReport] Sent report from {bericht.Timestamp}");
                     }
                 }
                 catch (Exception ex)
@@ -179,36 +115,8 @@ public class CrashReportService
                 }
             }
 
-            // Sent-Flags in der AKTUELLEN Datei setzen (nicht die alte Liste
-            // zurückschreiben - während des Sendens kann SaveCrashReport neue
-            // Reports angehängt haben, die sonst verloren gingen). Jeder
-            // gesendete Report "verbraucht" genau EINEN Datei-Eintrag: zwei
-            // feldgleiche Reports werden sonst beide als gesendet markiert,
-            // obwohl nur einer beim Server ankam.
-            lock (_dateiSperre)
-            {
-                var aktuell = LoadCrashReports();
-                var offen = new List<CrashReport>(gesendet);
-                foreach (var r in aktuell)
-                {
-                    if (r.Sent)
-                        continue;
-                    var passt = offen.FindIndex(g =>
-                        g.Timestamp == r.Timestamp &&
-                        g.ExceptionType == r.ExceptionType &&
-                        g.Message == r.Message);
-                    if (passt >= 0)
-                    {
-                        r.Sent = true;
-                        offen.RemoveAt(passt);
-                    }
-                }
-                var json = JsonSerializer.Serialize(aktuell, Json.AppJsonContext.Default.ListCrashReport);
-                File.WriteAllText(_crashReportFile, json);
-            }
-
-            // Clean up old sent reports (keep only last 5 sent ones)
-            CleanupOldReports();
+            _speicher.MarkiereGesendet(gesendet);
+            _speicher.RaeumeAuf();
         }
         catch (Exception ex)
         {
@@ -220,31 +128,19 @@ public class CrashReportService
         }
     }
 
-    /// <summary>
-    /// Clean up old sent reports
-    /// </summary>
-    private void CleanupOldReports()
+    private void BeiUnbehandelterAusnahme(object sender, UnhandledExceptionEventArgs e)
     {
-        try
-        {
-            lock (_dateiSperre)
-            {
-                var reports = LoadCrashReports();
-                var sentReports = reports.Where(r => r.Sent).OrderByDescending(r => r.Timestamp).Take(5);
-                var unsentReports = reports.Where(r => !r.Sent);
-                var keepReports = unsentReports.Concat(sentReports).ToList();
-
-                if (keepReports.Count < reports.Count)
-                {
-                    var json = JsonSerializer.Serialize(keepReports, Json.AppJsonContext.Default.ListCrashReport);
-                    File.WriteAllText(_crashReportFile, json);
-                }
-            }
-        }
-        catch { }
+        if (e.ExceptionObject is Exception ex)
+            SaveCrashReport(ex, "AppDomain.UnhandledException");
     }
 
-    private string GetDeviceInfo()
+    private void BeiUnbeobachteterTaskAusnahme(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        SaveCrashReport(e.Exception, "TaskScheduler.UnobservedTaskException");
+        e.SetObserved(); // App nicht beenden lassen
+    }
+
+    private static string ErmittleGeraet()
     {
         try
         {
@@ -256,7 +152,7 @@ public class CrashReportService
         }
     }
 
-    private string GetAppVersion()
+    private static string ErmittleVersion()
     {
         try
         {
@@ -267,20 +163,4 @@ public class CrashReportService
             return "Unknown";
         }
     }
-}
-
-/// <summary>
-/// Crash report data model
-/// </summary>
-public class CrashReport
-{
-    public DateTime Timestamp { get; set; }
-    public string Source { get; set; } = "";
-    public string ExceptionType { get; set; } = "";
-    public string Message { get; set; } = "";
-    public string StackTrace { get; set; } = "";
-    public string? InnerException { get; set; }
-    public string DeviceInfo { get; set; } = "";
-    public string AppVersion { get; set; } = "";
-    public bool Sent { get; set; } = false;
 }

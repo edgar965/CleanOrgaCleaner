@@ -5,81 +5,75 @@ using System.Collections.ObjectModel;
 
 namespace CleanOrgaCleaner.Views;
 
+/// <summary>
+/// Übersicht der Gesprächspartner: Verwaltung und aktive Kolleginnen/Kollegen.
+/// </summary>
 public partial class ChatListPage : ContentPage
 {
     private readonly ApiService _apiService;
-    private ObservableCollection<CleanerInfo> _partners;
+    private readonly ObservableCollection<CleanerInfo> _partners = new();
 
     public ChatListPage()
     {
         InitializeComponent();
         _apiService = ApiService.Instance;
-        _partners = new ObservableCollection<CleanerInfo>();
         BindableLayout.SetItemsSource(ChatPartnersContainer, _partners);
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
         try
         {
-            // Initialize header (handles translations, user info, work status, offline banner)
+            // Kopfleiste kümmert sich um Übersetzungen, Person, Arbeitszeit und Offline-Hinweis
             _ = Header.InitializeAsync();
             Header.SetPageTitle("chat");
 
             ApplyTranslations();
-            System.Diagnostics.Debug.WriteLine("[ChatListPage] OnAppearing called");
-            _ = LoadCleanersAsync();
+            _ = LadePartnerAsync();
         }
         catch (Exception ex)
         {
-            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            // Lifecycle-Handler: ungefangene Exception = App-Crash
             System.Diagnostics.Debug.WriteLine($"[ChatListPage] OnAppearing error: {ex.Message}");
         }
     }
 
     private void ApplyTranslations()
     {
-        var t = Translations.Get;
-        MessagesLabel.Text = t("messages");
+        MessagesLabel.Text = Translations.Get("messages");
     }
 
-    private async Task LoadCleanersAsync()
+    private async Task LadePartnerAsync()
     {
         try
         {
-            System.Diagnostics.Debug.WriteLine("[ChatListPage] Loading cleaners...");
-            var response = await _apiService.GetCleanersListAsync();
+            var antwort = await _apiService.GetCleanersListAsync();
 
             _partners.Clear();
 
-            // Admin IMMER als erster Eintrag - auch wenn die Kollegenliste offline
-            // nicht geladen werden kann, muss der Admin-Chat erreichbar bleiben.
+            // Verwaltung IMMER als erster Eintrag - auch wenn die Kollegenliste
+            // offline nicht geladen werden kann, muss dieses Gespräch erreichbar
+            // bleiben.
             _partners.Add(new CleanerInfo
             {
                 Id = 0,
                 Name = "Admin",
-                Avatar = response?.AdminAvatar ?? "",
+                Avatar = antwort?.AdminAvatar ?? "",
                 IsAdmin = true
             });
 
-            if (response != null)
-            {
-                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Got {response.Cleaners.Count} cleaners from API");
-                // danach die aktiven Kollegen
-                foreach (var c in response.Cleaners)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ChatListPage] Adding cleaner: {c.Name} (ID: {c.Id})");
-                    _partners.Add(c);
-                }
-                System.Diagnostics.Debug.WriteLine($"[ChatListPage] Collection now has {_partners.Count} items");
-            }
+            if (antwort == null) return;
+
+            foreach (var partner in antwort.Cleaners)
+                _partners.Add(partner);
+
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] {_partners.Count} Gesprächspartner");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] LoadCleaners error: {ex.Message}");
-            System.Diagnostics.Debug.WriteLine($"[ChatListPage] Stack trace: {ex.StackTrace}");
+            System.Diagnostics.Debug.WriteLine($"[ChatListPage] LadePartner error: {ex.Message}");
         }
     }
 
@@ -88,14 +82,14 @@ public partial class ChatListPage : ContentPage
         try
         {
             if (Shell.Current == null) return;
-            if (sender is Button btn && btn.CommandParameter is CleanerInfo partner)
-            {
-                // Admin => partner=admin, sonst die Cleaner-Id
-                var partnerId = partner.IsAdmin ? "admin" : partner.Id.ToString();
-                var partnerName = Uri.EscapeDataString(partner.Name ?? (partner.IsAdmin ? "Admin" : "Kollege"));
-                var partnerAvatar = Uri.EscapeDataString(partner.Avatar ?? "");
-                await Shell.Current.GoToAsync($"ChatCurrentPage?partner={partnerId}&partnerName={partnerName}&partnerAvatar={partnerAvatar}");
-            }
+            if (sender is not Button knopf || knopf.CommandParameter is not CleanerInfo partner) return;
+
+            // Verwaltung => partner=admin, sonst die Id der Arbeitskraft
+            var kennung = partner.IsAdmin ? "admin" : partner.Id.ToString();
+            var name = Uri.EscapeDataString(partner.Name ?? (partner.IsAdmin ? "Admin" : "Kollege"));
+            var avatar = Uri.EscapeDataString(partner.Avatar ?? "");
+
+            await Shell.Current.GoToAsync($"ChatCurrentPage?partner={kennung}&partnerName={name}&partnerAvatar={avatar}");
         }
         catch (Exception ex)
         {

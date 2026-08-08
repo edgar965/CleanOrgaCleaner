@@ -5,15 +5,15 @@ using Plugin.Firebase.CloudMessaging.EventArgs;
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// Native Push-Benachrichtigungen (FCM) für Android + iOS.
+/// Native Mitteilungen (FCM) für Android und iOS.
 ///
-/// Ergänzt den WebSocket: eine neue Chat-Nachricht erzeugt serverseitig
-/// zusätzlich einen FCM-Push, der das Gerät auch bei geschlossener/
-/// hintergründiger App erreicht (WebSocket ist dann getrennt).
+/// Ergänzt die Echtzeit-Verbindung: eine neue Chat-Nachricht erzeugt
+/// serverseitig zusätzlich eine Mitteilung, die das Gerät auch bei
+/// geschlossener App erreicht.
 ///
-/// Robust gegen fehlendes Firebase-Setup: jeder Aufruf ist in try/catch
-/// gekapselt, sodass eine fehlende/fehlerhafte Konfiguration die App nie
-/// zum Absturz bringt - Push wird dann still übersprungen.
+/// Robust gegen fehlendes Firebase-Setup: jeder Aufruf ist gekapselt, sodass
+/// eine fehlerhafte Konfiguration die App nie zum Absturz bringt - Mitteilungen
+/// werden dann still übersprungen.
 /// </summary>
 public static class PushService
 {
@@ -22,33 +22,22 @@ public static class PushService
 
     /// <summary>
     /// Nach erfolgreichem Login aufrufen: Berechtigung anfragen, Token holen
-    /// und beim Server registrieren.
+    /// und beim Server anmelden.
     /// </summary>
     public static async Task InitializeAsync()
     {
         try
         {
-            // Ohne initialisiertes Firebase crasht der Zugriff auf
-            // CrossFirebaseCloudMessaging.Current auf iOS nativ (SIGTRAP).
+            // Ohne initialisiertes Firebase stürzt der Zugriff auf
+            // CrossFirebaseCloudMessaging.Current auf iOS nativ ab (SIGTRAP).
             if (!FirebaseStatus.Ready)
             {
                 Debug.WriteLine("[Push] Firebase nicht initialisiert - Push übersprungen");
                 return;
             }
 
-            if (!_eventsAbonniert)
-            {
-                CrossFirebaseCloudMessaging.Current.TokenChanged += OnTokenChanged;
-                CrossFirebaseCloudMessaging.Current.NotificationTapped += OnNotificationTapped;
-                _eventsAbonniert = true;
-            }
-
-            // Fragt die Push-Berechtigung an (iOS + Android 13+). Wirft eine
-            // Exception, wenn Push nicht verfügbar/verweigert ist -> wird vom
-            // äußeren try/catch abgefangen und Push still übersprungen.
-            await CrossFirebaseCloudMessaging.Current.CheckIfValidAsync().ConfigureAwait(false);
-
-            var token = await CrossFirebaseCloudMessaging.Current.GetTokenAsync().ConfigureAwait(false);
+            AbonniereEreignisse();
+            var token = await HoleTokenAsync().ConfigureAwait(false);
             await RegistriereTokenAsync(token).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -58,10 +47,9 @@ public static class PushService
     }
 
     /// <summary>
-    /// Vom Einstellungen-Button aufrufbar: fordert die Push-Berechtigung an,
-    /// holt das Token und registriert es beim Server. Gibt (ok, Status) zurück -
-    /// bei Misserfolg enthält Status den konkreten Grund (Berechtigung/APNs/
-    /// Firebase), damit der Nutzer/Support sieht, warum kein Push ankommt.
+    /// Aus den Einstellungen aufrufbar: Berechtigung anfragen, Token holen und
+    /// beim Server anmelden. Bei Misserfolg nennt der Status den konkreten
+    /// Grund, damit sichtbar ist, warum keine Mitteilung ankommt.
     /// </summary>
     public static async Task<(bool ok, string status)> EnsureRegistrationAsync()
     {
@@ -70,27 +58,20 @@ public static class PushService
             if (!FirebaseStatus.Ready)
                 return (false, "Firebase nicht initialisiert (Start-Konfiguration fehlgeschlagen)");
 
-            if (!_eventsAbonniert)
-            {
-                CrossFirebaseCloudMessaging.Current.TokenChanged += OnTokenChanged;
-                CrossFirebaseCloudMessaging.Current.NotificationTapped += OnNotificationTapped;
-                _eventsAbonniert = true;
-            }
+            AbonniereEreignisse();
 
-            // Berechtigung anfragen/prüfen (wirft, wenn verweigert/nicht verfügbar)
-            await CrossFirebaseCloudMessaging.Current.CheckIfValidAsync().ConfigureAwait(false);
-
-            var token = await CrossFirebaseCloudMessaging.Current.GetTokenAsync().ConfigureAwait(false);
+            var token = await HoleTokenAsync().ConfigureAwait(false);
             if (string.IsNullOrWhiteSpace(token))
                 return (false, "Kein Push-Token erhalten (APNs/Firebase nicht bereit)");
 
             _aktuellesToken = token;
-            var platform = DeviceInfo.Platform == DevicePlatform.iOS ? "ios" : "android";
-            var res = await ApiService.Instance.RegisterPushTokenAsync(token, platform).ConfigureAwait(false);
-            Debug.WriteLine($"[Push] EnsureRegistration ({platform}): success={res.Success}");
-            return res.Success
+            var plattform = Plattform();
+            var antwort = await ApiService.Instance.RegisterPushTokenAsync(token, plattform).ConfigureAwait(false);
+            Debug.WriteLine($"[Push] EnsureRegistration ({plattform}): success={antwort.Success}");
+
+            return antwort.Success
                 ? (true, "Mitteilungen aktiviert")
-                : (false, "Server-Registrierung fehlgeschlagen: " + (res.Error ?? "unbekannt"));
+                : (false, "Server-Registrierung fehlgeschlagen: " + (antwort.Error ?? "unbekannt"));
         }
         catch (Exception ex)
         {
@@ -100,9 +81,8 @@ public static class PushService
     }
 
     /// <summary>
-    /// Aktueller Berechtigungs-Zustand OHNE einen Dialog anzuzeigen (für die
-    /// Statusanzeige in den Einstellungen). true = erlaubt, false = nicht,
-    /// null = unbekannt (z.B. wenn die Plattform-Abfrage nicht verfügbar ist).
+    /// Aktueller Berechtigungs-Zustand OHNE Dialog (für die Statusanzeige).
+    /// true = erlaubt, false = nicht, null = unbekannt.
     /// </summary>
     public static async Task<bool?> IstErlaubtAsync()
     {
@@ -119,8 +99,8 @@ public static class PushService
     }
 
     /// <summary>
-    /// Bei Logout aufrufen: aktuelles Token beim Server abmelden, damit das
-    /// Gerät keine Pushes mehr für den abgemeldeten Nutzer bekommt.
+    /// Beim Abmelden aufrufen: Token beim Server abmelden, damit das Gerät
+    /// keine Mitteilungen mehr für den abgemeldeten Nutzer bekommt.
     /// </summary>
     public static async Task UnregisterAsync()
     {
@@ -138,7 +118,32 @@ public static class PushService
         }
     }
 
-    private static async void OnTokenChanged(object? sender, FCMTokenChangedEventArgs e)
+    /// <summary>Ereignisse genau einmal abonnieren.</summary>
+    private static void AbonniereEreignisse()
+    {
+        if (_eventsAbonniert)
+            return;
+
+        CrossFirebaseCloudMessaging.Current.TokenChanged += BeiTokenWechsel;
+        CrossFirebaseCloudMessaging.Current.NotificationTapped += BeiMitteilungAngetippt;
+        _eventsAbonniert = true;
+    }
+
+    /// <summary>
+    /// Berechtigung prüfen/anfragen (iOS + Android 13+) und Token holen.
+    /// Wirft, wenn Mitteilungen nicht verfügbar oder verweigert sind - das
+    /// fangen die Aufrufer ab.
+    /// </summary>
+    private static async Task<string?> HoleTokenAsync()
+    {
+        await CrossFirebaseCloudMessaging.Current.CheckIfValidAsync().ConfigureAwait(false);
+        return await CrossFirebaseCloudMessaging.Current.GetTokenAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>Plattformkürzel für den Server.</summary>
+    private static string Plattform() => DeviceInfo.Platform == DevicePlatform.iOS ? "ios" : "android";
+
+    private static async void BeiTokenWechsel(object? sender, FCMTokenChangedEventArgs e)
     {
         try
         {
@@ -156,56 +161,13 @@ public static class PushService
             return;
 
         _aktuellesToken = token;
-        var platform = DeviceInfo.Platform == DevicePlatform.iOS ? "ios" : "android";
-        var res = await ApiService.Instance.RegisterPushTokenAsync(token, platform).ConfigureAwait(false);
-        if (res.Success)
+        var plattform = Plattform();
+        var antwort = await ApiService.Instance.RegisterPushTokenAsync(token, plattform).ConfigureAwait(false);
+        if (antwort.Success)
             Preferences.Set("push_registered", true);
-        Debug.WriteLine($"[Push] Token registriert ({platform}): success={res.Success}");
+        Debug.WriteLine($"[Push] Token registriert ({plattform}): success={antwort.Success}");
     }
 
-    /// <summary>
-    /// Nutzer tippt auf eine Push-Benachrichtigung -> passenden Chat öffnen.
-    /// Datenformat vom Server: { "type": "chat", "partner": "admin"|"&lt;id&gt;" }
-    /// </summary>
-    private static void OnNotificationTapped(object? sender, FCMNotificationTappedEventArgs e)
-    {
-        try
-        {
-            var daten = e.Notification?.Data;
-            if (daten == null)
-                return;
-
-            daten.TryGetValue("type", out var typ);
-            if (typ != "chat")
-                return;
-
-            daten.TryGetValue("partner", out var partner);
-            if (string.IsNullOrEmpty(partner))
-                partner = "admin";
-
-            daten.TryGetValue("partnerName", out var partnerName);
-
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                try
-                {
-                    if (Shell.Current != null)
-                    {
-                        var route = $"ChatCurrentPage?partner={partner}";
-                        if (!string.IsNullOrEmpty(partnerName))
-                            route += $"&partnerName={Uri.EscapeDataString(partnerName)}";
-                        await Shell.Current.GoToAsync(route);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[Push] Navigation-Fehler: {ex.Message}");
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[Push] Tap-Fehler: {ex.Message}");
-        }
-    }
+    private static void BeiMitteilungAngetippt(object? sender, FCMNotificationTappedEventArgs e)
+        => PushTapNavigation.Oeffne(e.Notification?.Data);
 }

@@ -3,13 +3,10 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models.Responses;
 
 /// <summary>
-/// Response from work time start/end API endpoints
+/// Antwort auf Start/Ende der Arbeitszeit sowie auf die Statusabfrage.
 /// </summary>
-public class WorkTimeResponse
+public class WorkTimeResponse : ServerAntwort
 {
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-
     [JsonPropertyName("start_time")]
     public string? StartTime { get; set; }
 
@@ -22,14 +19,6 @@ public class WorkTimeResponse
     [JsonPropertyName("message")]
     public string? Message { get; set; }
 
-    [JsonPropertyName("error")]
-    public string? Error { get; set; }
-
     [JsonPropertyName("is_working")]
     public bool IsWorking { get; set; }
-
-    // UI helpers
-    public string DisplayTotalHours => TotalHours.HasValue
-        ? TotalHours.Value.ToString("F2").Replace(".", ",")
-        : "?";
 }

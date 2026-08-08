@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Work status for a cleaner on a specific day
+/// Arbeitszeit-Status einer Arbeitskraft für einen Tag.
 /// </summary>
 public class WorkStatus
 {
@@ -18,14 +18,4 @@ public class WorkStatus
 
     [JsonPropertyName("total_hours")]
     public double? TotalHours { get; set; }
-
-    // UI helpers
-    public bool HasStarted => !string.IsNullOrEmpty(StartTime);
-    public bool HasEnded => !string.IsNullOrEmpty(EndTime);
-
-    public string DisplayStartTime => StartTime ?? "-";
-    public string DisplayEndTime => EndTime ?? "-";
-    public string DisplayTotalHours => TotalHours.HasValue
-        ? TotalHours.Value.ToString("F2").Replace(".", ",") + "h"
-        : "-";
 }

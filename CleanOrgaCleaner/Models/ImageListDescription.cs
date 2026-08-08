@@ -3,31 +3,23 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Photo attached to an ImageListDescription
-/// </summary>
-public class ImageListDescriptionPhoto
-{
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
-
-    [JsonPropertyName("url")]
-    public string? Url { get; set; }
-
-    [JsonPropertyName("thumbnail_url")]
-    public string? ThumbnailUrl { get; set; }
-}
-
-/// <summary>
-/// Unified model for Problems and Notes (Anmerkungen)
-/// Replaces the old Problem and BildStatus models
+/// Gemeinsames Modell für Probleme und Anmerkungen (löst die früheren Modelle
+/// Problem und BildStatus ab). <see cref="Type"/> unterscheidet beide Fälle.
 /// </summary>
 public class ImageListDescription
 {
+    /// <summary>Wert von <see cref="Type"/> für ein gemeldetes Problem.</summary>
+    public const string TypProblem = "problem";
+
+    /// <summary>Wert von <see cref="Type"/> für eine Anmerkung.</summary>
+    public const string TypAnmerkung = "anmerkung";
+
     [JsonPropertyName("id")]
     public int Id { get; set; }
 
+    /// <summary>"problem" oder "anmerkung" - siehe <see cref="TypProblem"/>.</summary>
     [JsonPropertyName("type")]
-    public string Type { get; set; } = ""; // "problem" or "anmerkung"
+    public string Type { get; set; } = "";
 
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
@@ -44,16 +36,11 @@ public class ImageListDescription
     [JsonPropertyName("erledigt")]
     public bool Erledigt { get; set; }
 
-    // UI helpers
-    public bool HasPhotos => Photos != null && Photos.Count > 0;
-    public int PhotoCount => Photos?.Count ?? 0;
+    /// <summary>True, wenn mindestens ein Foto hängt.</summary>
+    [JsonIgnore]
+    public bool HasPhotos => Photos is { Count: > 0 };
 
-    public bool IsProblem => Type == "problem";
-    public bool IsAnmerkung => Type == "anmerkung";
-
-    /// <summary>
-    /// Get the first photo URL (for thumbnail display)
-    /// </summary>
-    public string? FirstPhotoUrl => Photos?.FirstOrDefault()?.Url
-                                    ?? Photos?.FirstOrDefault()?.ThumbnailUrl;
+    /// <summary>True bei einem gemeldeten Problem.</summary>
+    [JsonIgnore]
+    public bool IsProblem => Type == TypProblem;
 }

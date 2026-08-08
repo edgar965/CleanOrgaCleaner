@@ -1,236 +1,149 @@
 using SQLite;
 using System.Text.Json;
-using CleanOrgaCleaner.Models;
-using CleanOrgaCleaner.Json;
+using CleanOrgaCleaner.Services.Offline;
 
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// Queue item stored in SQLite for offline operations
-/// </summary>
-public class OfflineQueueItem
-{
-    [PrimaryKey, AutoIncrement]
-    public int Id { get; set; }
-
-    /// <summary>
-    /// Type of operation: chat, status, image, checklist, notes, problem
-    /// </summary>
-    public string OperationType { get; set; } = "";
-
-    /// <summary>
-    /// JSON payload of the operation
-    /// </summary>
-    public string Payload { get; set; } = "";
-
-    /// <summary>
-    /// Timestamp when the operation was queued
-    /// </summary>
-    public DateTime CreatedAt { get; set; }
-
-    /// <summary>
-    /// Number of retry attempts
-    /// </summary>
-    public int RetryCount { get; set; }
-
-    /// <summary>
-    /// Last error message if any
-    /// </summary>
-    public string? LastError { get; set; }
-
-    /// <summary>
-    /// Priority (lower = higher priority): 1=chat, 2=status, 3=images
-    /// </summary>
-    public int Priority { get; set; }
-}
-
-/// <summary>
-/// Service for managing offline queue with SQLite storage
+/// Warteschlange für Vorgänge, die ohne Netz entstanden sind (SQLite).
+///
+/// Diese Klasse kümmert sich nur noch um Speichern, Reihenfolge und den
+/// Abarbeitungslauf. WIE ein einzelner Vorgang nachgeholt wird, steht in den
+/// Klassen unter Services/Offline/Aufgaben - vorher lag beides in einer Datei.
 /// </summary>
 public class OfflineQueueService : IDisposable
 {
-    private SQLiteAsyncConnection? _database;
-    private readonly string _dbPath;
-    private readonly SemaphoreSlim _processingLock = new(1, 1);
+    /// <summary>Rang für sofort wichtige Vorgänge (Chat, Arbeitszeit).</summary>
+    private const int RangHoch = 1;
 
-    private static OfflineQueueService? _instance;
-    public static OfflineQueueService Instance => _instance ??= new OfflineQueueService();
+    /// <summary>Rang für den Rest (Aufträge, Fotos).</summary>
+    private const int RangNormal = 2;
 
-    /// <summary>
-    /// Event fired when queue changes (items added or processed)
-    /// </summary>
+    private static readonly Lazy<OfflineQueueService> _instanz = new(() => new OfflineQueueService());
+
+    /// <summary>Die eine Instanz der App.</summary>
+    public static OfflineQueueService Instance => _instanz.Value;
+
+    private readonly string _dbPfad;
+    private readonly SemaphoreSlim _laufSperre = new(1, 1);
+    private SQLiteAsyncConnection? _datenbank;
+
+    /// <summary>Anzahl der wartenden Einträge hat sich geändert.</summary>
     public event Action<int>? OnQueueCountChanged;
 
-    /// <summary>
-    /// Event fired when an item is successfully synced
-    /// </summary>
+    /// <summary>Ein Eintrag wurde erfolgreich nachgeholt.</summary>
     public event Action<OfflineQueueItem>? OnItemSynced;
 
-    /// <summary>
-    /// Event fired when an item sync fails
-    /// </summary>
-    public event Action<OfflineQueueItem, string>? OnItemSyncFailed;
-
-    public OfflineQueueService()
+    private OfflineQueueService()
     {
-        _dbPath = Path.Combine(FileSystem.AppDataDirectory, "offline_queue.db");
+        _dbPfad = Path.Combine(FileSystem.AppDataDirectory, "offline_queue.db");
     }
 
-    /// <summary>
-    /// Initialize the database connection and create tables
-    /// </summary>
+    /// <summary>Datenbank öffnen und Tabelle anlegen (mehrfach aufrufbar).</summary>
     public async Task InitializeAsync()
     {
-        if (_database != null) return;
+        if (_datenbank != null) return;
 
-        _database = new SQLiteAsyncConnection(_dbPath);
-        await _database.CreateTableAsync<OfflineQueueItem>().ConfigureAwait(false);
-        System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Initialized at {_dbPath}");
+        _datenbank = new SQLiteAsyncConnection(_dbPfad);
+        await _datenbank.CreateTableAsync<OfflineQueueItem>().ConfigureAwait(false);
+        System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Initialized at {_dbPfad}");
     }
 
-    /// <summary>
-    /// Enqueue a chat message for later sending
-    /// </summary>
-    public async Task EnqueueChatMessageAsync(string message, string receiverId = "admin")
-    {
-        // Empfänger mitspeichern - sonst landet die Nachricht beim Reconnect
-        // immer beim Admin, auch wenn sie an einen Kollegen ging
-        var payload = JsonSerializer.Serialize(new { message, receiver = receiverId });
-        await EnqueueAsync("chat", payload, priority: 1).ConfigureAwait(false);
-    }
+    #region Einreihen
 
-    /// <summary>
-    /// Enqueue an ImageListDescription item (problem or anmerkung)
-    /// </summary>
-    public async Task EnqueueImageListItemAsync(int taskId, string itemType, string name, string? description, List<byte[]>? photos)
-    {
-        var photoBase64List = photos?.Select(p => Convert.ToBase64String(p)).ToList();
-        var payload = JsonSerializer.Serialize(new
+    /// <summary>Chat-Nachricht einreihen (Empfänger wird mitgespeichert).</summary>
+    public Task EnqueueChatMessageAsync(string message, string receiverId = "admin")
+        => ReiheEinAsync("chat", new { message, receiver = receiverId }, RangHoch);
+
+    /// <summary>Bildlisten-Eintrag (Problem/Anmerkung) mit Fotos einreihen.</summary>
+    public Task EnqueueImageListItemAsync(int taskId, string itemType, string name, string? description, List<byte[]>? photos)
+        => ReiheEinAsync("image_list_item", new
         {
             taskId,
             itemType,
             name,
             description,
-            photos = photoBase64List,
+            photos = photos?.Select(Convert.ToBase64String).ToList(),
             timestamp = DateTime.UtcNow
-        });
-        await EnqueueAsync("image_list_item", payload, priority: 2).ConfigureAwait(false);
-    }
+        }, RangNormal);
 
-    /// <summary>
-    /// Enqueue task creation for offline sync
-    /// </summary>
-    public async Task EnqueueTaskCreateAsync(string name, string? plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, object? assignments)
-    {
-        var payload = JsonSerializer.Serialize(new {
-            name,
-            plannedDate,
-            apartmentId,
-            aufgabenartId,
-            hinweis,
-            status,
-            assignments,
+    /// <summary>Anlegen eines Auftrags einreihen.</summary>
+    public Task EnqueueTaskCreateAsync(string name, string? plannedDate, int? apartmentId, int? aufgabenartId,
+        string? hinweis, string status, object? assignments)
+        => ReiheEinAsync("task_create", new
+        {
+            name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
             timestamp = DateTime.UtcNow
-        });
-        await EnqueueAsync("task_create", payload, priority: 2).ConfigureAwait(false);
-    }
+        }, RangNormal);
 
-    /// <summary>
-    /// Enqueue task update for offline sync
-    /// </summary>
-    public async Task EnqueueTaskUpdateAsync(int taskId, string name, string? plannedDate, int? apartmentId, int? aufgabenartId, string? hinweis, string status, object? assignments)
-    {
-        var payload = JsonSerializer.Serialize(new {
-            taskId,
-            name,
-            plannedDate,
-            apartmentId,
-            aufgabenartId,
-            hinweis,
-            status,
-            assignments,
+    /// <summary>Ändern eines Auftrags einreihen.</summary>
+    public Task EnqueueTaskUpdateAsync(int taskId, string name, string? plannedDate, int? apartmentId,
+        int? aufgabenartId, string? hinweis, string status, object? assignments)
+        => ReiheEinAsync("task_update", new
+        {
+            taskId, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
             timestamp = DateTime.UtcNow
-        });
-        await EnqueueAsync("task_update", payload, priority: 2).ConfigureAwait(false);
-    }
+        }, RangNormal);
 
-    /// <summary>
-    /// Enqueue work day start
-    /// </summary>
-    public async Task EnqueueWorkStartAsync()
-    {
-        var payload = JsonSerializer.Serialize(new { timestamp = DateTime.UtcNow });
-        await EnqueueAsync("work_start", payload, priority: 1).ConfigureAwait(false);
-    }
+    /// <summary>Arbeitsbeginn einreihen.</summary>
+    public Task EnqueueWorkStartAsync()
+        => ReiheEinAsync("work_start", new { timestamp = DateTime.UtcNow }, RangHoch);
 
-    /// <summary>
-    /// Enqueue work day stop
-    /// </summary>
-    public async Task EnqueueWorkStopAsync()
-    {
-        var payload = JsonSerializer.Serialize(new { timestamp = DateTime.UtcNow });
-        await EnqueueAsync("work_stop", payload, priority: 1).ConfigureAwait(false);
-    }
+    /// <summary>Arbeitsende einreihen.</summary>
+    public Task EnqueueWorkStopAsync()
+        => ReiheEinAsync("work_stop", new { timestamp = DateTime.UtcNow }, RangHoch);
 
-    /// <summary>
-    /// Enqueue task state change (started, completed, etc.)
-    /// </summary>
-    public async Task EnqueueTaskStateChangeAsync(int taskId, string newState)
-    {
-        var payload = JsonSerializer.Serialize(new { taskId, newState, timestamp = DateTime.UtcNow });
-        await EnqueueAsync("task_state", payload, priority: 1).ConfigureAwait(false);
-    }
+    /// <summary>Zustandswechsel einer Aufgabe einreihen.</summary>
+    public Task EnqueueTaskStateChangeAsync(int taskId, string newState)
+        => ReiheEinAsync("task_state", new { taskId, newState, timestamp = DateTime.UtcNow }, RangHoch);
 
-    /// <summary>
-    /// Generic enqueue method
-    /// </summary>
-    private async Task EnqueueAsync(string operationType, string payload, int priority)
+    /// <summary>Gemeinsames Einreihen: Nutzdaten serialisieren, ablegen, melden.</summary>
+    private async Task ReiheEinAsync(string vorgangsart, object nutzdaten, int rang)
     {
         await InitializeAsync().ConfigureAwait(false);
 
-        var item = new OfflineQueueItem
+        var eintrag = new OfflineQueueItem
         {
-            OperationType = operationType,
-            Payload = payload,
+            OperationType = vorgangsart,
+            Payload = JsonSerializer.Serialize(nutzdaten),
             CreatedAt = DateTime.UtcNow,
             RetryCount = 0,
-            Priority = priority
+            Priority = rang
         };
 
-        await _database!.InsertAsync(item).ConfigureAwait(false);
-        System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Enqueued {operationType} (ID: {item.Id})");
+        await _datenbank!.InsertAsync(eintrag).ConfigureAwait(false);
+        System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Enqueued {vorgangsart} (ID: {eintrag.Id})");
 
-        var count = await GetQueueCountAsync().ConfigureAwait(false);
-        UiSicher.SichererInvoke(() => OnQueueCountChanged?.Invoke(count), "Queue");
+        await MeldeAnzahlAsync().ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Get the number of pending items in the queue
-    /// </summary>
+    #endregion
+
+    #region Abfragen und Abarbeiten
+
+    /// <summary>Anzahl wartender Einträge.</summary>
     public async Task<int> GetQueueCountAsync()
     {
         await InitializeAsync().ConfigureAwait(false);
-        return await _database!.Table<OfflineQueueItem>().CountAsync().ConfigureAwait(false);
+        return await _datenbank!.Table<OfflineQueueItem>().CountAsync().ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Get all pending items ordered by priority and creation time
-    /// </summary>
+    /// <summary>Wartende Einträge nach Rang und Alter.</summary>
     public async Task<List<OfflineQueueItem>> GetPendingItemsAsync()
     {
         await InitializeAsync().ConfigureAwait(false);
-        return await _database!.Table<OfflineQueueItem>()
+        return await _datenbank!.Table<OfflineQueueItem>()
             .OrderBy(x => x.Priority)
             .ThenBy(x => x.CreatedAt)
             .ToListAsync().ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Process the queue when back online
+    /// Warteschlange abarbeiten (nach Rückkehr ins Netz). Läuft nie doppelt.
     /// </summary>
     public async Task ProcessQueueAsync()
     {
-        if (!await _processingLock.WaitAsync(0).ConfigureAwait(false))
+        if (!await _laufSperre.WaitAsync(0).ConfigureAwait(false))
         {
             System.Diagnostics.Debug.WriteLine("[OfflineQueue] Already processing");
             return;
@@ -238,253 +151,83 @@ public class OfflineQueueService : IDisposable
 
         try
         {
-            // processing started
-            await InitializeAsync().ConfigureAwait(false);
+            var eintraege = await GetPendingItemsAsync().ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Processing {eintraege.Count} items");
 
-            var items = await GetPendingItemsAsync().ConfigureAwait(false);
-            System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Processing {items.Count} items");
-
-            foreach (var item in items)
+            foreach (var eintrag in eintraege)
             {
-                try
-                {
-                    var success = await ProcessItemAsync(item).ConfigureAwait(false);
-                    if (success)
-                    {
-                        await _database!.DeleteAsync(item).ConfigureAwait(false);
-                        OnItemSynced?.Invoke(item);
-                        System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Synced {item.OperationType} (ID: {item.Id})");
-                    }
-                    else
-                    {
-                        // Fehlversuch: Item BLEIBT in der Queue und wird beim
-                        // nächsten Reconnect erneut versucht. Bewusst KEIN Auto-
-                        // Verwerfen: Success=false kann Transportfehler, ein
-                        // transientes 5xx (Deploy/Überlast) ODER eine echte
-                        // Ablehnung sein - am Queue-Level nicht unterscheidbar.
-                        // Für eine App, deren Offline-Aktionen Arbeitszeiten und
-                        // Problemmeldungen sind, wiegt "nie Daten verlieren"
-                        // schwerer als "Queue immer klein". Der RetryCount dient
-                        // nur der Diagnose.
-                        item.RetryCount++;
-                        item.LastError = $"Fehlversuch {item.RetryCount} ({item.OperationType})";
-                        await _database!.UpdateAsync(item).ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    item.RetryCount++;
-                    item.LastError = ex.Message;
-                    await _database!.UpdateAsync(item).ConfigureAwait(false);
-                    System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Failed {item.OperationType}: {ex.Message}");
-                }
+                await VerarbeiteAsync(eintrag).ConfigureAwait(false);
 
-                // Small delay between items
+                // Kleine Pause zwischen den Einträgen
                 await Task.Delay(100).ConfigureAwait(false);
             }
 
-            var count = await GetQueueCountAsync().ConfigureAwait(false);
-            UiSicher.SichererInvoke(() => OnQueueCountChanged?.Invoke(count), "Queue");
+            await MeldeAnzahlAsync().ConfigureAwait(false);
         }
         finally
         {
-            // processing finished
-            _processingLock.Release();
+            _laufSperre.Release();
         }
     }
 
-
-    /// <summary>
-    /// Process a single queue item
-    /// </summary>
-    private async Task<bool> ProcessItemAsync(OfflineQueueItem item)
+    /// <summary>Einen Eintrag nachholen und je nach Ausgang löschen oder behalten.</summary>
+    private async Task VerarbeiteAsync(OfflineQueueItem eintrag)
     {
-        var apiService = ApiService.Instance;
-
-        switch (item.OperationType)
+        try
         {
-            case "chat":
-                return await ProcessChatAsync(item, apiService);
-            case "status":
-                return await ProcessStatusAsync(item, apiService);
-            case "image":
-                return await ProcessImageAsync(item, apiService);
-            case "checklist":
-                return await ProcessChecklistAsync(item, apiService);
-            case "notes":
-                return await ProcessNotesAsync(item, apiService);
-            case "image_list_item":
-                return await ProcessImageListItemAsync(item, apiService);
-            case "task_create":
-                return await ProcessTaskCreateAsync(item, apiService);
-            case "task_update":
-                return await ProcessTaskUpdateAsync(item, apiService);
-            case "work_start":
-                return await ProcessWorkStartAsync(item, apiService);
-            case "work_stop":
-                return await ProcessWorkStopAsync(item, apiService);
-            case "task_state":
-                return await ProcessTaskStateAsync(item, apiService);
-            default:
-                System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Unknown operation type: {item.OperationType}");
-                return true; // Remove unknown items
+            var aufgabe = WarteschlangenFabrik.Erzeuge(eintrag);
+            if (aufgabe == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Unknown operation type: {eintrag.OperationType}");
+                await _datenbank!.DeleteAsync(eintrag).ConfigureAwait(false);
+                return;
+            }
+
+            if (await aufgabe.AusfuehrenAsync(ApiService.Instance).ConfigureAwait(false))
+            {
+                await _datenbank!.DeleteAsync(eintrag).ConfigureAwait(false);
+                UiSicher.SichererInvoke(() => OnItemSynced?.Invoke(eintrag), "Queue");
+                System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Synced {eintrag.OperationType} (ID: {eintrag.Id})");
+                return;
+            }
+
+            // Fehlversuch: Eintrag BLEIBT in der Warteschlange und wird beim
+            // nächsten Verbinden erneut versucht. Bewusst KEIN automatisches
+            // Verwerfen: ein Misserfolg kann Transportfehler, ein vorübergehendes
+            // 5xx (Deploy/Überlast) ODER eine echte Ablehnung sein - auf dieser
+            // Ebene nicht unterscheidbar. Für eine App, deren Offline-Vorgänge
+            // Arbeitszeiten und Problemmeldungen sind, wiegt "nie Daten verlieren"
+            // schwerer als "Warteschlange immer kurz". RetryCount dient der Diagnose.
+            await MerkeFehlversuchAsync(eintrag, $"Fehlversuch {eintrag.RetryCount + 1} ({eintrag.OperationType})").ConfigureAwait(false);
         }
-    }
-
-    private async Task<bool> ProcessChatAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var message = data.GetProperty("message").GetString();
-        if (string.IsNullOrEmpty(message)) return true;
-
-        // Empfänger aus dem Payload; alte Queue-Einträge (ohne receiver) gehen
-        // weiterhin an den Admin
-        var receiver = data.TryGetProperty("receiver", out var r) ? (r.GetString() ?? "admin") : "admin";
-        var response = await api.SendChatMessageAsync(message, receiver).ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessStatusAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var action = data.GetProperty("action").GetString();
-
-        switch (action)
+        catch (Exception ex)
         {
-            case "start":
-                var startResponse = await api.StartTaskAsync(taskId).ConfigureAwait(false);
-                return startResponse.Success;
-            case "stop":
-                var stopResponse = await api.StopTaskAsync(taskId).ConfigureAwait(false);
-                return stopResponse.Success;
-            default:
-                return true;
+            await MerkeFehlversuchAsync(eintrag, ex.Message).ConfigureAwait(false);
+            System.Diagnostics.Debug.WriteLine($"[OfflineQueue] Failed {eintrag.OperationType}: {ex.Message}");
         }
     }
 
-    private async Task<bool> ProcessImageAsync(OfflineQueueItem item, ApiService api)
+    private async Task MerkeFehlversuchAsync(OfflineQueueItem eintrag, string meldung)
     {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var imageBase64 = data.GetProperty("imageBase64").GetString();
-        var notes = data.TryGetProperty("notes", out var notesEl) ? notesEl.GetString() : null;
-
-        if (string.IsNullOrEmpty(imageBase64)) return true;
-
-        var imageBytes = Convert.FromBase64String(imageBase64);
-        var photos = new List<(string, byte[])> { ("offline_image.jpg", imageBytes) };
-        var response = await api.CreateImageListItemAsync(taskId, "anmerkung", notes ?? "Anmerkung", null, photos).ConfigureAwait(false);
-        return response.Success;
+        eintrag.RetryCount++;
+        eintrag.LastError = meldung;
+        await _datenbank!.UpdateAsync(eintrag).ConfigureAwait(false);
     }
 
-    private async Task<bool> ProcessChecklistAsync(OfflineQueueItem item, ApiService api)
+    /// <summary>Aktuelle Anzahl an die Oberfläche melden.</summary>
+    private async Task MeldeAnzahlAsync()
     {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var itemId = data.GetProperty("itemId").GetInt32();
-        var completed = data.GetProperty("completed").GetBoolean();
-
-        var response = await api.ToggleChecklistItemAsync(taskId, itemId, completed).ConfigureAwait(false);
-        return response.Success;
+        var anzahl = await GetQueueCountAsync().ConfigureAwait(false);
+        UiSicher.SichererInvoke(() => OnQueueCountChanged?.Invoke(anzahl), "Queue");
     }
 
-    private async Task<bool> ProcessNotesAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var notes = data.GetProperty("notes").GetString() ?? "";
-
-        var response = await api.SaveTaskNotesAsync(taskId, notes).ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessImageListItemAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var itemType = data.GetProperty("itemType").GetString() ?? "problem";
-        var name = data.GetProperty("name").GetString() ?? "";
-        var description = data.TryGetProperty("description", out var descEl) ? descEl.GetString() : null;
-
-        List<(string, byte[])>? photos = null;
-        if (data.TryGetProperty("photos", out var photosEl) && photosEl.ValueKind == JsonValueKind.Array)
-        {
-            photos = photosEl.EnumerateArray()
-                .Select((p, i) => ($"photo_{i}.jpg", Convert.FromBase64String(p.GetString() ?? "")))
-                .ToList();
-        }
-
-        var response = await api.CreateImageListItemAsync(taskId, itemType, name, description, photos).ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessTaskCreateAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var name = data.GetProperty("name").GetString() ?? "";
-        var plannedDate = data.TryGetProperty("plannedDate", out var pdEl) ? pdEl.GetString() : null;
-        var apartmentId = data.TryGetProperty("apartmentId", out var aiEl) && aiEl.ValueKind != JsonValueKind.Null ? aiEl.GetInt32() : (int?)null;
-        var aufgabenartId = data.TryGetProperty("aufgabenartId", out var aaEl) && aaEl.ValueKind != JsonValueKind.Null ? aaEl.GetInt32() : (int?)null;
-        var hinweis = data.TryGetProperty("hinweis", out var hEl) ? hEl.GetString() : null;
-        var status = data.TryGetProperty("status", out var sEl) ? sEl.GetString() ?? "offen" : "offen";
-
-        TaskAssignments? assignments = null;
-        if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
-        {
-            assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
-        }
-
-        var response = await api.CreateAuftragAsync(name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments).ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessTaskUpdateAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var name = data.GetProperty("name").GetString() ?? "";
-        var plannedDate = data.TryGetProperty("plannedDate", out var pdEl) ? pdEl.GetString() : null;
-        var apartmentId = data.TryGetProperty("apartmentId", out var aiEl) && aiEl.ValueKind != JsonValueKind.Null ? aiEl.GetInt32() : (int?)null;
-        var aufgabenartId = data.TryGetProperty("aufgabenartId", out var aaEl) && aaEl.ValueKind != JsonValueKind.Null ? aaEl.GetInt32() : (int?)null;
-        var hinweis = data.TryGetProperty("hinweis", out var hEl) ? hEl.GetString() : null;
-        var status = data.TryGetProperty("status", out var sEl) ? sEl.GetString() ?? "offen" : "offen";
-
-        TaskAssignments? assignments = null;
-        if (data.TryGetProperty("assignments", out var assEl) && assEl.ValueKind != JsonValueKind.Null)
-        {
-            assignments = JsonSerializer.Deserialize(assEl.GetRawText(), AppJsonContext.Default.TaskAssignments);
-        }
-
-        var response = await api.UpdateAuftragAsync(taskId, name, plannedDate ?? "", apartmentId, aufgabenartId, hinweis, status, assignments).ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessWorkStartAsync(OfflineQueueItem item, ApiService api)
-    {
-        var response = await api.StartWorkAsync().ConfigureAwait(false);
-        return response.Success;
-    }
-
-    private async Task<bool> ProcessWorkStopAsync(OfflineQueueItem item, ApiService api)
-    {
-        var response = await api.StopWorkAsync().ConfigureAwait(false);
-        return response;
-    }
-
-    private async Task<bool> ProcessTaskStateAsync(OfflineQueueItem item, ApiService api)
-    {
-        var data = JsonSerializer.Deserialize<JsonElement>(item.Payload);
-        var taskId = data.GetProperty("taskId").GetInt32();
-        var newState = data.GetProperty("newState").GetString() ?? "";
-
-        var response = await api.UpdateTaskStateAsync(taskId, newState).ConfigureAwait(false);
-        return response.Success;
-    }
+    #endregion
 
     public void Dispose()
     {
-        _database?.CloseAsync();
-        _processingLock.Dispose();
+        // Schließen läuft asynchron weiter; ein blockierendes Warten hier
+        // könnte den UI-Thread festsetzen.
+        _ = _datenbank?.CloseAsync();
+        _laufSperre.Dispose();
     }
 }

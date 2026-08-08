@@ -1,161 +1,20 @@
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
+using CleanOrgaCleaner.Views.Hilfen;
 
 namespace CleanOrgaCleaner.Views;
 
 /// <summary>
-/// Settings page - language selection, user info, logout
+/// Einstellungen: Sprache, Avatar, angemeldete Person, App-Informationen.
+///
+/// Biometrie liegt in SettingsPage.Biometrie.cs, die Mitteilungen in
+/// SettingsPage.Mitteilungen.cs, die Avatar- und Sprachlisten in
+/// Views/Hilfen/.
 /// </summary>
 public partial class SettingsPage : ContentPage
 {
     private readonly ApiService _apiService;
     private readonly BiometricService _biometricService;
-    private readonly Dictionary<int, string> _languageMap = new()
-    {
-        { 0, "de" },  // Deutsch
-        { 1, "en" },  // English
-        { 2, "es" },  // Espanol
-        { 3, "ro" },  // Romana
-        { 4, "pl" },  // Polski
-        { 5, "ru" },  // Russkij
-        { 6, "uk" },  // Ukrainska
-        { 7, "vi" }   // Tieng Viet
-    };
-
-    // Avatar options - emoji avatars (light to medium skin tones + yellow default)
-    private readonly List<string> _avatarOptions = new()
-    {
-        "", // Logo (default)
-
-        // === GENDER-NEUTRAL (no mustache on iOS) ===
-        "🧑", "🧑🏻", "🧑🏼", "🧑🏽",
-        "🧑‍🦰", "🧑🏻‍🦰", "🧑🏼‍🦰", "🧑🏽‍🦰", // red hair
-        "🧑‍🦱", "🧑🏻‍🦱", "🧑🏼‍🦱", "🧑🏽‍🦱", // curly hair
-        "🧑‍🦳", "🧑🏻‍🦳", "🧑🏼‍🦳", "🧑🏽‍🦳", // white hair
-        "🧑‍🦲", "🧑🏻‍🦲", "🧑🏼‍🦲", "🧑🏽‍🦲", // bald
-
-        // === CHILDREN ===
-        "👶", "👶🏻", "👶🏼", "👶🏽", // baby
-        "🧒", "🧒🏻", "🧒🏼", "🧒🏽", // child
-        "👦", "👦🏻", "👦🏼", "👦🏽", // boy
-        "👧", "👧🏻", "👧🏼", "👧🏽", // girl
-
-        // === MEN ===
-        "👨", "👨🏻", "👨🏼", "👨🏽",
-        "👨‍🦰", "👨🏻‍🦰", "👨🏼‍🦰", "👨🏽‍🦰", // red hair
-        "👨‍🦱", "👨🏻‍🦱", "👨🏼‍🦱", "👨🏽‍🦱", // curly hair
-        "👨‍🦳", "👨🏻‍🦳", "👨🏼‍🦳", "👨🏽‍🦳", // white hair
-        "👨‍🦲", "👨🏻‍🦲", "👨🏼‍🦲", "👨🏽‍🦲", // bald
-        "👱‍♂️", "👱🏻‍♂️", "👱🏼‍♂️", "👱🏽‍♂️", // blond
-        "🧔", "🧔🏻", "🧔🏼", "🧔🏽", // beard
-        "🧔‍♂️", "🧔🏻‍♂️", "🧔🏼‍♂️", "🧔🏽‍♂️", // beard man
-
-        // === WOMEN ===
-        "👩", "👩🏻", "👩🏼", "👩🏽",
-        "👩‍🦰", "👩🏻‍🦰", "👩🏼‍🦰", "👩🏽‍🦰", // red hair
-        "👩‍🦱", "👩🏻‍🦱", "👩🏼‍🦱", "👩🏽‍🦱", // curly hair
-        "👩‍🦳", "👩🏻‍🦳", "👩🏼‍🦳", "👩🏽‍🦳", // white hair
-        "👩‍🦲", "👩🏻‍🦲", "👩🏼‍🦲", "👩🏽‍🦲", // bald
-        "👱‍♀️", "👱🏻‍♀️", "👱🏼‍♀️", "👱🏽‍♀️", // blond
-
-        // === ELDERLY ===
-        "🧓", "🧓🏻", "🧓🏼", "🧓🏽", // older person
-        "👴", "👴🏻", "👴🏼", "👴🏽", // old man
-        "👵", "👵🏻", "👵🏼", "👵🏽", // old woman
-
-        // === WORKERS & PROFESSIONS ===
-        // Construction
-        "👷", "👷🏻", "👷🏼", "👷🏽",
-        "👷‍♂️", "👷🏻‍♂️", "👷🏼‍♂️", "👷🏽‍♂️",
-        "👷‍♀️", "👷🏻‍♀️", "👷🏼‍♀️", "👷🏽‍♀️",
-        // Mechanic
-        "🧑‍🔧", "🧑🏻‍🔧", "🧑🏼‍🔧", "🧑🏽‍🔧",
-        "👨‍🔧", "👨🏻‍🔧", "👨🏼‍🔧", "👨🏽‍🔧",
-        "👩‍🔧", "👩🏻‍🔧", "👩🏼‍🔧", "👩🏽‍🔧",
-        // Factory
-        "🧑‍🏭", "🧑🏻‍🏭", "🧑🏼‍🏭", "🧑🏽‍🏭",
-        "👨‍🏭", "👨🏻‍🏭", "👨🏼‍🏭", "👨🏽‍🏭",
-        "👩‍🏭", "👩🏻‍🏭", "👩🏼‍🏭", "👩🏽‍🏭",
-        // Office
-        "🧑‍💼", "🧑🏻‍💼", "🧑🏼‍💼", "🧑🏽‍💼",
-        "👨‍💼", "👨🏻‍💼", "👨🏼‍💼", "👨🏽‍💼",
-        "👩‍💼", "👩🏻‍💼", "👩🏼‍💼", "👩🏽‍💼",
-        // Health
-        "🧑‍⚕️", "🧑🏻‍⚕️", "🧑🏼‍⚕️", "🧑🏽‍⚕️",
-        "👨‍⚕️", "👨🏻‍⚕️", "👨🏼‍⚕️", "👨🏽‍⚕️",
-        "👩‍⚕️", "👩🏻‍⚕️", "👩🏼‍⚕️", "👩🏽‍⚕️",
-        // Farmer
-        "🧑‍🌾", "🧑🏻‍🌾", "🧑🏼‍🌾", "🧑🏽‍🌾",
-        "👨‍🌾", "👨🏻‍🌾", "👨🏼‍🌾", "👨🏽‍🌾",
-        "👩‍🌾", "👩🏻‍🌾", "👩🏼‍🌾", "👩🏽‍🌾",
-        // Cook
-        "🧑‍🍳", "🧑🏻‍🍳", "🧑🏼‍🍳", "🧑🏽‍🍳",
-        "👨‍🍳", "👨🏻‍🍳", "👨🏼‍🍳", "👨🏽‍🍳",
-        "👩‍🍳", "👩🏻‍🍳", "👩🏼‍🍳", "👩🏽‍🍳",
-        // Student
-        "🧑‍🎓", "🧑🏻‍🎓", "🧑🏼‍🎓", "🧑🏽‍🎓",
-        "👨‍🎓", "👨🏻‍🎓", "👨🏼‍🎓", "👨🏽‍🎓",
-        "👩‍🎓", "👩🏻‍🎓", "👩🏼‍🎓", "👩🏽‍🎓",
-        // Teacher
-        "🧑‍🏫", "🧑🏻‍🏫", "🧑🏼‍🏫", "🧑🏽‍🏫",
-        "👨‍🏫", "👨🏻‍🏫", "👨🏼‍🏫", "👨🏽‍🏫",
-        "👩‍🏫", "👩🏻‍🏫", "👩🏼‍🏫", "👩🏽‍🏫",
-        // Scientist
-        "🧑‍🔬", "🧑🏻‍🔬", "🧑🏼‍🔬", "🧑🏽‍🔬",
-        "👨‍🔬", "👨🏻‍🔬", "👨🏼‍🔬", "👨🏽‍🔬",
-        "👩‍🔬", "👩🏻‍🔬", "👩🏼‍🔬", "👩🏽‍🔬",
-        // Tech
-        "🧑‍💻", "🧑🏻‍💻", "🧑🏼‍💻", "🧑🏽‍💻",
-        "👨‍💻", "👨🏻‍💻", "👨🏼‍💻", "👨🏽‍💻",
-        "👩‍💻", "👩🏻‍💻", "👩🏼‍💻", "👩🏽‍💻",
-        // Artist
-        "🧑‍🎨", "🧑🏻‍🎨", "🧑🏼‍🎨", "🧑🏽‍🎨",
-        "👨‍🎨", "👨🏻‍🎨", "👨🏼‍🎨", "👨🏽‍🎨",
-        "👩‍🎨", "👩🏻‍🎨", "👩🏼‍🎨", "👩🏽‍🎨",
-        // Firefighter
-        "🧑‍🚒", "🧑🏻‍🚒", "🧑🏼‍🚒", "🧑🏽‍🚒",
-        "👨‍🚒", "👨🏻‍🚒", "👨🏼‍🚒", "👨🏽‍🚒",
-        "👩‍🚒", "👩🏻‍🚒", "👩🏼‍🚒", "👩🏽‍🚒",
-        // Pilot
-        "🧑‍✈️", "🧑🏻‍✈️", "🧑🏼‍✈️", "🧑🏽‍✈️",
-        "👨‍✈️", "👨🏻‍✈️", "👨🏼‍✈️", "👨🏽‍✈️",
-        "👩‍✈️", "👩🏻‍✈️", "👩🏼‍✈️", "👩🏽‍✈️",
-        // Astronaut
-        "🧑‍🚀", "🧑🏻‍🚀", "🧑🏼‍🚀", "🧑🏽‍🚀",
-        "👨‍🚀", "👨🏻‍🚀", "👨🏼‍🚀", "👨🏽‍🚀",
-        "👩‍🚀", "👩🏻‍🚀", "👩🏼‍🚀", "👩🏽‍🚀",
-        // Judge
-        "🧑‍⚖️", "🧑🏻‍⚖️", "🧑🏼‍⚖️", "🧑🏽‍⚖️",
-        "👨‍⚖️", "👨🏻‍⚖️", "👨🏼‍⚖️", "👨🏽‍⚖️",
-        "👩‍⚖️", "👩🏻‍⚖️", "👩🏼‍⚖️", "👩🏽‍⚖️",
-        // Singer
-        "🧑‍🎤", "🧑🏻‍🎤", "🧑🏼‍🎤", "🧑🏽‍🎤",
-        "👨‍🎤", "👨🏻‍🎤", "👨🏼‍🎤", "👨🏽‍🎤",
-        "👩‍🎤", "👩🏻‍🎤", "👩🏼‍🎤", "👩🏽‍🎤",
-
-        // === SPECIAL ===
-        "👮", "👮🏻", "👮🏼", "👮🏽", // police
-        "👮‍♂️", "👮🏻‍♂️", "👮🏼‍♂️", "👮🏽‍♂️",
-        "👮‍♀️", "👮🏻‍♀️", "👮🏼‍♀️", "👮🏽‍♀️",
-        "💂", "💂🏻", "💂🏼", "💂🏽", // guard
-        "💂‍♂️", "💂🏻‍♂️", "💂🏼‍♂️", "💂🏽‍♂️",
-        "💂‍♀️", "💂🏻‍♀️", "💂🏼‍♀️", "💂🏽‍♀️",
-        "🕵️", "🕵🏻", "🕵🏼", "🕵🏽", // detective
-        "🕵️‍♂️", "🕵🏻‍♂️", "🕵🏼‍♂️", "🕵🏽‍♂️",
-        "🕵️‍♀️", "🕵🏻‍♀️", "🕵🏼‍♀️", "🕵🏽‍♀️",
-        "🥷", "🥷🏻", "🥷🏼", "🥷🏽", // ninja
-        "🤴", "🤴🏻", "🤴🏼", "🤴🏽", // prince
-        "👸", "👸🏻", "👸🏼", "👸🏽", // princess
-        "🦸", "🦸🏻", "🦸🏼", "🦸🏽", // superhero
-        "🦹", "🦹🏻", "🦹🏼", "🦹🏽", // supervillain
-        "🧙", "🧙🏻", "🧙🏼", "🧙🏽", // mage
-        "🧚", "🧚🏻", "🧚🏼", "🧚🏽", // fairy
-        "🧛", "🧛🏻", "🧛🏼", "🧛🏽", // vampire
-        "🧜", "🧜🏻", "🧜🏼", "🧜🏽", // merperson
-        "🧝", "🧝🏻", "🧝🏼", "🧝🏽", // elf
-        "🎅", "🎅🏻", "🎅🏼", "🎅🏽", // santa
-        "🤶", "🤶🏻", "🤶🏼", "🤶🏽"  // mrs claus
-    };
 
     public SettingsPage()
     {
@@ -164,34 +23,28 @@ public partial class SettingsPage : ContentPage
         _biometricService = BiometricService.Instance;
     }
 
-    protected override async void OnAppearing()
+    protected override void OnAppearing()
     {
         base.OnAppearing();
 
         try
         {
-            // Initialize header (handles translations, user info, work status, offline banner)
+            // Kopfleiste kümmert sich um Übersetzungen, Person, Arbeitszeit und Offline-Hinweis
             _ = Header.InitializeAsync();
             Header.SetPageTitle("settings");
 
             ApplyTranslations();
-            LoadUserInfo();
-            LoadCurrentAvatar();
-            LoadCurrentLanguage();
-            _ = LoadBiometricSettingsAsync();
+            LadeAngemeldetePerson();
+            LadeAvatarAnzeige();
+            LadeSpracheAnzeige();
+            _ = LadeBiometrieEinstellungAsync();
             _ = AktualisiereMitteilungsZustandAsync();
         }
         catch (Exception ex)
         {
-            // async void Lifecycle-Handler: ungefangene Exception = App-Crash
+            // Lifecycle-Handler: ungefangene Exception = App-Crash
             System.Diagnostics.Debug.WriteLine($"[SettingsPage] OnAppearing error: {ex.Message}");
         }
-    }
-
-    private void LoadCurrentAvatar()
-    {
-        var avatar = Preferences.Get("avatar", "");
-        CurrentAvatarLabel.Text = string.IsNullOrEmpty(avatar) ? "🏠" : avatar;
     }
 
     private void ApplyTranslations()
@@ -199,25 +52,24 @@ public partial class SettingsPage : ContentPage
         var t = Translations.Get;
         Title = t("settings");
 
-        // Content
         SettingsTitleLabel.Text = t("settings");
 
-        // User Info
+        // Angemeldete Person
         LoggedInAsLabel.Text = t("logged_in_as");
 
         // Avatar
         AvatarHintLabel.Text = t("tap_to_change");
         ChangeAvatarButton.Text = t("change");
 
-        // Language
+        // Sprache
         LanguageTitleLabel.Text = t("language");
         LanguagePicker.Title = t("select_language");
 
-        // Biometric / Security
+        // Sicherheit / Biometrie
         BiometricTitleLabel.Text = t("security");
         BiometricHintLabel.Text = t("biometric_hint");
 
-        // App Info
+        // App-Informationen
         AppInfoLabel.Text = t("app_info");
         VersionLabel.Text = t("version");
         // Echte Build-Version statt hartcodierter Konstante (zeigte "1.52")
@@ -229,26 +81,78 @@ public partial class SettingsPage : ContentPage
         NotificationsLabel.Text = t("push_notifications");
     }
 
-    private void LoadUserInfo()
+    private void LadeAngemeldetePerson()
     {
-        // Display username from stored preferences
-        var username = Preferences.Get("username", "");
-        UserNameLabel.Text = string.IsNullOrEmpty(username) ? "Unbekannt" : username;
-        // Also set username in avatar section (like Django client)
-        AvatarUsernameLabel.Text = string.IsNullOrEmpty(username) ? "Unbekannt" : username;
+        var name = Preferences.Get("username", "");
+        var anzeige = string.IsNullOrEmpty(name) ? "Unbekannt" : name;
+        UserNameLabel.Text = anzeige;
+        AvatarUsernameLabel.Text = anzeige;
     }
 
-    private void LoadCurrentLanguage()
+    #region Avatar
+
+    private void LadeAvatarAnzeige()
     {
-        // Get stored language preference
-        var storedLang = Preferences.Get("language", "de");
+        ZeigeAvatar(Preferences.Get("avatar", ""));
+    }
 
-        // Find the index for this language
-        var index = _languageMap.FirstOrDefault(x => x.Value == storedLang).Key;
+    private void ZeigeAvatar(string avatar)
+    {
+        CurrentAvatarLabel.Text = string.IsNullOrEmpty(avatar) ? AvatarListe.LogoZeichen : avatar;
+    }
 
-        // Set picker without triggering event
+    private async void OnChangeAvatarClicked(object? sender, EventArgs e)
+    {
+        var t = Translations.Get;
+
+        try
+        {
+            // Auswahlliste: leerer Eintrag steht für das Logo
+            var auswahl = AvatarListe.Eintraege
+                .Select(a => string.IsNullOrEmpty(a) ? $"{AvatarListe.LogoZeichen} Logo" : a)
+                .ToArray();
+
+            var gewaehlt = await DisplayActionSheetAsync(t("select_avatar"), t("cancel"), null, auswahl);
+            if (gewaehlt == null || gewaehlt == t("cancel"))
+                return;
+
+            var position = Array.IndexOf(auswahl, gewaehlt);
+            if (position < 0 || position >= AvatarListe.Eintraege.Count)
+                return;
+
+            var neuerAvatar = AvatarListe.Eintraege[position];
+
+            var antwort = await _apiService.SetAvatarAsync(neuerAvatar);
+            if (antwort.Success)
+            {
+                Preferences.Set("avatar", neuerAvatar);
+                ZeigeAvatar(neuerAvatar);
+                await DisplayAlertAsync(t("saved"), t("avatar_changed"), t("ok"));
+            }
+            else
+            {
+                await DisplayAlertAsync(t("error"), antwort.Error ?? t("unknown_error"), t("ok"));
+            }
+        }
+        catch (Exception ex)
+        {
+            // async void: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] SetAvatar error: {ex.Message}");
+            await UiSicher.AlertAsync(t("error"), t("connection_error"), t("ok"));
+        }
+    }
+
+    #endregion
+
+    #region Sprache
+
+    private void LadeSpracheAnzeige()
+    {
+        var gespeichert = Preferences.Get("language", Sprachliste.Standard);
+
+        // Ohne Abmelden des Handlers würde das Setzen selbst eine Speicherung auslösen
         LanguagePicker.SelectedIndexChanged -= OnLanguageChanged;
-        LanguagePicker.SelectedIndex = index;
+        LanguagePicker.SelectedIndex = Sprachliste.Position(gespeichert);
         LanguagePicker.SelectedIndexChanged += OnLanguageChanged;
     }
 
@@ -257,235 +161,33 @@ public partial class SettingsPage : ContentPage
         if (LanguagePicker.SelectedIndex < 0)
             return;
 
-        var selectedLang = _languageMap.GetValueOrDefault(LanguagePicker.SelectedIndex, "de");
-
         var t = Translations.Get;
+        var sprache = Sprachliste.Code(LanguagePicker.SelectedIndex);
+
         try
         {
-            var response = await _apiService.SetLanguageAsync(selectedLang);
-
-            if (response.Success)
+            var antwort = await _apiService.SetLanguageAsync(sprache);
+            if (antwort.Success)
             {
-                // Store locally and update Translations
-                Preferences.Set("language", selectedLang);
-                Localization.Translations.CurrentLanguage = selectedLang;
+                Preferences.Set("language", sprache);
+                Translations.CurrentLanguage = sprache;
 
-                // Refresh UI with new language
+                // Oberfläche sofort in der neuen Sprache zeigen
                 ApplyTranslations();
                 Header.ApplyTranslations();
             }
             else
             {
-                await DisplayAlertAsync(t("error"),
-                    response.Error ?? t("unknown_error"),
-                    t("ok"));
+                await DisplayAlertAsync(t("error"), antwort.Error ?? t("unknown_error"), t("ok"));
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"SetLanguage error: {ex.Message}");
-            await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
+            // async void: ungefangene Exception = App-Crash
+            System.Diagnostics.Debug.WriteLine($"[SettingsPage] SetLanguage error: {ex.Message}");
+            await UiSicher.AlertAsync(t("error"), t("connection_error"), t("ok"));
         }
     }
 
-    // Verhindert, dass das programmatische Setzen des Schalters (Statusanzeige)
-    // den Toggled-Handler auslöst.
-    private bool _mitteilungenSetzenLaeuft;
-
-    private void SetzeMitteilungsSchalter(bool an, string status, bool fehler = false)
-    {
-        _mitteilungenSetzenLaeuft = true;
-        NotificationsSwitch.IsToggled = an;
-        _mitteilungenSetzenLaeuft = false;
-        NotificationsStatusLabel.Text = status;
-        NotificationsStatusLabel.TextColor = fehler ? Color.FromArgb("#d32f2f")
-            : (an ? Color.FromArgb("#00a884") : Color.FromArgb("#888"));
-    }
-
-    /// <summary>Zeigt beim Öffnen den aktuellen Mitteilungs-Zustand an.</summary>
-    private async Task AktualisiereMitteilungsZustandAsync()
-    {
-        var erlaubt = await PushService.IstErlaubtAsync();       // null = unbekannt (iOS)
-        var registriert = Preferences.Get("push_registered", false);
-        bool an = erlaubt ?? registriert;
-        var t = Translations.Get;
-        SetzeMitteilungsSchalter(an, an ? t("enabled") : t("not_enabled"));
-    }
-
-    private async void OnNotificationsToggled(object? sender, ToggledEventArgs e)
-    {
-        if (_mitteilungenSetzenLaeuft)
-            return;
-
-        var t = Translations.Get;
-        if (e.Value)
-        {
-            NotificationsStatusLabel.Text = "…";
-            NotificationsStatusLabel.TextColor = Color.FromArgb("#888");
-            var (ok, status) = await PushService.EnsureRegistrationAsync();
-            if (ok)
-            {
-                Preferences.Set("push_registered", true);
-                SetzeMitteilungsSchalter(true, t("enabled"));
-            }
-            else
-            {
-                Preferences.Set("push_registered", false);
-                // status ist eine technische Diagnose (bewusst unübersetzt)
-                SetzeMitteilungsSchalter(false, t("not_active") + ": " + status, fehler: true);
-                // Auf iOS lässt sich eine verweigerte Berechtigung nicht erneut
-                // per Dialog anfragen -> in die Geräte-Einstellungen leiten.
-                bool oeffnen = await DisplayAlert(
-                    t("notifications"),
-                    t("notifications_denied_hint"),
-                    t("open_settings"), t("cancel"));
-                if (oeffnen)
-                {
-                    try { AppInfo.Current.ShowSettingsUI(); } catch { }
-                }
-            }
-        }
-        else
-        {
-            await PushService.UnregisterAsync();
-            Preferences.Set("push_registered", false);
-            SetzeMitteilungsSchalter(false, t("disabled"));
-        }
-    }
-
-    private async void OnChangeAvatarClicked(object? sender, EventArgs e)
-    {
-        var t = Translations.Get;
-
-        // Build display list for action sheet (show emoji or "Logo" for empty)
-        var displayOptions = _avatarOptions.Select(a => string.IsNullOrEmpty(a) ? "🏠 Logo" : a).ToArray();
-
-        var result = await DisplayActionSheetAsync(
-            t("select_avatar"),
-            t("cancel"),
-            null,
-            displayOptions);
-
-        if (result == null || result == t("cancel"))
-            return;
-
-        // Find the selected avatar
-        var selectedIndex = Array.IndexOf(displayOptions, result);
-        if (selectedIndex < 0 || selectedIndex >= _avatarOptions.Count)
-            return;
-
-        var selectedAvatar = _avatarOptions[selectedIndex];
-
-        try
-        {
-            var response = await _apiService.SetAvatarAsync(selectedAvatar);
-
-            if (response.Success)
-            {
-                // Store locally
-                Preferences.Set("avatar", selectedAvatar);
-
-                // Update display
-                CurrentAvatarLabel.Text = string.IsNullOrEmpty(selectedAvatar) ? "🏠" : selectedAvatar;
-
-                await DisplayAlertAsync(t("saved"), t("avatar_changed"), t("ok"));
-            }
-            else
-            {
-                await DisplayAlertAsync(t("error"),
-                    response.Error ?? t("unknown_error"),
-                    t("ok"));
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"SetAvatar error: {ex.Message}");
-            await DisplayAlertAsync(t("error"), t("connection_error"), t("ok"));
-        }
-    }
-
-    private async Task LoadBiometricSettingsAsync()
-    {
-        try
-        {
-            // Check if biometrics are available on this device
-            var isAvailable = await _biometricService.IsBiometricAvailableAsync();
-
-            if (isAvailable)
-            {
-                // Show biometric section
-                BiometricSection.IsVisible = true;
-
-                // Use translated text for biometric label
-                BiometricLabel.Text = Translations.Get("biometric_login");
-
-                // Load current setting without triggering event
-                BiometricSwitch.Toggled -= OnBiometricToggled;
-                BiometricSwitch.IsToggled = _biometricService.IsBiometricLoginEnabled();
-                BiometricSwitch.Toggled += OnBiometricToggled;
-
-                System.Diagnostics.Debug.WriteLine($"[Settings] Biometric available, enabled: {BiometricSwitch.IsToggled}");
-            }
-            else
-            {
-                // Hide biometric section on devices without biometric capability
-                BiometricSection.IsVisible = false;
-                System.Diagnostics.Debug.WriteLine("[Settings] Biometric not available on this device");
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Settings] Error loading biometric settings: {ex.Message}");
-            BiometricSection.IsVisible = false;
-        }
-    }
-
-    private async void OnBiometricToggled(object? sender, ToggledEventArgs e)
-    {
-        try
-        {
-            if (e.Value)
-            {
-                // User wants to enable biometric - verify they can authenticate
-                var authenticated = await _biometricService.AuthenticateAsync("Biometrie aktivieren");
-
-                if (authenticated)
-                {
-                    _biometricService.SetBiometricLoginEnabled(true);
-                    System.Diagnostics.Debug.WriteLine("[Settings] Biometric login enabled");
-                }
-                else
-                {
-                    // Authentication failed - revert switch
-                    BiometricSwitch.Toggled -= OnBiometricToggled;
-                    BiometricSwitch.IsToggled = false;
-                    BiometricSwitch.Toggled += OnBiometricToggled;
-                }
-            }
-            else
-            {
-                // Disable biometric
-                _biometricService.SetBiometricLoginEnabled(false);
-                System.Diagnostics.Debug.WriteLine("[Settings] Biometric login disabled");
-            }
-        }
-        catch (Exception ex)
-        {
-            // Biometrie-APIs werfen auf iOS realistisch (Abbruch/Hardware) -
-            // async void darf nie werfen; Switch zurücksetzen. Wieder-Anmelden
-            // im finally, damit der Handler nie dauerhaft abgemeldet bleibt,
-            // falls der IsToggled-Setter selbst wirft.
-            System.Diagnostics.Debug.WriteLine($"[Settings] Biometric toggle error: {ex.Message}");
-            try
-            {
-                BiometricSwitch.Toggled -= OnBiometricToggled;
-                BiometricSwitch.IsToggled = false;
-            }
-            catch { }
-            finally
-            {
-                BiometricSwitch.Toggled += OnBiometricToggled;
-            }
-        }
-    }
+    #endregion
 }

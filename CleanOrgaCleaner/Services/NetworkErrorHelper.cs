@@ -1,25 +1,32 @@
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// Erkennt anhand der Fehlermeldung, ob es sich um einen Transport-/Netzwerk-
-/// fehler handelt (kein Netz, Timeout, DNS, Socket). Wird an mehreren Stellen
-/// genutzt (Views + Offline-Queue), daher zentral in Services.
+/// Erkennt anhand der Fehlermeldung, ob es sich um einen Transport-/Netzfehler
+/// handelt (kein Netz, Zeitüberschreitung, DNS, Socket). Wird an mehreren
+/// Stellen genutzt (Seiten + Offline-Warteschlange), daher zentral hier.
 /// </summary>
 public static class NetworkErrorHelper
 {
+    /// <summary>Kennzeichnende Wortteile einer Netz-Fehlermeldung.</summary>
+    private static readonly string[] _kennzeichen =
+    {
+        "network", "timeout", "timedout", "connection", "internet",
+        "unreachable", "net_http", "failure", "host", "refused"
+    };
+
+    /// <summary>True, wenn die Meldung auf ein Netzproblem hindeutet.</summary>
     public static bool IsNetworkError(string? error)
     {
-        if (string.IsNullOrEmpty(error)) return false;
-        var lowerError = error.ToLowerInvariant();
-        return lowerError.Contains("network") ||
-               lowerError.Contains("timeout") ||
-               lowerError.Contains("timedout") ||
-               lowerError.Contains("connection") ||
-               lowerError.Contains("internet") ||
-               lowerError.Contains("unreachable") ||
-               lowerError.Contains("net_http") ||
-               lowerError.Contains("failure") ||
-               lowerError.Contains("host") ||
-               lowerError.Contains("refused");
+        if (string.IsNullOrEmpty(error))
+            return false;
+
+        // Ohne ToLowerInvariant: der Vergleich läuft direkt ohne Kopie der
+        // Zeichenkette (wird bei jeder fehlgeschlagenen Anfrage aufgerufen).
+        foreach (var kennzeichen in _kennzeichen)
+        {
+            if (error.Contains(kennzeichen, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
 }

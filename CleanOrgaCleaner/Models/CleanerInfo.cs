@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Information about a cleaner for chat list
+/// Arbeitskraft in der Chat-Liste (Kurzform mit Avatar und Ungelesen-Zähler).
 /// </summary>
 public class CleanerInfo
 {
@@ -16,37 +16,29 @@ public class CleanerInfo
     [JsonPropertyName("avatar")]
     public string? Avatar { get; set; }
 
-    public string Initial => string.IsNullOrEmpty(Name) ? "?" : Name[0].ToString().ToUpper();
-
-    // Display name with capitalized first letter
-    public string DisplayName => string.IsNullOrEmpty(Name) ? "" : char.ToUpper(Name[0]) + Name.Substring(1);
-
-    // Display Avatar if available, otherwise Initial
-    public string DisplayAvatar => !string.IsNullOrEmpty(Avatar) ? Avatar : Initial;
-
     [JsonPropertyName("unread_count")]
     public int UnreadCount { get; set; }
 
     [JsonPropertyName("is_working")]
     public bool IsWorking { get; set; }
 
-    // Kein Server-Feld: markiert den synthetischen Admin-Eintrag (erster Eintrag
-    // der Chat-Liste), damit Tap-Navigation zwischen Admin und Kollege unterscheidet.
+    /// <summary>
+    /// Kein Server-Feld: markiert den synthetischen Verwaltungs-Eintrag (erster
+    /// Eintrag der Chat-Liste), damit die Tap-Navigation zwischen Verwaltung und
+    /// Kollegin/Kollege unterscheidet.
+    /// </summary>
     [JsonIgnore]
     public bool IsAdmin { get; set; }
-}
 
-/// <summary>
-/// Response from cleaners list API
-/// </summary>
-public class CleanersListResponse
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
+    /// <summary>Erster Buchstabe des Namens - Platzhalter, wenn kein Avatar da ist.</summary>
+    [JsonIgnore]
+    public string Initial => Name.Length == 0 ? "?" : char.ToUpperInvariant(Name[0]).ToString();
 
-    [JsonPropertyName("cleaners")]
-    public List<CleanerInfo> Cleaners { get; set; } = new();
+    /// <summary>Name mit großem Anfangsbuchstaben.</summary>
+    [JsonIgnore]
+    public string DisplayName => Name.Length == 0 ? "" : char.ToUpperInvariant(Name[0]) + Name[1..];
 
-    [JsonPropertyName("admin_avatar")]
-    public string AdminAvatar { get; set; } = "";
+    /// <summary>Avatar, wenn vorhanden - sonst der Initial-Buchstabe.</summary>
+    [JsonIgnore]
+    public string DisplayAvatar => string.IsNullOrEmpty(Avatar) ? Initial : Avatar;
 }

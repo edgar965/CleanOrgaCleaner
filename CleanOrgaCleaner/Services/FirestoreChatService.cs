@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Globalization;
 using CleanOrgaCleaner.Models;
 using Plugin.Firebase.Auth;
 using Plugin.Firebase.Firestore;
@@ -19,8 +18,14 @@ namespace CleanOrgaCleaner.Services;
 /// </summary>
 public class FirestoreChatService
 {
-    private static FirestoreChatService? _instance;
-    public static FirestoreChatService Instance => _instance ??= new FirestoreChatService();
+    // Lazy: ??= ist bei parallelem Zugriff nicht sicher - zwei Threads könnten
+    // je einen eigenen Dienst (und damit zwei Zuhörer) erzeugen.
+    private static readonly Lazy<FirestoreChatService> _instanz = new(() => new FirestoreChatService());
+
+    /// <summary>Die eine Instanz der App.</summary>
+    public static FirestoreChatService Instance => _instanz.Value;
+
+    private FirestoreChatService() { }
 
     private IDisposable? _listener;
     private bool _ersterSnapshot = true;
@@ -94,7 +99,7 @@ public class FirestoreChatService
                             var doc = change.DocumentSnapshot.Data;
                             if (doc == null)
                                 continue;
-                            WebSocketService.Instance.NotifyChatMessage(ToChatMessage(doc));
+                            WebSocketService.Instance.NotifyChatMessage(FirestoreChatMapper.ZuChatMessage(doc));
                         }
                     },
                     ex => Debug.WriteLine($"[FS] Listener-Fehler: {ex.Message}"));
@@ -158,34 +163,10 @@ public class FirestoreChatService
         });
     }
 
-    /// <summary>SignOut mit geschlucktem Fehler (gemeinsamer Helper).</summary>
+    /// <summary>Abmelden mit geschlucktem Fehler (gemeinsamer Helfer).</summary>
     private static async Task SignOutSicherAsync()
     {
         try { await CrossFirebaseAuth.Current.SignOutAsync().ConfigureAwait(false); }
         catch (Exception ex) { Debug.WriteLine($"[FS] SignOut-Fehler: {ex.Message}"); }
-    }
-
-    private static ChatMessage ToChatMessage(FsChatDoc d)
-    {
-        DateTime ts;
-        if (!DateTime.TryParse(d.Timestamp, CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind, out ts))
-        {
-            ts = DateTime.Now;
-        }
-        return new ChatMessage
-        {
-            Id = (int)d.Id,
-            Text = d.Text ?? "",
-            TextTranslated = d.TextTranslated,
-            TextOriginal = d.TextOriginal,
-            LinkPhotoVideo = d.LinkPhotoVideo,
-            Timestamp = ts,
-            IsMine = d.IsMine,
-            IsRead = d.IsRead,
-            SenderName = d.SenderName,
-            CleanerId = d.CleanerId == 0 ? (int?)null : (int)d.CleanerId,
-            FromAdmin = d.FromAdmin,
-        };
     }
 }

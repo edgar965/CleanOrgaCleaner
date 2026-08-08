@@ -1,330 +1,277 @@
+using CleanOrgaCleaner.Views.Zeichnen;
 using SkiaSharp;
 using SkiaSharp.Views.Maui;
-using SkiaSharp.Views.Maui.Controls;
 
 namespace CleanOrgaCleaner.Views;
 
+/// <summary>
+/// Foto markieren: Freihand, Kreis oder Pfeil.
+///
+/// Die Markierungen selbst liegen als eigene Klassen in Views/Zeichnen/;
+/// diese Seite kümmert sich nur um Umrechnung, Berührung und Speichern.
+/// </summary>
 public partial class ImageAnnotationPage : ContentPage
 {
-    public enum DrawTool { Freehand, Circle, Arrow }
+    /// <summary>Strichstärke auf dem Bildschirm.</summary>
+    private const float Strichstaerke = 6f;
 
-    private SKBitmap? _originalBitmap;
-    private readonly List<DrawingElement> _elements = new();
-    private DrawingElement? _currentElement;
-    private DrawTool _currentTool = DrawTool.Freehand;
-    private readonly SKColor _drawColor = SKColors.Red;
-    private const float StrokeWidth = 6f;
+    /// <summary>Grenzen der Strichstärke im gespeicherten Bild.</summary>
+    private const float MinStrichImBild = 3f;
+    private const float MaxStrichImBild = 30f;
 
-    private float _scale = 1f;
-    private float _offsetX = 0f;
-    private float _offsetY = 0f;
+    private static readonly SKColor Zeichenfarbe = SKColors.Red;
+    private static readonly Color WerkzeugAktiv = Color.FromArgb("#E91E63");
+    private static readonly Color WerkzeugPassiv = Color.FromArgb("#555");
 
+    private readonly List<ZeichenElement> _elemente = new();
+    private SKBitmap? _original;
+    private ZeichenElement? _inArbeit;
+    private Zeichenwerkzeug _werkzeug = Zeichenwerkzeug.Freihand;
+
+    // Umrechnung Bildschirm <-> Bild
+    private float _massstab = 1f;
+    private float _versatzX;
+    private float _versatzY;
+
+    /// <summary>Markiertes Bild - erst nach dem Speichern gefüllt.</summary>
     public byte[]? AnnotatedImageBytes { get; private set; }
+
+    /// <summary>Hat die Person gespeichert (statt abgebrochen)?</summary>
     public bool WasSaved { get; private set; }
 
     public ImageAnnotationPage(byte[] imageBytes)
     {
         InitializeComponent();
-        LoadImage(imageBytes);
+        LadeBild(imageBytes);
     }
 
-    protected override void OnAppearing()
+    private void LadeBild(byte[] bytes)
     {
-        base.OnAppearing();
-    }
+        _original = SKBitmap.Decode(bytes);
+        BackgroundImage.Source = ImageSource.FromStream(() => new MemoryStream(bytes));
 
-    private void LoadImage(byte[] imageBytes)
-    {
-        _originalBitmap = SKBitmap.Decode(imageBytes);
-        BackgroundImage.Source = ImageSource.FromStream(() => new MemoryStream(imageBytes));
-
-        // Recalculate transform after image loads
-        BackgroundImage.SizeChanged += (s, e) => CalculateTransform();
+        // Nach dem Laden stimmt die Größe erst - dann neu umrechnen
+        BackgroundImage.SizeChanged += (s, e) => BerechneUmrechnung();
     }
 
     protected override void OnSizeAllocated(double width, double height)
     {
         base.OnSizeAllocated(width, height);
-        CalculateTransform();
+        BerechneUmrechnung();
     }
 
-    private void CalculateTransform()
+    /// <summary>
+    /// Maßstab und Versatz zwischen Zeichenfläche und Bild bestimmen. Das Bild
+    /// wird mittig eingepasst (AspectFit).
+    /// </summary>
+    private void BerechneUmrechnung()
     {
-        if (_originalBitmap == null || CanvasView.CanvasSize.Width <= 0 || CanvasView.CanvasSize.Height <= 0) return;
+        if (_original == null || CanvasView.CanvasSize.Width <= 0 || CanvasView.CanvasSize.Height <= 0) return;
 
-        // Use SKCanvasView's actual canvas size (in device pixels)
-        var canvasWidth = CanvasView.CanvasSize.Width;
-        var canvasHeight = CanvasView.CanvasSize.Height;
+        var breite = CanvasView.CanvasSize.Width;
+        var hoehe = CanvasView.CanvasSize.Height;
 
-        float scaleX = canvasWidth / _originalBitmap.Width;
-        float scaleY = canvasHeight / _originalBitmap.Height;
-        _scale = Math.Min(scaleX, scaleY);
-
-        float scaledWidth = _originalBitmap.Width * _scale;
-        float scaledHeight = _originalBitmap.Height * _scale;
-
-        _offsetX = (canvasWidth - scaledWidth) / 2f;
-        _offsetY = (canvasHeight - scaledHeight) / 2f;
-
+        _massstab = Math.Min(breite / _original.Width, hoehe / _original.Height);
+        _versatzX = (breite - _original.Width * _massstab) / 2f;
+        _versatzY = (hoehe - _original.Height * _massstab) / 2f;
     }
 
-    private SKPoint ScreenToImage(SKPoint screenPoint)
-    {
-        return new SKPoint(
-            (screenPoint.X - _offsetX) / _scale,
-            (screenPoint.Y - _offsetY) / _scale
-        );
-    }
+    private SKPoint AufBild(SKPoint bildschirmpunkt) => new(
+        (bildschirmpunkt.X - _versatzX) / _massstab,
+        (bildschirmpunkt.Y - _versatzY) / _massstab);
 
     private void OnToolSelected(object sender, EventArgs e)
     {
-        if (sender is Button btn)
-        {
-            _currentTool = btn.ClassId switch
-            {
-                "circle" => DrawTool.Circle,
-                "arrow" => DrawTool.Arrow,
-                _ => DrawTool.Freehand
-            };
+        if (sender is not Button knopf) return;
 
-            // Update button visuals
-            BtnFreehand.BackgroundColor = _currentTool == DrawTool.Freehand ? Color.FromArgb("#E91E63") : Color.FromArgb("#555");
-            BtnCircle.BackgroundColor = _currentTool == DrawTool.Circle ? Color.FromArgb("#E91E63") : Color.FromArgb("#555");
-            BtnArrow.BackgroundColor = _currentTool == DrawTool.Arrow ? Color.FromArgb("#E91E63") : Color.FromArgb("#555");
-        }
+        _werkzeug = knopf.ClassId switch
+        {
+            "circle" => Zeichenwerkzeug.Kreis,
+            "arrow" => Zeichenwerkzeug.Pfeil,
+            _ => Zeichenwerkzeug.Freihand
+        };
+
+        BtnFreehand.BackgroundColor = Werkzeugfarbe(Zeichenwerkzeug.Freihand);
+        BtnCircle.BackgroundColor = Werkzeugfarbe(Zeichenwerkzeug.Kreis);
+        BtnArrow.BackgroundColor = Werkzeugfarbe(Zeichenwerkzeug.Pfeil);
     }
+
+    private Color Werkzeugfarbe(Zeichenwerkzeug werkzeug)
+        => _werkzeug == werkzeug ? WerkzeugAktiv : WerkzeugPassiv;
 
     private void OnUndoClicked(object sender, EventArgs e)
     {
-        if (_elements.Count > 0)
-        {
-            _elements.RemoveAt(_elements.Count - 1);
-            CanvasView.InvalidateSurface();
-        }
+        if (_elemente.Count == 0) return;
+        _elemente.RemoveAt(_elemente.Count - 1);
+        CanvasView.InvalidateSurface();
     }
 
     private void OnTouch(object sender, SKTouchEventArgs e)
     {
-        var imagePoint = ScreenToImage(e.Location);
+        var punkt = AufBild(e.Location);
 
         switch (e.ActionType)
         {
             case SKTouchAction.Pressed:
-                _currentElement = _currentTool switch
-                {
-                    DrawTool.Circle => new CircleElement { Center = imagePoint, Color = _drawColor },
-                    DrawTool.Arrow => new ArrowElement { Start = imagePoint, End = imagePoint, Color = _drawColor },
-                    _ => new FreehandElement { Color = _drawColor }
-                };
-
-                if (_currentElement is FreehandElement freehand)
-                    freehand.Points.Add(imagePoint);
-
+                _inArbeit = NeuesElement(punkt);
                 e.Handled = true;
                 break;
 
             case SKTouchAction.Moved:
-                if (_currentElement != null)
-                {
-                    switch (_currentElement)
-                    {
-                        case FreehandElement fh:
-                            fh.Points.Add(imagePoint);
-                            break;
-                        case CircleElement circle:
-                            circle.Radius = SKPoint.Distance(circle.Center, imagePoint);
-                            break;
-                        case ArrowElement arrow:
-                            arrow.End = imagePoint;
-                            break;
-                    }
-                    CanvasView.InvalidateSurface();
-                    e.Handled = true;
-                }
+                if (_inArbeit == null) break;
+                Erweitere(_inArbeit, punkt);
+                CanvasView.InvalidateSurface();
+                e.Handled = true;
                 break;
 
             case SKTouchAction.Released:
             case SKTouchAction.Cancelled:
-                if (_currentElement != null)
-                {
-                    // Only add if element has meaningful size
-                    bool shouldAdd = _currentElement switch
-                    {
-                        FreehandElement fh => fh.Points.Count > 1,
-                        CircleElement c => c.Radius > 5,
-                        ArrowElement a => SKPoint.Distance(a.Start, a.End) > 10,
-                        _ => false
-                    };
+                if (_inArbeit == null) break;
+                if (_inArbeit.IstGrossGenug)
+                    _elemente.Add(_inArbeit);
+                _inArbeit = null;
+                CanvasView.InvalidateSurface();
+                e.Handled = true;
+                break;
+        }
+    }
 
-                    if (shouldAdd)
-                        _elements.Add(_currentElement);
+    private ZeichenElement NeuesElement(SKPoint punkt)
+    {
+        switch (_werkzeug)
+        {
+            case Zeichenwerkzeug.Kreis:
+                return new KreisElement { Mitte = punkt, Farbe = Zeichenfarbe };
+            case Zeichenwerkzeug.Pfeil:
+                return new PfeilElement { Start = punkt, Ende = punkt, Farbe = Zeichenfarbe };
+            default:
+                var freihand = new FreihandElement { Farbe = Zeichenfarbe };
+                freihand.Punkte.Add(punkt);
+                return freihand;
+        }
+    }
 
-                    _currentElement = null;
-                    CanvasView.InvalidateSurface();
-                    e.Handled = true;
-                }
+    private static void Erweitere(ZeichenElement element, SKPoint punkt)
+    {
+        switch (element)
+        {
+            case FreihandElement freihand:
+                freihand.Punkte.Add(punkt);
+                break;
+            case KreisElement kreis:
+                kreis.Radius = SKPoint.Distance(kreis.Mitte, punkt);
+                break;
+            case PfeilElement pfeil:
+                pfeil.Ende = punkt;
                 break;
         }
     }
 
     private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
     {
-        // Recalculate transform on each paint to ensure correct values
-        CalculateTransform();
+        // Bei jedem Zeichnen neu umrechnen: die Fläche kann sich geändert haben
+        BerechneUmrechnung();
 
-        var canvas = e.Surface.Canvas;
-        canvas.Clear(SKColors.Transparent);
+        var flaeche = e.Surface.Canvas;
+        flaeche.Clear(SKColors.Transparent);
 
-        // Apply transform to match image position
-        canvas.Save();
-        canvas.Translate(_offsetX, _offsetY);
-        canvas.Scale(_scale);
+        flaeche.Save();
+        flaeche.Translate(_versatzX, _versatzY);
+        flaeche.Scale(_massstab);
 
-        using var paint = new SKPaint
-        {
-            Color = _drawColor,
-            StrokeWidth = StrokeWidth,
-            Style = SKPaintStyle.Stroke,
-            IsAntialias = true,
-            StrokeCap = SKStrokeCap.Round,
-            StrokeJoin = SKStrokeJoin.Round
-        };
+        using var stift = ErzeugeStift(Strichstaerke);
+        ZeichneAlles(flaeche, stift);
 
-        // Draw all elements
-        foreach (var element in _elements)
-            DrawElement(canvas, element, paint);
-
-        // Draw current element being created
-        if (_currentElement != null)
-            DrawElement(canvas, _currentElement, paint);
-
-        canvas.Restore();
+        flaeche.Restore();
     }
 
-    private void DrawElement(SKCanvas canvas, DrawingElement element, SKPaint paint)
+    private void ZeichneAlles(SKCanvas flaeche, SKPaint stift)
     {
-        paint.Color = element.Color;
-
-        switch (element)
+        foreach (var element in _elemente)
         {
-            case FreehandElement freehand when freehand.Points.Count > 1:
-                using (var path = new SKPath())
-                {
-                    path.MoveTo(freehand.Points[0]);
-                    for (int i = 1; i < freehand.Points.Count; i++)
-                        path.LineTo(freehand.Points[i]);
-                    canvas.DrawPath(path, paint);
-                }
-                break;
+            stift.Color = element.Farbe;
+            element.Zeichne(flaeche, stift);
+        }
 
-            case CircleElement circle when circle.Radius > 0:
-                canvas.DrawCircle(circle.Center, circle.Radius, paint);
-                break;
-
-            case ArrowElement arrow:
-                DrawArrow(canvas, arrow.Start, arrow.End, paint);
-                break;
+        if (_inArbeit != null)
+        {
+            stift.Color = _inArbeit.Farbe;
+            _inArbeit.Zeichne(flaeche, stift);
         }
     }
 
-    private void DrawArrow(SKCanvas canvas, SKPoint start, SKPoint end, SKPaint paint)
+    private static SKPaint ErzeugeStift(float staerke) => new()
     {
-        // Draw line
-        canvas.DrawLine(start, end, paint);
-
-        // Draw arrowhead - scale with stroke width for consistent look
-        float angle = (float)Math.Atan2(end.Y - start.Y, end.X - start.X);
-        float arrowSize = paint.StrokeWidth * 4f; // Proportional to line thickness
-        float arrowAngle = 0.5f; // ~30 degrees
-
-        var p1 = new SKPoint(
-            end.X - arrowSize * (float)Math.Cos(angle - arrowAngle),
-            end.Y - arrowSize * (float)Math.Sin(angle - arrowAngle));
-        var p2 = new SKPoint(
-            end.X - arrowSize * (float)Math.Cos(angle + arrowAngle),
-            end.Y - arrowSize * (float)Math.Sin(angle + arrowAngle));
-
-        canvas.DrawLine(end, p1, paint);
-        canvas.DrawLine(end, p2, paint);
-    }
+        Color = Zeichenfarbe,
+        StrokeWidth = staerke,
+        Style = SKPaintStyle.Stroke,
+        IsAntialias = true,
+        StrokeCap = SKStrokeCap.Round,
+        StrokeJoin = SKStrokeJoin.Round
+    };
 
     private async void OnCancelClicked(object sender, EventArgs e)
     {
         WasSaved = false;
-        await Navigation.PopModalAsync();
+        await SchliesseAsync();
     }
 
     private async void OnSaveClicked(object sender, EventArgs e)
     {
-        if (_originalBitmap == null)
+        if (_original == null)
         {
-            await Navigation.PopModalAsync();
+            await SchliesseAsync();
             return;
         }
 
         try
         {
-            // Create output bitmap
-            using var outputBitmap = _originalBitmap.Copy();
-            using var canvas = new SKCanvas(outputBitmap);
+            using var ergebnis = _original.Copy();
+            using var flaeche = new SKCanvas(ergebnis);
 
-            // Scale stroke width proportionally to image size
-            // On screen: 6px stroke with scale 0.3 appears as ~2px
-            // In saved image: we want same visual thickness, so scale up by 1/_scale
-            float scaledStrokeWidth = _scale > 0 ? StrokeWidth / _scale : StrokeWidth;
+            // Strichstärke auf die Bildgröße umrechnen: 6 Punkte auf dem
+            // Bildschirm sollen im gespeicherten Bild gleich dick wirken.
+            float staerke = _massstab > 0 ? Strichstaerke / _massstab : Strichstaerke;
+            staerke = Math.Clamp(staerke, MinStrichImBild, MaxStrichImBild);
 
-            // Clamp to reasonable range (min 3px, max 30px in image space)
-            scaledStrokeWidth = Math.Clamp(scaledStrokeWidth, 3f, 30f);
-
-            using var paint = new SKPaint
+            using var stift = ErzeugeStift(staerke);
+            foreach (var element in _elemente)
             {
-                Color = _drawColor,
-                StrokeWidth = scaledStrokeWidth,
-                Style = SKPaintStyle.Stroke,
-                IsAntialias = true,
-                StrokeCap = SKStrokeCap.Round,
-                StrokeJoin = SKStrokeJoin.Round
-            };
+                stift.Color = element.Farbe;
+                element.Zeichne(flaeche, stift);
+            }
 
-            // Draw all elements onto the bitmap
-            foreach (var element in _elements)
-                DrawElement(canvas, element, paint);
-
-            // Encode to JPEG
-            using var image = SKImage.FromBitmap(outputBitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Jpeg, 90);
-            AnnotatedImageBytes = data.ToArray();
+            using var bild = SKImage.FromBitmap(ergebnis);
+            using var daten = bild.Encode(SKEncodedImageFormat.Jpeg, 90);
+            AnnotatedImageBytes = daten.ToArray();
 
             WasSaved = true;
-            await Navigation.PopModalAsync();
+            await SchliesseAsync();
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"Save annotation error: {ex}");
-            await DisplayAlert("Fehler", "Bild konnte nicht gespeichert werden", "OK");
+            System.Diagnostics.Debug.WriteLine($"[ImageAnnotationPage] Speichern: {ex}");
+            await DisplayAlertAsync("Fehler", "Bild konnte nicht gespeichert werden", "OK");
         }
     }
 
-    // Drawing element classes
-    private abstract class DrawingElement
+    /// <summary>
+    /// Seite schließen. async void Handler: das Schließen darf nie werfen,
+    /// sonst beendet sich die App. Danach das entschlüsselte Bild freigeben -
+    /// SKBitmap belegt je Foto mehrere MB außerhalb der Speicherverwaltung und
+    /// blieb bisher bis zur nächsten Bereinigung liegen.
+    /// </summary>
+    private async Task SchliesseAsync()
     {
-        public SKColor Color { get; set; }
-    }
-
-    private class FreehandElement : DrawingElement
-    {
-        public List<SKPoint> Points { get; } = new();
-    }
-
-    private class CircleElement : DrawingElement
-    {
-        public SKPoint Center { get; set; }
-        public float Radius { get; set; }
-    }
-
-    private class ArrowElement : DrawingElement
-    {
-        public SKPoint Start { get; set; }
-        public SKPoint End { get; set; }
+        try { await Navigation.PopModalAsync(); }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ImageAnnotationPage] Schließen: {ex.Message}");
+        }
+        finally
+        {
+            _original?.Dispose();
+            _original = null;
+        }
     }
 }

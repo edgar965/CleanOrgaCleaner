@@ -1,10 +1,13 @@
+using System.Globalization;
 using System.Text.Json.Serialization;
+using CleanOrgaCleaner.Services;
 
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Schlanke Chat-Nachricht - wird als Liste pro Konversation gespeichert
-/// Kontext (wer mit wem) ergibt sich aus der Speicherstruktur: chats[myId][otherCleanerId]
+/// Schlanke Chat-Nachricht - wird als Liste pro Konversation gespeichert.
+/// Der Kontext (wer mit wem) ergibt sich aus der Speicherstruktur:
+/// chats[myId][otherCleanerId].
 /// </summary>
 public class ChatMessage
 {
@@ -41,17 +44,17 @@ public class ChatMessage
     [JsonPropertyName("cleaner_id")]
     public int? CleanerId { get; set; }
 
-    // Vom Server NUR in WebSocket-Pushes gesetzt: true = Admin hat gesendet.
-    // Eindeutigstes Signal zur Thread-Zuordnung (Admin- vs. Kollegen-Chat).
+    /// <summary>
+    /// Vom Server NUR in WebSocket-Pushes gesetzt: true = die Verwaltung hat
+    /// gesendet. Eindeutigstes Signal zur Thread-Zuordnung (Verwaltungs- vs.
+    /// Kollegen-Chat).
+    /// </summary>
     [JsonPropertyName("from_admin")]
     public bool FromAdmin { get; set; }
 
+    #region Anzeige-Eigenschaften (XAML-Bindings)
 
-    #region UI Properties
-
-    /// <summary>
-    /// Alias für IsMine - für XAML-Binding Kompatibilität
-    /// </summary>
+    /// <summary>Alias für IsMine - für XAML-Binding-Kompatibilität.</summary>
     [JsonIgnore]
     public bool FromCurrentUser
     {
@@ -59,16 +62,14 @@ public class ChatMessage
         set => IsMine = value;
     }
 
-    /// <summary>
-    /// Invertiert von IsMine - für XAML-Binding (linke Seite = empfangene Nachrichten)
-    /// </summary>
+    /// <summary>Invers zu IsMine - linke Seite der Liste = empfangene Nachrichten.</summary>
     [JsonIgnore]
     public bool IsFromOther => !IsMine;
 
     /// <summary>
-    /// True wenn es eine Übersetzung gibt
-    /// - Eigene Nachricht: TextTranslated existiert und unterscheidet sich von Text
-    /// - Empfangene Nachricht: TextOriginal existiert und unterscheidet sich von Text
+    /// True, wenn es eine Übersetzung gibt.
+    /// - Eigene Nachricht: TextTranslated existiert und weicht von Text ab
+    /// - Empfangene Nachricht: TextOriginal existiert und weicht von Text ab
     /// </summary>
     [JsonIgnore]
     public bool HasTranslation => IsMine
@@ -82,7 +83,9 @@ public class ChatMessage
     public bool HasText => !string.IsNullOrEmpty(Text);
 
     /// <summary>
-    /// Full URL for the photo/video (prepends base URL if path is relative)
+    /// Vollständige URL zu Foto/Video. Relative Serverpfade werden mit der
+    /// aktuellen Basis-URL ergänzt (die Basis kann zur Laufzeit wechseln,
+    /// deshalb kein zwischengespeicherter Wert).
     /// </summary>
     [JsonIgnore]
     public string? LinkPhotoVideoUrl
@@ -90,51 +93,32 @@ public class ChatMessage
         get
         {
             if (string.IsNullOrEmpty(LinkPhotoVideo)) return null;
-            if (LinkPhotoVideo.StartsWith("http")) return LinkPhotoVideo;
-            // Prepend base URL for relative paths
-            var baseUrl = CleanOrgaCleaner.Services.ApiService.BaseUrl.TrimEnd('/');
-            return baseUrl + LinkPhotoVideo;
+            if (LinkPhotoVideo.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                return LinkPhotoVideo;
+            return ApiService.BaseUrl.TrimEnd('/') + LinkPhotoVideo;
         }
     }
 
     /// <summary>
-    /// Text für Hauptanzeige - API sendet bereits den richtigen Text im 'text' Feld
+    /// Text für die Hauptanzeige - die API liefert bereits den passenden Text
+    /// im Feld 'text'.
     /// </summary>
     [JsonIgnore]
     public string DisplayText => Text;
 
     /// <summary>
-    /// Sekundärer Text mit Globe-Icon:
-    /// - Eigene Nachricht: Übersetzung die Empfänger sieht (TextTranslated)
-    /// - Empfangene Nachricht: Original des Senders (TextOriginal)
+    /// Zweitzeile mit Globus-Symbol:
+    /// - Eigene Nachricht: die Übersetzung, die die Gegenseite sieht
+    /// - Empfangene Nachricht: das Original der Absenderin/des Absenders
     /// </summary>
     [JsonIgnore]
     public string? SecondaryText => HasTranslation
         ? (IsMine ? TextTranslated : TextOriginal)
         : null;
 
-    /// <summary>
-    /// Alias für Kompatibilität - zeigt Original bei empfangenen Nachrichten
-    /// </summary>
+    /// <summary>Zeitstempel für die Chat-Anzeige (unabhängig von der Geräte-Kultur).</summary>
     [JsonIgnore]
-    public string? OriginalText => !IsMine && HasTranslation ? TextOriginal : null;
-
-    [JsonIgnore]
-    public string DisplayTime => Timestamp.ToString("HH:mm");
-
-    [JsonIgnore]
-    public string DisplayDate => Timestamp.ToString("dd.MM.yyyy");
-
-    /// <summary>
-    /// Formatierter Timestamp für Chat-Anzeige
-    /// </summary>
-    [JsonIgnore]
-    public string DatumZeit => Timestamp.ToString("dd.MM. HH:mm");
-
-    [JsonIgnore]
-    public Color BackgroundColor => IsMine
-        ? Color.FromArgb("#dcf8c6")   // Grün für eigene
-        : Color.FromArgb("#ffffff");  // Weiß für empfangene
+    public string DatumZeit => Timestamp.ToString("dd.MM. HH:mm", CultureInfo.InvariantCulture);
 
     #endregion
 }

@@ -3,40 +3,33 @@ using Plugin.Maui.Biometric;
 namespace CleanOrgaCleaner.Services;
 
 /// <summary>
-/// Service for biometric authentication (FaceID/TouchID on iOS, Fingerprint on Android)
+/// Anmeldung per Biometrie (Face ID/Touch ID auf iOS, Fingerabdruck auf Android).
 /// </summary>
 public class BiometricService
 {
-    private static BiometricService? _instance;
-    public static BiometricService Instance => _instance ??= new BiometricService();
+    /// <summary>Schlüssel der Einstellung "Anmeldung per Biometrie".</summary>
+    private const string SchluesselAktiv = "biometric_login_enabled";
+
+    private static readonly Lazy<BiometricService> _instanz = new(() => new BiometricService());
+
+    /// <summary>Die eine Instanz der App.</summary>
+    public static BiometricService Instance => _instanz.Value;
 
     private BiometricService()
     {
     }
 
-    /// <summary>
-    /// Check if biometric authentication is available on this device
-    /// </summary>
-    public async Task<bool> IsBiometricAvailableAsync()
+    /// <summary>Steht auf diesem Gerät überhaupt Biometrie zur Verfügung?</summary>
+    public Task<bool> IsBiometricAvailableAsync()
     {
-        try
-        {
 #if IOS || MACCATALYST || ANDROID
-            return await Task.FromResult(true);
+        return Task.FromResult(true);
 #else
-            return await Task.FromResult(false);
+        return Task.FromResult(false);
 #endif
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Biometric] Availability check error: {ex.Message}");
-            return false;
-        }
     }
 
-    /// <summary>
-    /// Get the type of biometric available (FaceID, TouchID, Fingerprint)
-    /// </summary>
+    /// <summary>Bezeichnung des Verfahrens für die Oberfläche.</summary>
     public Task<string> GetBiometricTypeAsync()
     {
 #if IOS || MACCATALYST
@@ -48,27 +41,23 @@ public class BiometricService
 #endif
     }
 
-    /// <summary>
-    /// Authenticate using biometrics
-    /// </summary>
+    /// <summary>Biometrische Prüfung durchführen.</summary>
     public async Task<bool> AuthenticateAsync(string reason = "Anmelden bei CleanOrga")
     {
         try
         {
-            var request = new AuthenticationRequest
+            var anfrage = new AuthenticationRequest
             {
                 Title = "CleanOrga",
                 Subtitle = reason,
                 NegativeText = "Abbrechen"
             };
 
-            var result = await BiometricAuthenticationService.Default.AuthenticateAsync(
-                request,
-                CancellationToken.None
-            ).ConfigureAwait(false);
+            var ergebnis = await BiometricAuthenticationService.Default.AuthenticateAsync(
+                anfrage, CancellationToken.None).ConfigureAwait(false);
 
-            System.Diagnostics.Debug.WriteLine($"[Biometric] Auth result: {result.Status}");
-            return result.Status == BiometricResponseStatus.Success;
+            System.Diagnostics.Debug.WriteLine($"[Biometric] Auth result: {ergebnis.Status}");
+            return ergebnis.Status == BiometricResponseStatus.Success;
         }
         catch (Exception ex)
         {
@@ -77,19 +66,9 @@ public class BiometricService
         }
     }
 
-    /// <summary>
-    /// Check if user has enabled biometric login
-    /// </summary>
-    public bool IsBiometricLoginEnabled()
-    {
-        return Preferences.Get("biometric_login_enabled", false);
-    }
+    /// <summary>Hat die Arbeitskraft die biometrische Anmeldung eingeschaltet?</summary>
+    public bool IsBiometricLoginEnabled() => Preferences.Get(SchluesselAktiv, false);
 
-    /// <summary>
-    /// Enable or disable biometric login
-    /// </summary>
-    public void SetBiometricLoginEnabled(bool enabled)
-    {
-        Preferences.Set("biometric_login_enabled", enabled);
-    }
+    /// <summary>Biometrische Anmeldung ein- oder ausschalten.</summary>
+    public void SetBiometricLoginEnabled(bool enabled) => Preferences.Set(SchluesselAktiv, enabled);
 }

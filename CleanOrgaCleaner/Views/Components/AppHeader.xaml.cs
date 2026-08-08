@@ -1,17 +1,19 @@
 using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Services;
-using CleanOrgaCleaner.Views;
 
 namespace CleanOrgaCleaner.Views.Components;
 
+/// <summary>
+/// Gemeinsame Kopfleiste aller Seiten: Titel, angemeldete Person,
+/// Offline-Hinweis, Arbeitszeit-Knopf und Menü.
+///
+/// Arbeitszeit liegt in AppHeader.Arbeitszeit.cs, das Menü samt Abmelden in
+/// AppHeader.Menue.cs.
+/// </summary>
 public partial class AppHeader : ContentView
 {
     private readonly ApiService _apiService;
     private readonly WebSocketService _webSocketService;
-    private bool _isWorking = false;
-
-    // Event for menu visibility changes
-    public event EventHandler<bool>? MenuVisibilityChanged;
 
     public AppHeader()
     {
@@ -19,18 +21,19 @@ public partial class AppHeader : ContentView
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
 
-        // Subscribe/Unsubscribe über Loaded/Unloaded statt im Konstruktor:
-        // Header hängen sonst dauerhaft am WebSocket-Singleton (Speicherleck,
-        // und verwaiste Header aktualisieren abgebaute Views -> iOS-Crash)
+        // An-/Abmelden über Loaded/Unloaded statt im Konstruktor: Kopfleisten
+        // hängen sonst dauerhaft am WebSocket-Singleton (Speicherleck, und
+        // verwaiste Kopfleisten aktualisieren abgebaute Views -> iOS-Crash)
         Loaded += (s, e) =>
         {
             _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
             _webSocketService.OnConnectionStatusChanged += OnConnectionStatusChanged;
-            // Banner mit dem AKTUELLEN Verbindungszustand abgleichen: während
+
+            // Hinweis mit dem AKTUELLEN Verbindungszustand abgleichen: während
             // die Seite verdeckt/entladen war, verpasste Statuswechsel würden
-            // sonst bis zum nächsten Event einen falschen Banner zeigen.
-            // Nur wenn schon einmal eine Verbindung bestand - sonst blitzt
-            // der Banner beim allerersten Laden (Connect läuft noch) auf.
+            // sonst bis zum nächsten Ereignis einen falschen Hinweis zeigen.
+            // Nur wenn schon einmal eine Verbindung bestand - sonst blitzt der
+            // Hinweis beim allerersten Laden (Verbinden läuft noch) auf.
             if (_webSocketService.WarSchonVerbunden)
                 UiSicher.AufMainThread(() => UpdateOfflineBanner(!_webSocketService.IsOnline), "AppHeader");
         };
@@ -39,7 +42,7 @@ public partial class AppHeader : ContentView
             _webSocketService.OnConnectionStatusChanged -= OnConnectionStatusChanged;
         };
 
-        // Don't show offline banner on initial load
+        // Beim ersten Laden keinen Offline-Hinweis zeigen
         UpdateOfflineBanner(false);
     }
 
@@ -50,38 +53,39 @@ public partial class AppHeader : ContentView
         _ = Task.Run(() => ApiService.WriteLog(line));
     }
 
-    public async Task InitializeAsync()
+    /// <summary>
+    /// Kopfleiste füllen. Der Arbeitszeit-Status wird bewusst nicht abgewartet,
+    /// damit die Seite ohne Netz-Wartezeit erscheint.
+    /// </summary>
+    public Task InitializeAsync()
     {
         Log("InitializeAsync START");
         ApplyTranslations();
-        Log("ApplyTranslations DONE");
         UpdateUserInfo();
-        Log("UpdateUserInfo DONE");
         _ = LoadWorkStatusAsync();
-        Log("LoadWorkStatusAsync fire-and-forget");
+        Log("InitializeAsync DONE");
+        return Task.CompletedTask;
     }
 
     public void ApplyTranslations()
     {
         var t = Translations.Get;
 
-        // Menu items with emojis
+        // Menüpunkte mit Symbol
         MenuTodayButton.Text = "🏠 " + t("today");
         MenuChatButton.Text = "💬 " + t("chat");
         MenuAuftragButton.Text = "📋 " + t("new_task");
         MenuSettingsButton.Text = "⚙️ " + t("settings");
         MenuLogoutButton.Text = "🚪 " + t("logout");
 
-        // Update work button text
         UpdateWorkButton();
 
-        // Work stop popup
+        // Rückfrage beim Beenden der Arbeitszeit
         WorkStopQuestion.Text = t("cleaning_finished");
         WorkStopYesButton.Text = t("yes");
         WorkStopNoButton.Text = t("no");
         WorkStopCancelButton.Text = t("cancel");
 
-        // Offline label
         OfflineLabel.Text = t("offline");
     }
 
@@ -90,10 +94,9 @@ public partial class AppHeader : ContentView
         PageTitleLabel.Text = Translations.Get(titleKey);
     }
 
-    public void UpdateUserInfo()
+    private void UpdateUserInfo()
     {
-        var username = _apiService.CleanerName ?? Preferences.Get("username", "");
-        UserInfoLabel.Text = username;
+        UserInfoLabel.Text = _apiService.CleanerName ?? Preferences.Get("username", "");
     }
 
     private void OnConnectionStatusChanged(bool isConnected)
@@ -106,319 +109,4 @@ public partial class AppHeader : ContentView
         OfflineBanner.IsVisible = showOffline;
         OfflineSpinner.IsRunning = showOffline;
     }
-
-    #region Work Status
-
-    public async Task LoadWorkStatusAsync()
-    {
-        Log("LoadWorkStatusAsync START");
-        try
-        {
-            Log("GetWorkStatusAsync call START");
-            var status = await _apiService.GetWorkStatusAsync().ConfigureAwait(false);
-            Log($"GetWorkStatusAsync call DONE: isWorking={status?.IsWorking}");
-            if (status != null)
-            {
-                _isWorking = status.IsWorking;
-                Log("BeginInvokeOnMainThread for UpdateWorkButton");
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    Log("UpdateWorkButton START");
-                    UpdateWorkButton();
-                    Log("UpdateWorkButton DONE");
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            Log($"LoadWorkStatusAsync ERROR: {ex.Message}");
-        }
-        Log("LoadWorkStatusAsync END");
-    }
-
-    private void UpdateWorkButton()
-    {
-        if (_isWorking)
-        {
-            WorkToggleButton.Text = Translations.Get("stop");
-            WorkToggleButton.BackgroundColor = Color.FromArgb("#E91E63");
-        }
-        else
-        {
-            WorkToggleButton.Text = Translations.Get("start");
-            WorkToggleButton.BackgroundColor = Color.FromArgb("#4CAF50");
-        }
-    }
-
-    private async void OnWorkToggleClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            if (!_isWorking)
-            {
-                // Start work
-                var result = await _apiService.StartWorkAsync();
-                if (result.Success)
-                {
-                    _isWorking = true;
-                    UpdateWorkButton();
-                }
-                else if (NetworkErrorHelper.IsNetworkError(result.Error))
-                {
-                    // Queue for offline sync
-                    await OfflineQueueService.Instance.EnqueueWorkStartAsync();
-                    _isWorking = true;
-                    UpdateWorkButton();
-                    await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
-                }
-            }
-            else
-            {
-                // Show stop work popup
-                WorkStopPopup.IsVisible = true;
-            }
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[AppHeader] Work toggle error: {ex.Message}");
-            if (NetworkErrorHelper.IsNetworkError(ex.Message) && !_isWorking)
-            {
-                await OfflineQueueService.Instance.EnqueueWorkStartAsync();
-                _isWorking = true;
-                UpdateWorkButton();
-                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
-            }
-            else
-            {
-                await UiSicher.FehlerAlertAsync();
-            }
-        }
-    }
-
-    private async void OnWorkStopYesClicked(object sender, EventArgs e)
-    {
-        try
-        {
-            var success = await _apiService.StopWorkAsync();
-            if (success)
-            {
-                _isWorking = false;
-                UpdateWorkButton();
-            }
-            else
-            {
-                // Queue for offline sync
-                await OfflineQueueService.Instance.EnqueueWorkStopAsync();
-                _isWorking = false;
-                UpdateWorkButton();
-                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
-            }
-        }
-        catch (Exception ex)
-        {
-            if (NetworkErrorHelper.IsNetworkError(ex.Message))
-            {
-                await OfflineQueueService.Instance.EnqueueWorkStopAsync();
-                _isWorking = false;
-                UpdateWorkButton();
-                await UiSicher.AlertAsync(Translations.Get("no_connection"), Translations.Get("saved_offline"), Translations.Get("ok"));
-            }
-            else
-            {
-                await UiSicher.FehlerAlertAsync();
-            }
-        }
-        finally
-        {
-            WorkStopPopup.IsVisible = false;
-        }
-    }
-
-
-    private void OnWorkStopNoClicked(object sender, EventArgs e)
-    {
-        // "No" = Reinigung wurde NICHT vollständig beendet → Arbeit läuft weiter
-        // _isWorking bleibt true, Server wird nicht angerufen
-        WorkStopPopup.IsVisible = false;
-    }
-
-    private void OnWorkStopCancelClicked(object sender, EventArgs e)
-    {
-        WorkStopPopup.IsVisible = false;
-    }
-
-    private void OnWorkStopPopupBackgroundTapped(object sender, EventArgs e)
-    {
-        WorkStopPopup.IsVisible = false;
-    }
-
-    #endregion
-
-    #region Menu Handlers
-
-    private void OnMenuButtonClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = !MenuOverlayGrid.IsVisible;
-        MenuVisibilityChanged?.Invoke(this, MenuOverlayGrid.IsVisible);
-    }
-
-    private void OnOverlayTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        MenuVisibilityChanged?.Invoke(this, false);
-    }
-
-    private async void OnLogoTapped(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuTodayClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/TodayPage");
-    }
-
-    private async void OnMenuChatClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/ChatListPage");
-    }
-
-    private async void OnMenuAuftragClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/AuftragPage");
-    }
-
-    private async void OnMenuSettingsClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-        await Shell.Current.GoToAsync("//MainTabs/SettingsPage");
-    }
-
-    private async void OnLogoutClicked(object sender, EventArgs e)
-    {
-        MenuOverlayGrid.IsVisible = false;
-
-        // Shell.Current/CurrentPage können während Navigation null sein -
-        // dann Logout abbrechen statt mit NRE zu crashen (async void!)
-        var seite = Shell.Current?.CurrentPage;
-        if (seite == null)
-            return;
-
-        bool confirm;
-        try
-        {
-            confirm = await seite.DisplayAlertAsync(
-                Translations.Get("logout"),
-                Translations.Get("really_logout"),
-                Translations.Get("yes"),
-                Translations.Get("no"));
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] Confirm dialog error: {ex.Message}");
-            return;
-        }
-
-        if (!confirm)
-            return;
-
-        try
-        {
-            await _apiService.LogoutAsync();
-        }
-        catch
-        {
-            // Ignore errors - we're logging out anyway
-        }
-
-        // Firestore-Listener beenden + von Firebase abmelden
-        try { FirestoreChatService.Instance.Stop(); } catch { }
-
-        // Clear stored credentials
-        try
-        {
-            Preferences.Remove("property_id");
-            Preferences.Remove("username");
-            Preferences.Remove("language");
-            Preferences.Remove("is_logged_in");
-            Preferences.Remove("remember_me");
-            Preferences.Remove("biometric_login_enabled");
-            Preferences.Remove("offline_mode");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] Preferences clear error: {ex.Message}");
-        }
-
-        // Clear secure storage
-        try
-        {
-            SecureStorage.Remove("password");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] SecureStorage clear error: {ex.Message}");
-        }
-
-        // Clear offline cached data
-        try
-        {
-            OfflineDataService.Instance.ClearAll();
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] OfflineDataService clear error: {ex.Message}");
-        }
-
-        // Disconnect WebSocket (in background to avoid UI thread issues on iOS)
-        try
-        {
-            _ = Task.Run(() =>
-            {
-                try
-                {
-                    WebSocketService.Instance.Dispose();
-                }
-                catch { }
-            });
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] WebSocket dispose error: {ex.Message}");
-        }
-
-        // Navigate to login page
-        try
-        {
-            await Shell.Current.GoToAsync("//LoginPage");
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[Logout] Navigation error: {ex.Message}");
-            // Fallback: try Application.Current
-            try
-            {
-                if (Application.Current?.MainPage is Shell shell)
-                {
-                    await shell.GoToAsync("//LoginPage");
-                }
-            }
-            catch { }
-        }
-    }
-
-    #endregion
-
-    // Public method to close menu from outside
-    public void CloseMenu()
-    {
-        MenuOverlayGrid.IsVisible = false;
-    }
-
-    // Public property to check if work is active
-    public bool IsWorking => _isWorking;
 }

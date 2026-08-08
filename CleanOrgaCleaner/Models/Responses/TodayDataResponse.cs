@@ -3,8 +3,8 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models.Responses;
 
 /// <summary>
-/// Response from /mobile/api/today-data/
-/// Contains today's tasks and work status for the cleaner
+/// Antwort von /mobile/api/today-data/: die heutigen Aufgaben und der
+/// Arbeitszeit-Status der Arbeitskraft.
 /// </summary>
 public class TodayDataResponse
 {
@@ -19,10 +19,4 @@ public class TodayDataResponse
 
     [JsonPropertyName("date")]
     public string? Date { get; set; }
-
-    // UI helpers
-    public int TaskCount => Tasks.Count;
-    public int CompletedCount => Tasks.Count(t => t.IsCompleted);
-    public int PendingCount => Tasks.Count(t => !t.IsCompleted);
-    public bool HasTasks => Tasks.Count > 0;
 }

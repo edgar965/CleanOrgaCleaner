@@ -1,0 +1,183 @@
+namespace CleanOrgaCleaner.Localization.Sprachen;
+
+/// <summary>
+/// Englische Oberflächentexte (Fallback-Sprache).
+/// Eine Datei je Sprache - siehe <see cref="TranslationCatalog"/>.
+/// </summary>
+internal sealed class TexteEn : LanguagePack
+{
+    public TexteEn() : base("en", "English", "GB", Erstellen()) { }
+
+    private static Dictionary<string, string> Erstellen() => new(StringComparer.Ordinal)
+    {
+        ["today"] = "Today",
+        ["chat"] = "Chat",
+        ["settings"] = "Settings",
+        ["logout"] = "Logout",
+
+        ["message_placeholder"] = "Enter message...",
+        ["message_from"] = "From",
+        ["notifications"] = "Notifications",
+        ["push_notifications"] = "Push notifications",
+        ["enabled"] = "Enabled",
+        ["not_enabled"] = "Not enabled",
+        ["disabled"] = "Disabled",
+        ["not_active"] = "Not active",
+        ["notifications_denied_hint"] = "Notifications are not active. Please allow them for CleanOrga in the device settings.",
+        ["open_settings"] = "Open settings",
+        ["translation_preview"] = "Translation preview",
+        ["your_text"] = "Your text",
+        ["translation_for_admin"] = "Translation (for admin)",
+        ["back_translation"] = "Back translation",
+        ["delete_image_confirm"] = "Remove image from this message?",
+        ["delete_note"] = "Delete note",
+        ["delete_note_confirm"] = "Do you really want to delete this note?",
+        ["select_image_source"] = "Select image",
+
+        ["select_language"] = "Select language",
+        ["logged_in_as"] = "Logged in as",
+        ["app_info"] = "App Info",
+        ["version"] = "Version",
+        ["server"] = "Server",
+        ["language"] = "Language",
+        ["security"] = "Security",
+        ["biometric_login"] = "Fingerprint / Face",
+        ["biometric_hint"] = "Quick and secure login with biometrics",
+        ["select_avatar"] = "Select avatar",
+        ["avatar_changed"] = "Avatar changed",
+        ["tap_to_change"] = "Tap to change",
+        ["change"] = "Change",
+
+        ["no_tasks"] = "No tasks for today",
+        ["cleaning_finished"] = "Pause / end work time?",
+        ["yes"] = "Yes",
+        ["no"] = "No",
+        ["cancel"] = "Cancel",
+        ["ok"] = "OK",
+
+        ["error"] = "Error",
+        ["attention"] = "Attention",
+        ["sync_failed_hint"] = "An action recorded offline could not be sent and was discarded",
+        ["unknown_error"] = "Unknown error",
+        ["start_work_first"] = "Please click 'Start Work' first so that the working time is recorded correctly.",
+
+        ["completed"] = "Completed",
+
+        ["task"] = "Task",
+        ["new_task"] = "New Task",
+        ["notes"] = "Notes",
+        ["report_problem"] = "Report problem",
+        ["edit_problem"] = "Edit problem",
+        ["edit_note"] = "Edit note",
+        ["delete"] = "Delete",
+        ["no_problems"] = "No problems reported",
+        ["description"] = "Description",
+        ["photos"] = "Photos",
+        ["add_photo"] = "Add photo",
+        ["save"] = "Save",
+        ["saved"] = "Saved",
+        ["delete_problem_title"] = "Delete problem",
+        ["delete_problem_confirm"] = "Do you really want to delete this problem?",
+        ["yes_delete"] = "Yes, delete",
+        ["problem_reported"] = "Problem reported",
+
+        // Images / Notes
+        ["add_note"] = "Add note",
+        ["no_notes"] = "No notes",
+        ["no_logs"] = "No log entries available",
+        ["no_task_description"] = "No task description available",
+        ["camera"] = "Camera",
+        ["gallery"] = "Gallery",
+        ["note"] = "Note",
+
+        // Buttons
+        ["start"] = "Start",
+        ["stop"] = "Finish",
+
+        ["loading"] = "Loading...",
+        ["connection_error"] = "Connection error",
+        ["no_connection"] = "No connection",
+        ["network_error_hint"] = "Network error. Please connect to WiFi or mobile data.",
+        ["saved_offline"] = "Saved. Will sync when connected.",
+        ["really_logout"] = "Do you really want to logout?",
+        ["task_completed"] = "Complete task",
+        ["task_completed_question"] = "Do you really want to complete this task?",
+        ["log"] = "Log",
+        ["delete_task"] = "Delete task",
+
+        // Neue Aufgabe / My Tasks
+        ["create_auftrag"] = "New Task",
+        ["edit_auftrag"] = "Edit Task",
+        ["messages"] = "Messages",
+        ["administration"] = "Administration",
+        ["colleagues"] = "Colleagues",
+        ["colleague"] = "Colleague",
+        ["admin_contact"] = "Administration",
+        ["task_name_required"] = "Task name *",
+        ["apartment"] = "Apartment",
+        ["date_required"] = "Date *",
+        ["task_type"] = "Task type",
+        ["optional_hint"] = "Task description...",
+        ["assign_cleaners"] = "Assign cleaners",
+        ["cleaning"] = "Cleaning",
+        ["check_task"] = "Check",
+        ["repair"] = "Repair",
+        ["details_tab"] = "Details",
+        ["task_tab"] = "Task",
+        ["problems_tab"] = "Problems",
+        ["notes_tab"] = "Notes",
+        ["assign_tab"] = "Assign",
+        ["no_my_tasks"] = "No own tasks",
+        ["task_create_error"] = "Error creating task",
+        ["task_update_error"] = "Error updating task",
+        ["task_delete_error"] = "Error deleting task",
+        ["confirm_delete_task"] = "Do you really want to delete this task?",
+        ["update_error"] = "Update error",
+        ["delete_error"] = "Delete error",
+        ["delete_image"] = "Delete image",
+        ["confirm_delete_image"] = "Do you really want to delete this image?",
+
+        // Validation messages
+        ["name_required"] = "Please enter a name",
+        ["name"] = "Name",
+
+        // Log translations
+        ["log_note_added"] = "Note added",
+        ["log_note_created"] = "Note created",
+        ["log_image_deleted"] = "Image deleted",
+        ["log_problem_reported"] = "Problem reported",
+        ["log_problem_deleted"] = "Problem deleted",
+        ["log_task_created"] = "Task created",
+        ["log_task_updated"] = "Task updated",
+        ["log_repair_task_created"] = "Repair task created",
+        ["log_cleaning_assigned_to"] = "Cleaning assigned to",
+        ["log_assignment_removed"] = "Assignment removed",
+        ["log_progress"] = "Progress",
+        ["log_status_changed"] = "Status changed",
+        ["log_checklist_updated"] = "Checklist updated",
+        ["log_not_started"] = "Not started",
+        ["log_started"] = "Started",
+        ["log_completed"] = "Completed",
+
+        // Login Screen
+        ["login_subtitle"] = "Cleaning Management",
+        ["login_enterprise_app"] = "Enterprise App:",
+        ["login_credentials_info"] = "Please get your login credentials from your administrator.",
+        ["login_new_customers"] = "New Customers:",
+        ["login_registration_info"] = "Request registration via email: mail@schwanenburg.de",
+        ["login_test_usage"] = "Test Usage:",
+        ["login_test_credentials"] = "Property: 1  |  User: tom  |  Password: tom",
+        ["login_title"] = "Login",
+        ["login_property_id"] = "Property ID",
+        ["login_username"] = "Username",
+        ["login_password"] = "Password",
+        ["login_remember_me"] = "Stay logged in",
+
+        // Ergänzt: fehlende/neue Schlüssel (Sync-Prüfung 2026-07-14)
+        ["offline"] = "Offline",
+        ["create_error"] = "Create failed",
+        ["save_error"] = "Save failed",
+        ["delete_chat_title"] = "Delete chat",
+        ["delete_chat_confirm"] = "Delete all messages? This action cannot be undone.",
+    };
+}

@@ -1,58 +1,24 @@
+using CleanOrgaCleaner.Localization;
+
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Supported languages for the app
+/// Sprachen der App - schlanke Fassade auf den <see cref="TranslationCatalog"/>.
+/// Die früheren Dictionaries (Anzeigename, Flagge) sind entfallen: die Daten
+/// stehen jetzt als typisierte Member am jeweiligen <see cref="LanguagePack"/>
+/// und existieren damit nur noch an einer Stelle.
 /// </summary>
 public static class Language
 {
-    /// <summary>
-    /// All supported languages with their display names
-    /// </summary>
-    public static readonly Dictionary<string, string> Supported = new()
-    {
-        { "de", "Deutsch" },
-        { "en", "English" },
-        { "es", "Espanol" },
-        { "ro", "Romana" },
-        { "pl", "Polski" },
-        { "ru", "Russkij" },
-        { "uk", "Ukrainska" },
-        { "vi", "Tieng Viet" }
-    };
-
-    /// <summary>
-    /// Country flags/codes for each language
-    /// </summary>
-    public static readonly Dictionary<string, string> Flags = new()
-    {
-        { "de", "DE" },
-        { "en", "GB" },
-        { "es", "ES" },
-        { "ro", "RO" },
-        { "pl", "PL" },
-        { "ru", "RU" },
-        { "uk", "UA" },
-        { "vi", "VN" }
-    };
-
-    /// <summary>
-    /// Get display name for a language code
-    /// </summary>
-    public static string GetDisplayName(string code)
-    {
-        return Supported.GetValueOrDefault(code, code);
-    }
-
-    /// <summary>
-    /// Get flag code for a language
-    /// </summary>
-    public static string GetFlag(string code)
-    {
-        return Flags.GetValueOrDefault(code, code.ToUpper());
-    }
-
-    /// <summary>
-    /// Default language
-    /// </summary>
+    /// <summary>Standardsprache, wenn nichts gespeichert und nichts erkannt wurde.</summary>
     public const string Default = "de";
+
+    /// <summary>Alle unterstützten Sprachen mit Code, Anzeigename und Flagge.</summary>
+    public static IReadOnlyList<LanguagePack> Alle => TranslationCatalog.Alle;
+
+    /// <summary>Anzeigename zu einem Sprachcode ("de" -> "Deutsch").</summary>
+    public static string GetDisplayName(string code) => TranslationCatalog.Anzeigename(code);
+
+    /// <summary>Länderkürzel für die Flagge ("uk" -> "UA").</summary>
+    public static string GetFlag(string code) => TranslationCatalog.Flagge(code);
 }

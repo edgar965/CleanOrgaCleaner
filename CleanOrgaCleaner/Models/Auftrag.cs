@@ -1,10 +1,9 @@
 using System.Text.Json.Serialization;
-using CleanOrgaCleaner.Localization;
 
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// Represents a manually created task by the user
+/// Eine von der Arbeitskraft selbst angelegte Aufgabe.
 /// </summary>
 public class Auftrag
 {
@@ -47,95 +46,20 @@ public class Auftrag
     [JsonPropertyName("anmerkungen")]
     public List<ImageListDescription>? Anmerkungen { get; set; }
 
-    /// <summary>
-    /// Display text for status - shows cleaner name if assigned, otherwise empty
-    /// </summary>
-    public string StatusDisplay
-    {
-        get
-        {
-            // Wenn Cleaner zugewiesen, deren Namen anzeigen
-            if (AssignedCleanerNames != null && AssignedCleanerNames.Count > 0)
-            {
-                return string.Join(", ", AssignedCleanerNames);
-            }
-
-            // Sonst leer (nicht "Nicht zugewiesen")
-            return "";
-        }
-    }
+    /// <summary>True, wenn mindestens eine Arbeitskraft zugewiesen ist.</summary>
+    [JsonIgnore]
+    public bool IstZugewiesen => AssignedCleanerNames is { Count: > 0 };
 
     /// <summary>
-    /// Color for status display - blue when assigned
+    /// Anzeigetext: Namen der zugewiesenen Arbeitskräfte, sonst leer
+    /// (bewusst nicht "Nicht zugewiesen").
     /// </summary>
-    public Color StatusColor
-    {
-        get
-        {
-            // Wenn Cleaner zugewiesen, blau anzeigen
-            if (AssignedCleanerNames != null && AssignedCleanerNames.Count > 0)
-            {
-                return Color.FromArgb("#667eea");
-            }
+    [JsonIgnore]
+    public string StatusDisplay => IstZugewiesen
+        ? string.Join(", ", AssignedCleanerNames!)
+        : "";
 
-            // Sonst grau (keine Anzeige)
-            return Color.FromArgb("#9e9e9e");
-        }
-    }
-}
-
-// TaskAssignments is defined in CleaningTask.cs
-
-/// <summary>
-/// Apartment info for dropdown
-/// </summary>
-public class ApartmentInfo
-{
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
-
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = "";
-
-    [JsonPropertyName("checkliste")]
-    public List<string>? Checkliste { get; set; }
-}
-
-/// <summary>
-/// Task type info for dropdown
-/// </summary>
-public class AufgabenartInfo
-{
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
-
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = "";
-
-    [JsonPropertyName("checkliste")]
-    public List<string>? Checkliste { get; set; }
-}
-
-/// <summary>
-/// Response for my tasks page data
-/// </summary>
-public class AuftragsPageDataResponse
-{
-    [JsonPropertyName("success")]
-    public bool Success { get; set; }
-
-    [JsonPropertyName("tasks")]
-    public List<Auftrag>? Tasks { get; set; }
-
-    [JsonPropertyName("apartments")]
-    public List<ApartmentInfo>? Apartments { get; set; }
-
-    [JsonPropertyName("aufgabenarten")]
-    public List<AufgabenartInfo>? Aufgabenarten { get; set; }
-
-    [JsonPropertyName("cleaners")]
-    public List<CleanerInfo>? Cleaners { get; set; }
-
-    [JsonPropertyName("error")]
-    public string? Error { get; set; }
+    /// <summary>Blau bei Zuweisung, sonst grau - Farben aus der gemeinsamen Palette.</summary>
+    [JsonIgnore]
+    public Color StatusColor => IstZugewiesen ? Farben.Zugewiesen : Farben.Neutral;
 }

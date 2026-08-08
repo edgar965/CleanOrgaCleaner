@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace CleanOrgaCleaner.Models;
 
 /// <summary>
-/// User information from authentication
+/// Django-Benutzerkonto, das der Anmelde-Endpunkt zurückliefert.
 /// </summary>
 public class User
 {
@@ -13,6 +13,7 @@ public class User
     [JsonPropertyName("username")]
     public string Username { get; set; } = "";
 
+    /// <summary>True bei Verwaltungsrechten im Django-Backend.</summary>
     [JsonPropertyName("is_staff")]
     public bool IsStaff { get; set; }
 
