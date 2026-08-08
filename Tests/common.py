@@ -31,6 +31,8 @@ from appium import webdriver
 from appium.options.android import UiAutomator2Options
 from appium.webdriver.common.appiumby import AppiumBy
 
+from begriffe import Begriffe
+
 
 # ---------------------------------------------------------------- adb / Netz
 def adb(*args):
@@ -102,22 +104,36 @@ def treiber():
 
 
 def finde(d, text, timeout=15):
+    """Element mit diesem Text suchen - in JEDER Sprache der App.
+
+    Sucht nicht nur den übergebenen Text, sondern alle gleichbedeutenden
+    Beschriftungen (siehe begriffe.Begriffe). Ohne das hing das Ergebnis an
+    der zufällig eingestellten Gerätesprache.
+    """
+    varianten = Begriffe.varianten(text)
     ende = time.time() + timeout
     while time.time() < ende:
-        try:
-            return d.find_element(AppiumBy.ANDROID_UIAUTOMATOR, f'new UiSelector().textContains("{text}")')
-        except Exception:
-            time.sleep(1)
+        for wort in varianten:
+            try:
+                return d.find_element(AppiumBy.ANDROID_UIAUTOMATOR,
+                                      f'new UiSelector().textContains("{wort}")')
+            except Exception:
+                pass
+        time.sleep(1)
     return None
 
 
 def finde_desc(d, text, timeout=8):
+    varianten = Begriffe.varianten(text)
     ende = time.time() + timeout
     while time.time() < ende:
-        try:
-            return d.find_element(AppiumBy.ANDROID_UIAUTOMATOR, f'new UiSelector().descriptionContains("{text}")')
-        except Exception:
-            time.sleep(1)
+        for wort in varianten:
+            try:
+                return d.find_element(AppiumBy.ANDROID_UIAUTOMATOR,
+                                      f'new UiSelector().descriptionContains("{wort}")')
+            except Exception:
+                pass
+        time.sleep(1)
     return None
 
 
@@ -127,7 +143,19 @@ def edittexts(d):
 
 def oeffne_menue(d):
     """Hamburger-Menü im Header öffnen (App navigiert über Flyout-Overlay,
-    nicht über eine untere Tab-Bar)."""
+    nicht über eine untere Tab-Bar).
+
+    Zuerst das echte ☰-Element anklicken; der blinde Tap auf 56%/14% war auf
+    die Emulator-Auflösung kalibriert und landet auf anderen Geräten leicht
+    auf dem Nachbarknopf "Start".
+    """
+    try:
+        d.find_element(AppiumBy.ANDROID_UIAUTOMATOR,
+                       'new UiSelector().text("☰")').click()
+        time.sleep(2)
+        return
+    except Exception:
+        pass
     g = d.get_window_size()
     d.tap([(int(g['width'] * 0.56), int(g['height'] * 0.14))])
     time.sleep(2)
@@ -146,10 +174,26 @@ def navigiere(d, menuepunkt) -> bool:
     return False
 
 
+def angemeldet(d, timeout=30) -> bool:
+    """Wartet, bis die Hauptoberfläche steht.
+
+    Aktiv warten statt fester Pause: Auf einem langsamen Telefon brauchte die
+    Anmeldung länger als die früheren 10+8 Sekunden, worauf der Test einen
+    Fehlschlag meldete, obwohl die App gleich darauf einwandfrei lief.
+    """
+    ende = time.time() + timeout
+    while time.time() < ende:
+        if finde(d, 'Today', 2) is not None or finde(d, 'Chat', 1) is not None:
+            return True
+    return False
+
+
 def login(d, prop='1', user='tom', pw='tom') -> bool:
     """Robuster Login mit Retry (nach Netzwechsel/Neustart flaky)."""
     for _ in range(3):
-        if finde(d, 'Today', 4) is not None or finde(d, 'Chat', 3) is not None:
+        # Beim Start entscheidet sich erst nach ein paar Sekunden, ob die
+        # gespeicherte Anmeldung greift oder die Anmeldemaske kommt.
+        if angemeldet(d, 12):
             return True
         felder = []
         ende = time.time() + 20
@@ -162,14 +206,14 @@ def login(d, prop='1', user='tom', pw='tom') -> bool:
             felder[0].clear(); felder[0].send_keys(prop)
             felder[1].clear(); felder[1].send_keys(user)
             felder[2].clear(); felder[2].send_keys(pw)
+            # Der Knopf heißt je nach Sprache "Login" oder "Anmelden"
             knopf = finde(d, 'Login', 5)
             if knopf:
                 knopf.click()
-            time.sleep(10)
-            if finde(d, 'Today', 8) is not None:
+            if angemeldet(d, 45):
                 return True
         time.sleep(3)
-    return finde(d, 'Today', 5) is not None
+    return angemeldet(d, 10)
 
 
 def screenshot(d, name):

@@ -78,11 +78,27 @@ public class WebSocketService : IDisposable
     /// <summary>Alter Name für <see cref="ConnectAsync"/> (Chat-Seiten).</summary>
     public Task ConnectChatAsync() => ConnectAsync();
 
-    /// <summary>Verbindung erzwingen (z.B. bei Rückkehr ins Netz).</summary>
+    /// <summary>
+    /// Verbindung erzwingen (z.B. bei Rückkehr ins Netz oder aus dem
+    /// Hintergrund). Erzwingen heißt hier wörtlich: Ein noch vorhandener
+    /// Socket wird verworfen, denn nach einem Netzabbruch meldet er oft
+    /// weiter "Open", während tatsächlich nichts mehr ankommt. Nur ein
+    /// echter Neuaufbau meldet auch wieder einen Verbindungswechsel - und
+    /// erst der lässt die offenen Seiten Verpasstes nachladen.
+    /// </summary>
     public async Task ReconnectAsync()
     {
         _sollWiederverbinden = true;
         _wiederverbinder.Zuruecksetzen();
+
+        var alter = _socket;
+        if (alter != null && ReferenceEquals(alter, _socket))
+        {
+            _socket = null;
+            _cts?.Cancel();
+            try { alter.Dispose(); } catch { }
+        }
+
         await ConnectAsync().ConfigureAwait(false);
     }
 
@@ -92,13 +108,26 @@ public class WebSocketService : IDisposable
         _sollWiederverbinden = false;
         _cts?.Cancel();
 
-        if (_socket?.State == WebSocketState.Open)
+        var alter = _socket;
+        if (alter?.State == WebSocketState.Open)
         {
             try
             {
-                await _socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
+                await alter.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
             }
             catch { }
+        }
+
+        // Den Socket wegwerfen, nicht nur die Empfangsschleife abbrechen:
+        // Sonst meldet er weiter "Open", obwohl niemand mehr zuhört. Beim
+        // Zurückkehren aus dem Hintergrund hielt VerbindeEinmalAsync diese
+        // tote Verbindung dann für gut, kehrte sofort zurück und meldete
+        // keinen Verbindungswechsel - der Chat lud die im Hintergrund
+        // eingetroffenen Nachrichten nie nach (Testfall CH10).
+        if (ReferenceEquals(alter, _socket))
+        {
+            _socket = null;
+            try { alter?.Dispose(); } catch { }
         }
 
         SetzeOnline(false);
