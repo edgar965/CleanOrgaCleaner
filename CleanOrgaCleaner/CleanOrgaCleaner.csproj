@@ -52,15 +52,20 @@
 		<AndroidManifestMerger>legacy</AndroidManifestMerger>
 	</PropertyGroup>
 
-	<!-- Android Release Signing -->
+	<!-- Android Release Signing.
+	     Das Passwort steht NICHT mehr hier: Es lag im Klartext im Repo und
+	     damit dauerhaft in der Versionsgeschichte. Es kommt jetzt aus
+	     ..\signing\signing.local.props (nicht versioniert, siehe .gitignore)
+	     oder - im GitHub-Runner - per -p: aus den Secrets. -->
 	<PropertyGroup Condition="$(TargetFramework.Contains('-android')) and '$(Configuration)' == 'Release'">
 		<AndroidKeyStore>true</AndroidKeyStore>
-		<AndroidSigningKeyStore>..\signing\cleanorga-release.keystore</AndroidSigningKeyStore>
-		<AndroidSigningKeyAlias>cleanorga</AndroidSigningKeyAlias>
-		<AndroidSigningKeyPass>Rotron#2</AndroidSigningKeyPass>
-		<AndroidSigningStorePass>Rotron#2</AndroidSigningStorePass>
+		<AndroidSigningKeyStore Condition="'$(AndroidSigningKeyStore)' == ''">..\signing\cleanorga-release.keystore</AndroidSigningKeyStore>
+		<AndroidSigningKeyAlias Condition="'$(AndroidSigningKeyAlias)' == ''">cleanorga</AndroidSigningKeyAlias>
 		<AndroidPackageFormat>aab</AndroidPackageFormat>
 	</PropertyGroup>
+
+	<!-- Lokale Signier-Geheimnisse, falls vorhanden -->
+	<Import Project="..\signing\signing.local.props" Condition="Exists('..\signing\signing.local.props')" />
 
 	<ItemGroup>
 		<!-- App Icon - SVG with embedded PNG for proper iOS icon generation -->
