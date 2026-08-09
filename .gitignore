@@ -67,3 +67,7 @@ __pycache__/
 
 # Screenshots der Appium-Laeufe (Nachweise, keine Quellen)
 Tests/screenshots/
+
+# Google-Play-Dienstkontoschluessel - NIEMALS ins Repo
+playstore/
+*.json.key

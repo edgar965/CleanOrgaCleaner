@@ -1,0 +1,94 @@
+name: Android Build & Deploy
+
+on:
+  workflow_dispatch:      # Nur manueller Trigger - kein Upload bei jedem Push
+    inputs:
+      track:
+        description: 'Play-Track (internal empfohlen, production geht live)'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+env:
+  DOTNET_VERSION: '10.0.203'
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Setup Java (fuer die Android-Signatur)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Install MAUI Workloads
+      run: dotnet workload install maui-android --ignore-failed-sources
+
+    # Der Keystore liegt bewusst NICHT im Repo - er kommt aus dem Secret und
+    # existiert nur waehrend des Laufs.
+    - name: Keystore bereitstellen
+      run: |
+        mkdir -p signing
+        echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing/cleanorga-release.keystore
+        echo "Keystore: $(stat -c%s signing/cleanorga-release.keystore) Bytes"
+
+    - name: Build AAB
+      run: |
+        dotnet publish CleanOrgaCleaner/CleanOrgaCleaner.csproj \
+          -f net10.0-android \
+          -c Release \
+          -p:AndroidPackageFormat=aab \
+          -p:AndroidKeyStore=true \
+          -p:AndroidSigningKeyStore=$GITHUB_WORKSPACE/signing/cleanorga-release.keystore \
+          -p:AndroidSigningKeyAlias=cleanorga \
+          -p:AndroidSigningKeyPass='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}' \
+          -p:AndroidSigningStorePass='${{ secrets.ANDROID_KEYSTORE_PASSWORD }}'
+
+    - name: AAB finden und pruefen
+      id: aab
+      run: |
+        DATEI=$(find . -name "*-Signed.aab" | head -1)
+        if [ -z "$DATEI" ]; then
+          echo "Kein signiertes AAB gefunden"; exit 1
+        fi
+        echo "pfad=$DATEI" >> $GITHUB_OUTPUT
+        echo "Gefunden: $DATEI ($(stat -c%s "$DATEI") Bytes)"
+        # Build-Nummer aus dem erzeugten Manifest belegen
+        MANIFEST=$(find . -path "*obj/Release*" -name AndroidManifest.xml | head -1)
+        [ -n "$MANIFEST" ] && grep -o 'versionCode="[0-9]*"' "$MANIFEST" | head -1
+
+    - name: AAB als Artefakt sichern
+      uses: actions/upload-artifact@v4
+      with:
+        name: CleanOrga-Android
+        path: ${{ steps.aab.outputs.pfad }}
+        retention-days: 14
+
+    # Der Keystore darf den Lauf nicht ueberdauern.
+    - name: Keystore entfernen
+      if: always()
+      run: rm -f signing/cleanorga-release.keystore
+
+    - name: Upload zu Google Play
+      uses: r0adkll/upload-google-play@v1
+      with:
+        serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        packageName: com.cleanorga.cleaner
+        releaseFiles: ${{ steps.aab.outputs.pfad }}
+        track: ${{ github.event.inputs.track }}
+        status: completed
