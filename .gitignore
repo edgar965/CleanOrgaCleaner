@@ -60,3 +60,10 @@ signing/
 _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
+
+# Python-Bytecode der Testsuite
+__pycache__/
+*.pyc
+
+# Screenshots der Appium-Laeufe (Nachweise, keine Quellen)
+Tests/screenshots/
