@@ -47,9 +47,6 @@ public sealed class WsNachrichtenVerteiler
             if (art == "pong")
                 return; // Antwort auf unseren Keepalive-Ping
 
-            // TEMP-DIAGNOSE (09.08.2026): Welche Meldung erreicht das Geraet?
-            Services.ApiService.WriteServerDiag("ws", $"empfangen: {art}");
-
             _beiAufgabenUpdate(art ?? "update");
         }
         catch (Exception ex)

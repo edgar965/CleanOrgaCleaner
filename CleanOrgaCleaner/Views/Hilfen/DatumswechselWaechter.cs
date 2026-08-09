@@ -5,19 +5,19 @@ namespace CleanOrgaCleaner.Views.Hilfen;
 /// Liste regelmäßig auf.
 ///
 /// Der Datumsteil verhindert, dass eine über Nacht offene App noch den Vortag
-/// zeigt. Die Auffrischung ist ein Sicherheitsnetz gegen verlorene
-/// Live-Meldungen: Am 09.08.2026 wurde eine Aufgabe zugewiesen, während die
-/// Heute-Seite auf einem iPhone offen war - die Zuweisung erschien nicht.
-/// Nachweislich hat der Server sie gemeldet (Chat-Nachrichten über dieselbe
-/// Verbindung und dieselbe Gruppe kamen zeitgleich an), und auf Android
-/// erscheint sie sofort. Warum die Meldung dort bei geöffneter Seite
-/// verpufft, liess sich nicht klären - mit der Auffrischung ist die Liste
-/// unabhängig davon spätestens nach einer Minute richtig.
+/// zeigt.
+///
+/// Die Auffrischung ist ein Sicherheitsnetz: Am 09.08.2026 erreichten
+/// Zuweisungen ein iPhone gar nicht mehr, weil die Singleton-Dienste beim
+/// Abmelden ihre Sperre freigegeben hatten und danach keine WebSocket-
+/// Verbindung mehr zustande kam (siehe WebSocketService.Dispose). Das ist
+/// behoben; bleibt eine Meldung aus welchem Grund auch immer aus, ist die
+/// Liste dank dieser Auffrischung höchstens fünf Minuten alt.
 /// </summary>
 public sealed class DatumswechselWaechter : IDisposable
 {
     /// <summary>Prüfabstand. Deckt Datumswechsel und Auffrischung ab.</summary>
-    private static readonly TimeSpan Abstand = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan Abstand = TimeSpan.FromMinutes(5);
 
     private readonly Action _beiWechsel;
     private readonly Action? _beiAuffrischung;
