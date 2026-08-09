@@ -27,8 +27,9 @@ Aufruf: python test_zuweisung.py
 import sys
 import time
 
-from common import (ACTIVITY, PAKET, adb, app_laeuft, django, finde, kein_fatal,
-                    login, navigiere, netz, screenshot, treiber, Protokoll)
+from common import (ACTIVITY, PAKET, AppiumBy, adb, app_laeuft, django, finde,
+                    kein_fatal, login, navigiere, netz, screenshot, treiber,
+                    Protokoll)
 
 TESTNAME = '[ZUWEISUNG-TEST]'
 TOM_ID = 9
@@ -86,19 +87,39 @@ def andere_kraft():
     return int(teile[-1]) if teile and teile[-1].isdigit() else 0
 
 
-def erscheint_in_liste(d, timeout=45) -> bool:
-    """Wartet, bis die Aufgabe in der Tagesliste steht.
+def anzahl_aufgaben(d) -> int:
+    """Aufgaben-Kacheln in der Tagesliste zaehlen.
+
+    Ueber die Anzahl statt ueber einen Suchtext: Die Testaufgabe erscheint
+    ohne Apartment nur mit ihrer Aufgabenart ("cleaning"), und die steht auch
+    an echten Aufgaben des Testkontos - ein Textvergleich waere mehrdeutig.
+    Die Knoepfe der Kopfleiste (Menue, Arbeitszeit) werden abgezogen.
+    """
+    kopfleiste = {'☰', 'Start', 'Finish', 'Beenden'}
+    knoepfe = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.Button')
+    anzahl = 0
+    for knopf in knoepfe:
+        try:
+            if (knopf.text or '').strip() not in kopfleiste:
+                anzahl += 1
+        except Exception:
+            pass
+    return anzahl
+
+
+def warte_auf_anzahl(d, soll, timeout=45) -> bool:
+    """Wartet, bis die Liste die erwartete Anzahl Aufgaben zeigt.
 
     Grosszuegig: Die Liste darf ueber die Live-Meldung ODER ueber das
-    regelmaessige Nachladen aktuell werden - beides zaehlt als bestanden,
-    ein Neustart der App dagegen nicht.
+    regelmaessige Nachladen aktuell werden - ein Neustart der App dagegen
+    zaehlt nicht, denn der laedt ohnehin alles neu.
     """
     ende = time.time() + timeout
     while time.time() < ende:
-        if finde(d, 'cleaning', 2) is not None:
+        if anzahl_aufgaben(d) == soll:
             return True
         time.sleep(3)
-    return False
+    return anzahl_aufgaben(d) == soll
 
 
 def auf_heute_seite(d):
@@ -124,22 +145,19 @@ def main():
         vorbesitzer = andere_kraft()
         aufgabe_anlegen(zunaechst_an=vorbesitzer or None)
         time.sleep(3)                      # Ausgangszustand wirken lassen
-        zuweisen([TOM_ID])
+        vorher = anzahl_aufgaben(d)
 
-        erschienen = erscheint_in_liste(d)
-        log('TZ01', 'Umgewiesene Aufgabe erscheint ohne Neustart', erschienen)
+        zuweisen([TOM_ID])
+        erschienen = warte_auf_anzahl(d, vorher + 1)
+        log('TZ01', 'Umgewiesene Aufgabe erscheint ohne Neustart', erschienen,
+            f'{vorher} -> {anzahl_aufgaben(d)} Aufgaben')
         screenshot(d, 'tz01_zuweisung')
 
         # ---- TZ02: Zuweisung entfernen -> Aufgabe verschwindet -----------
         zuweisen([])
-        ende = time.time() + 45
-        verschwunden = False
-        while time.time() < ende:
-            if finde(d, 'cleaning', 2) is None:
-                verschwunden = True
-                break
-            time.sleep(3)
-        log('TZ02', 'Entfernte Zuweisung verschwindet wieder', verschwunden)
+        verschwunden = warte_auf_anzahl(d, vorher)
+        log('TZ02', 'Entfernte Zuweisung verschwindet wieder', verschwunden,
+            f'jetzt {anzahl_aufgaben(d)} Aufgaben (erwartet {vorher})')
 
         # ---- TZ03: Dasselbe nach Abmelden und erneutem Anmelden ----------
         # Der eigentliche Fehler: Das Abmelden rief Dispose() auf den
@@ -155,9 +173,13 @@ def main():
         log('TZ03a', 'Abmelden erfolgreich', abgemeldet and login(d))
 
         auf_heute_seite(d)
+        time.sleep(3)
+        vor_zuweisung = anzahl_aufgaben(d)
+
         zuweisen([TOM_ID])
-        wieder_da = erscheint_in_liste(d)
-        log('TZ03b', 'Zuweisung erscheint auch nach erneutem Anmelden', wieder_da)
+        wieder_da = warte_auf_anzahl(d, vor_zuweisung + 1)
+        log('TZ03b', 'Zuweisung erscheint auch nach erneutem Anmelden', wieder_da,
+            f'{vor_zuweisung} -> {anzahl_aufgaben(d)} Aufgaben')
         screenshot(d, 'tz03_nach_neuanmeldung')
 
         log('TZ04', 'Keine FATAL EXCEPTION im Durchlauf',
