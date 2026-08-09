@@ -47,11 +47,16 @@ jobs:
         echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > signing/cleanorga-release.keystore
         echo "Keystore: $(stat -c%s signing/cleanorga-release.keystore) Bytes"
 
+    # TargetFrameworks ausdruecklich auf Android begrenzen: Die csproj
+    # deklariert auch net10.0-ios und -maccatalyst, und der Restore zieht
+    # ALLE Zielplattformen - auf dem Linux-Runner gibt es das iOS-Workload
+    # nicht (NETSDK1178).
     - name: Build AAB
       run: |
         dotnet publish CleanOrgaCleaner/CleanOrgaCleaner.csproj \
           -f net10.0-android \
           -c Release \
+          -p:TargetFrameworks=net10.0-android \
           -p:AndroidPackageFormat=aab \
           -p:AndroidKeyStore=true \
           -p:AndroidSigningKeyStore=$GITHUB_WORKSPACE/signing/cleanorga-release.keystore \
