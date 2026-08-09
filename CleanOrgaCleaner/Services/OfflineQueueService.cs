@@ -223,11 +223,20 @@ public class OfflineQueueService : IDisposable
 
     #endregion
 
+    /// <summary>
+    /// Datenbank schliessen - der Dienst bleibt danach benutzbar.
+    ///
+    /// Die Lauf-Sperre wird bewusst NICHT freigegeben: Auch dieser Dienst ist
+    /// ein Singleton, und Dispose() läuft im Betrieb (Abmelden). Eine
+    /// weggeworfene Sperre hätte jedes spätere Abarbeiten der Warteschlange
+    /// mit ObjectDisposedException beendet - offline abgesetzte Nachrichten
+    /// und Arbeitszeiten wären liegen geblieben. Gleiche Falle wie im
+    /// WebSocketService, siehe dort.
+    /// </summary>
     public void Dispose()
     {
         // Schließen läuft asynchron weiter; ein blockierendes Warten hier
         // könnte den UI-Thread festsetzen.
         _ = _datenbank?.CloseAsync();
-        _laufSperre.Dispose();
     }
 }

@@ -22,7 +22,7 @@
 		<ApplicationDisplayVersion>2.08</ApplicationDisplayVersion>
 		<!-- Build-Nummer: muss je Upload eindeutig und aufsteigend sein.
 		     181 liegt bereits in App Store Connect. -->
-		<ApplicationVersion>183</ApplicationVersion>
+		<ApplicationVersion>184</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 

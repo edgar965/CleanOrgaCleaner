@@ -34,6 +34,15 @@ public class WebSocketService : IDisposable
     private volatile bool _istOnline;
     private volatile bool _sollWiederverbinden = true;
 
+    // Zeitpunkt der zuletzt empfangenen Nachricht. Daran erkennt der
+    // Keepalive eine halb tote Verbindung: Senden klappt, aber es kommt
+    // nichts mehr an - dann meldet der Socket weiter "Open", obwohl die
+    // App längst nichts mehr mitbekommt.
+    private long _letzterEmpfangTicks = DateTime.UtcNow.Ticks;
+
+    private TimeSpan StilleSeitEmpfang =>
+        DateTime.UtcNow - new DateTime(Interlocked.Read(ref _letzterEmpfangTicks), DateTimeKind.Utc);
+
     /// <summary>Neue Chat-Nachricht eingetroffen.</summary>
     public event Action<ChatMessage>? OnChatMessageReceived;
 
@@ -71,6 +80,12 @@ public class WebSocketService : IDisposable
     /// </summary>
     public async Task ConnectAsync()
     {
+        // Ausdrücklicher Verbindungswunsch: Ein vorangegangenes Dispose oder
+        // Abmelden hat das Wiederverbinden abgeschaltet - ohne dieses
+        // Zurücksetzen bliebe die App nach dem nächsten Anmelden dauerhaft
+        // ohne Verbindung.
+        _sollWiederverbinden = true;
+
         if (!await VerbindeEinmalAsync().ConfigureAwait(false))
             await _wiederverbinder.StarteAsync().ConfigureAwait(false);
     }
@@ -205,8 +220,10 @@ public class WebSocketService : IDisposable
                 SetzeOnline(true);
                 System.Diagnostics.Debug.WriteLine("WebSocket connected (unified)");
 
+                Interlocked.Exchange(ref _letzterEmpfangTicks, DateTime.UtcNow.Ticks);
+
                 _ = EmpfangeAsync();
-                _ = WsKeepAlive.LaufeAsync(_socket, _cts);
+                _ = WsKeepAlive.LaufeAsync(_socket, _cts, () => StilleSeitEmpfang);
 
                 // Wartendes IMMER nachholen, sobald die Verbindung steht -
                 // nicht nur, wenn zuvor ein Offline-Zustand erkannt wurde.
@@ -251,6 +268,10 @@ public class WebSocketService : IDisposable
             while (socket.State == WebSocketState.Open && !cts.Token.IsCancellationRequested)
             {
                 var ergebnis = await socket.ReceiveAsync(new ArraySegment<byte>(puffer), cts.Token).ConfigureAwait(false);
+
+                // Jeder Empfang zählt - auch das "pong" auf unseren Ping.
+                // Daran erkennt der Keepalive, dass die Leitung noch trägt.
+                Interlocked.Exchange(ref _letzterEmpfangTicks, DateTime.UtcNow.Ticks);
 
                 if (ergebnis.MessageType == WebSocketMessageType.Close)
                 {
@@ -321,11 +342,29 @@ public class WebSocketService : IDisposable
         UiSicher.SichererInvoke(() => OnConnectionStatusChanged?.Invoke(online), "WS");
     }
 
+    /// <summary>
+    /// Verbindung beenden und aufräumen - der Dienst bleibt danach benutzbar.
+    ///
+    /// Die Verbindungs-Sperre wird bewusst NICHT freigegeben: Dieser Dienst
+    /// ist ein Singleton, und Dispose() wird im laufenden Betrieb aufgerufen
+    /// (Abmelden, Fenster-Destroying). Auf iOS beendet das den Prozess nicht -
+    /// die App lief mit einer weggeworfenen Sperre weiter, und JEDER weitere
+    /// Verbindungsaufbau scheiterte danach mit ObjectDisposedException. Die
+    /// App bekam dann keine Aufgaben-Änderungen mehr; erst ein Neustart half.
+    /// Nachgewiesen am 09.08.2026 durch einen Crash-Bericht vom iPhone
+    /// (TaskScheduler.UnobservedTaskException, SemaphoreSlim).
+    /// </summary>
     public void Dispose()
     {
+        _sollWiederverbinden = false;
+
         _cts?.Cancel();
         _cts?.Dispose();
+        _cts = null;
+
         _socket?.Dispose();
-        _verbindeSperre.Dispose();
+        _socket = null;
+
+        SetzeOnline(false);
     }
 }

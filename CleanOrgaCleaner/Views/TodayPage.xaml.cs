@@ -30,7 +30,7 @@ public partial class TodayPage : ContentPage
         InitializeComponent();
         _apiService = ApiService.Instance;
         _webSocketService = WebSocketService.Instance;
-        _datumswaechter = new DatumswechselWaechter(NeuerTagErkannt);
+        _datumswaechter = new DatumswechselWaechter(NeuerTagErkannt, ListeAuffrischen);
         Log("Constructor DONE");
     }
 
@@ -46,6 +46,10 @@ public partial class TodayPage : ContentPage
         _webSocketService.OnTaskUpdate -= OnTaskUpdate;
         _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
+        // TEMP-DIAGNOSE (09.08.2026): Feuert OnAppearing überhaupt? Nur dann
+        // hört die Seite auf Meldungen.
+        ApiService.WriteServerDiag("heute", "OnAppearing - Seite hoert jetzt zu");
+
         _ = Header.InitializeAsync();
         Header.SetPageTitle("today");
 
@@ -58,11 +62,30 @@ public partial class TodayPage : ContentPage
     protected override void OnDisappearing()
     {
         base.OnDisappearing();
+
+        // TEMP-DIAGNOSE (09.08.2026): Feuert OnDisappearing, obwohl die Seite
+        // sichtbar bleibt? Dann stellt sie sich taub, ohne dass man es sieht.
+        ApiService.WriteServerDiag("heute", "OnDisappearing - Seite hoert NICHT mehr zu");
+
         _webSocketService.OnTaskUpdate -= OnTaskUpdate;
         _datumswaechter.Beenden();
     }
 
     /// <summary>Über Nacht offen geblieben: Tagesliste und Arbeitszeit neu holen.</summary>
+    /// <summary>
+    /// Liste im Minutentakt nachladen, solange die Seite offen ist.
+    ///
+    /// Sicherheitsnetz gegen verlorene Live-Meldungen: Eine Zuweisung, die
+    /// eintrifft, während diese Seite offen ist, erschien auf iPhones nicht -
+    /// obwohl der Server sie nachweislich meldet und Android sie sofort zeigt.
+    /// Die Ursache dafür ist offen; mit dem Nachladen ist die Liste unabhängig
+    /// davon höchstens eine Minute alt.
+    /// </summary>
+    private void ListeAuffrischen()
+    {
+        UiSicher.AufMainThread(() => LoadTasksAsync(), "TodayPage");
+    }
+
     private void NeuerTagErkannt()
     {
         Log($"Datumswechsel erkannt: {DateTime.Today:d}");
@@ -84,6 +107,10 @@ public partial class TodayPage : ContentPage
     private void OnTaskUpdate(string updateType)
     {
         System.Diagnostics.Debug.WriteLine($"[TodayPage] Task update received: {updateType}");
+
+        // TEMP-DIAGNOSE (09.08.2026): Kommt die Meldung auf der offenen Seite an?
+        ApiService.WriteServerDiag("heute", $"OnTaskUpdate: {updateType}");
+
         if (ListeNeuLaden.Contains(updateType))
             UiSicher.AufMainThread(() => LoadTasksAsync(), "TodayPage");
     }
