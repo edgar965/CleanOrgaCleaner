@@ -39,6 +39,12 @@ class Begriffe:
         ('Sprache', 'Language'),
         ('Beenden', 'Finish'),
         ('Keine Aufgaben', 'No tasks'),
+        ('Mitteilungen', 'Notifications'),
+        ('Push-Mitteilungen', 'Push notifications'),
+        ('Aktiviert', 'Enabled'),
+        ('Nicht aktiviert', 'Not enabled'),
+        ('Nicht aktiv', 'Not active'),
+        ('Sprache auswählen', 'Select language'),
     )
 
     @classmethod

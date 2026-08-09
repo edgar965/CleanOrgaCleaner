@@ -18,7 +18,7 @@ Aufruf: python test_chat_ui.py
 import sys
 import time
 from appium.webdriver.common.appiumby import AppiumBy
-from common import (treiber, login, navigiere, finde, finde_desc, edittexts,
+from common import (treiber, login, finde, finde_desc, edittexts,
                     django, screenshot, adb, PAKET, ACTIVITY, TEST_PREFIX,
                     Protokoll)
 

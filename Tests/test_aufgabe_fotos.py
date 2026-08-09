@@ -16,7 +16,7 @@ Aufruf: python test_aufgabe_fotos.py   (Emulator + Appium + APK vorausgesetzt)
 import sys
 import time
 
-from common import (netz, app_neustart, treiber, login, navigiere, finde, finde_desc,
+from common import (netz, app_neustart, treiber, login, navigiere, finde,
                     app_laeuft, kein_fatal, screenshot, django, Protokoll, AppiumBy)
 
 p = Protokoll()

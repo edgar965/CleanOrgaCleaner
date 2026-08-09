@@ -8,7 +8,7 @@ Aufruf: python test_funktionen.py   (Emulator + Appium + APK vorausgesetzt)
 import sys
 import time
 from common import (netz, app_neustart, treiber, login, navigiere, finde, finde_desc,
-                    edittexts, app_laeuft, kein_fatal, screenshot, Protokoll, AppiumBy)
+                    app_laeuft, kein_fatal, screenshot, Protokoll)
 
 p = Protokoll()
 

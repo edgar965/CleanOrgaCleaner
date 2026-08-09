@@ -7,40 +7,19 @@ Netzwerk-Simulation: adb svc wifi/data. Server-Verifikation per SSH (Django-ORM)
 
 Aufruf: python appium_offline_tests.py
 """
-import subprocess
 import sys
 import time
 
-ADB = r'C:\Program Files (x86)\Android\android-sdk\platform-tools\adb.exe'
-PAKET = 'com.cleanorga.cleaner'
-ACTIVITY = 'crc64872e68f2eafd0b30.MainActivity'
-APPIUM_URL = 'http://127.0.0.1:4723'
-SSH_ZIEL = 'root@91.99.235.72'
-TEST_PREFIX = '[APPIUM-TEST]'
+from common import (ACTIVITY, PAKET, TEST_PREFIX, AppiumBy, adb, app_laeuft,
+                    django, finde, login, netz, oeffne_chat_mit,
+                    screenshot, sende_text, treiber, warte_auf_server,
+                    Protokoll)
 
-from appium import webdriver
-from appium.options.android import UiAutomator2Options
-from appium.webdriver.common.appiumby import AppiumBy
+_protokoll = Protokoll()
 
-ergebnisse = []
-
-
-def adb(*args):
-    return subprocess.run([ADB, *args], capture_output=True, text=True, timeout=60).stdout.strip()
-
-
-def netz(an: bool):
-    zustand = 'enable' if an else 'disable'
-    adb('shell', 'svc', 'wifi', zustand)
-    adb('shell', 'svc', 'data', zustand)
-    time.sleep(3)
-
-
-def app_laeuft() -> bool:
-    # pidof ist auf manchen Images unzuverlässig -> ps als Fallback
-    if adb('shell', 'pidof', PAKET).strip():
-        return True
-    return PAKET in adb('shell', 'ps', '-A')
+# Der übrige Code sucht historisch mit finde_text; common.finde kann dasselbe
+# und kennt zusätzlich die deutschen Beschriftungen.
+finde_text = finde
 
 
 def warte_auf_start(timeout=25) -> bool:
@@ -63,45 +42,6 @@ def app_start():
     time.sleep(3)
 
 
-def ssh(befehl: str) -> str:
-    return subprocess.run(['ssh', SSH_ZIEL, befehl], capture_output=True, text=True, timeout=90).stdout.strip()
-
-
-def django(code: str) -> str:
-    """Django-ORM-Einzeiler auf dem Server (property_1)."""
-    script = (
-        "import os, django; os.environ.setdefault('DJANGO_SETTINGS_MODULE','CleanOrga.settings.prod_settings'); "
-        "django.setup(); from webinterface.db_router import set_current_property; set_current_property(1); " + code
-    )
-    return ssh(
-        "cd /var/www/cleanorga && set -a && . ./.env && set +a && "
-        f"DJANGO_SETTINGS_MODULE=CleanOrga.settings.prod_settings PYTHONPATH=/var/www/cleanorga venv/bin/python -c \"{script}\""
-    )
-
-
-def treiber():
-    opts = UiAutomator2Options()
-    opts.platform_name = 'Android'
-    opts.device_name = 'emulator-5554'
-    opts.app_package = PAKET
-    opts.app_activity = ACTIVITY
-    opts.no_reset = True          # App-Daten (Login/Cache) zwischen Sessions behalten
-    opts.auto_grant_permissions = True
-    opts.new_command_timeout = 300
-    return webdriver.Remote(APPIUM_URL, options=opts)
-
-
-def finde_text(d, text, timeout=15):
-    ende = time.time() + timeout
-    while time.time() < ende:
-        try:
-            el = d.find_element(AppiumBy.ANDROID_UIAUTOMATOR, f'new UiSelector().textContains("{text}")')
-            return el
-        except Exception:
-            time.sleep(1)
-    return None
-
-
 def finde_klasse(d, klasse, index, timeout=15):
     ende = time.time() + timeout
     while time.time() < ende:
@@ -113,59 +53,8 @@ def finde_klasse(d, klasse, index, timeout=15):
 
 
 def protokoll(nr, titel, ok, detail=''):
-    ergebnisse.append((nr, titel, ok, detail))
-    status = 'PASS' if ok else 'FAIL'
-    print(f'[{status}] {nr}: {titel}' + (f' - {detail}' if detail else ''), flush=True)
-
-
-def screenshot(d, name):
-    try:
-        d.get_screenshot_as_file(rf'D:\Daten\CleanOrga\CleanOrgaCleaner\Tests\shot_{name}.png')
-    except Exception:
-        pass
-
-
-def oeffne_menue(d):
-    """Hamburger-Menü im Header öffnen (Flyout-Overlay, keine Tab-Bar)."""
-    g = d.get_window_size()
-    d.tap([(int(g['width'] * 0.56), int(g['height'] * 0.14))])
-    time.sleep(2)
-
-
-def navigiere(d, menuepunkt):
-    ziel = finde_text(d, menuepunkt, 3)
-    if ziel is None:
-        oeffne_menue(d)
-        ziel = finde_text(d, menuepunkt, 5)
-    if ziel is not None:
-        ziel.click(); time.sleep(4); return True
-    return False
-
-
-def login(d):
-    """Robuster Login mit Retry (nach Netzwechsel/Neustart flaky)."""
-    for _ in range(3):
-        if finde_text(d, 'Today', 4) is not None:
-            return True
-        felder = []
-        ende = time.time() + 20
-        while time.time() < ende:
-            felder = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.EditText')
-            if len(felder) >= 3:
-                break
-            time.sleep(1)
-        if len(felder) >= 3:
-            felder[0].clear(); felder[0].send_keys('1')
-            felder[1].clear(); felder[1].send_keys('tom')
-            felder[2].clear(); felder[2].send_keys('tom')
-            knopf = finde_text(d, 'Login', 5)
-            if knopf:
-                knopf.click()
-            time.sleep(10)
-            if finde_text(d, 'Today', 8) is not None:
-                return True
-        time.sleep(3)
-    return finde_text(d, 'Today', 5) is not None
+    """Ergebniszeile - die Sammlung liegt in der Protokoll-Klasse (common)."""
+    _protokoll(nr, titel, ok, detail)
 
 
 def main():
@@ -252,49 +141,38 @@ def main():
         screenshot(d, 'tc05')
 
         # ---- TC07: Chat offline an Admin ----
-        chat_ok = navigiere(d, 'Chat')
-        if chat_ok:
-            admin_eintrag = finde_text(d, 'Admin', 10)
-            if admin_eintrag:
-                try:
-                    btn = d.find_element(AppiumBy.ANDROID_UIAUTOMATOR,
-                        'new UiSelector().className("android.widget.Button").textContains("Chat").instance(0)')
-                    btn.click(); time.sleep(4)
-                except Exception:
-                    admin_eintrag = None
-                eingaben = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.EditText')
-                if eingaben:
-                    testtext = f'{TEST_PREFIX} offline an admin'
-                    eingaben[-1].send_keys(testtext)
-                    senden = finde_text(d, 'Send', 5) or finde_text(d, '>', 3)
-                    # Senden-Button ist evtl. ein Bild-Button - notfalls letztes Button-Element
-                    if senden is None:
-                        knoepfe = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.Button')
-                        senden = knoepfe[-1] if knoepfe else None
-                    if senden:
-                        senden.click(); time.sleep(4)
-                    lebt = app_laeuft()
-                    protokoll('TC07a', 'Chat-Nachricht offline abgesetzt: App stabil', lebt)
-                    screenshot(d, 'tc07')
-                else:
-                    protokoll('TC07a', 'Chat offline', False, 'Eingabefeld nicht gefunden')
-            else:
-                protokoll('TC07a', 'Chat offline', False, 'Admin-Chat nicht gefunden')
+        # Verlauf und Senden über die gemeinsamen Fassungen: Die frühere
+        # Eigenbau-Variante suchte den Senden-Knopf über den Text "Send" und
+        # fiel sonst auf "den letzten Knopf" zurück. Bei offener Tastatur traf
+        # das deren Enter-Taste, die in der App nichts auslöst - die Nachricht
+        # blieb im Feld stehen und TC07b meldete dauerhaft Count=0.
+        if oeffne_chat_mit(d, 'Admin'):
+            abgeschickt = sende_text(d, f'{TEST_PREFIX} offline an admin')
+            protokoll('TC07a', 'Chat-Nachricht offline abgesetzt: App stabil',
+                      app_laeuft() and abgeschickt)
+            screenshot(d, 'tc07')
         else:
-            protokoll('TC07a', 'Chat offline', False, 'Chat-Tab nicht gefunden')
+            protokoll('TC07a', 'Chat offline', False, 'Admin-Chat nicht gefunden')
 
         # ---- TC06 + TC07b: Reconnect -> Queue synct (Server-Verifikation) ----
         netz(True)
-        time.sleep(25)  # Reconnect + Queue-Verarbeitung
+        time.sleep(10)
         lebt = app_laeuft()
         protokoll('TC06a', 'Reconnect: App stabil', lebt)
 
-        nachricht = django(
-            "from webinterface.models import ChatMessage; "
-            "print(ChatMessage.objects.using('property_1').filter(text__contains='[APPIUM-TEST]').count())"
-        )
-        protokoll('TC07b', f'Offline-Chatnachricht am Server angekommen (Count={nachricht})',
-                  nachricht.strip().isdigit() and int(nachricht.strip()) >= 1)
+        def am_server():
+            antwort = django(
+                "from webinterface.models import ChatMessage; "
+                "print(ChatMessage.objects.using('property_1')"
+                ".filter(text__contains='[APPIUM-TEST]').count())"
+            ).strip()
+            return antwort.isdigit() and int(antwort) >= 1
+
+        # Aktiv warten: Die Warteschlange braucht nach dem Wiederverbinden
+        # unterschiedlich lange (gemessen 15-30 s). Ein festes sleep(25)
+        # meldete sporadisch "kam nicht an".
+        angekommen = warte_auf_server(am_server, timeout=90)
+        protokoll('TC07b', 'Offline-Chatnachricht am Server angekommen', angekommen)
 
         # ---- TC09b: Banner verschwindet nach Reconnect ----
         heute_tab = finde_text(d, 'Today', 10)
@@ -334,12 +212,7 @@ def main():
             pass
         netz(True)
 
-    print('\n=== ERGEBNIS ===', flush=True)
-    bestanden = sum(1 for _, _, ok, _ in ergebnisse if ok)
-    for nr, titel, ok, detail in ergebnisse:
-        print(f'{"PASS" if ok else "FAIL"}  {nr:9} {titel}' + (f' [{detail}]' if detail else ''), flush=True)
-    print(f'{bestanden}/{len(ergebnisse)} bestanden', flush=True)
-    sys.exit(0 if bestanden == len(ergebnisse) else 1)
+    sys.exit(_protokoll.abschluss())
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Loggt den Emulator als edgar ein und laesst die App laufen (Firestore-Listener
 startet nach dem Login). Danach extern: logcat pruefen + Firestore-Injektion."""
-import sys, time
+import time
 from common import treiber, login, adb, finde, PAKET, ACTIVITY
 
 d = treiber()

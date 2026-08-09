@@ -9,22 +9,13 @@ Voraussetzungen siehe common.py. Aufruf: python test_notifications.py
 """
 import sys
 import time
-from appium.webdriver.common.appiumby import AppiumBy
-from common import (treiber, login, finde, finde_desc, django, screenshot,
-                    adb, PAKET, ACTIVITY, Protokoll)
+from common import (treiber, login, finde, django, screenshot, navigiere,
+                    scrolle_zu, schalter_neben, adb, PAKET, ACTIVITY, Protokoll)
 
 
 def geh_zu_einstellungen(d) -> bool:
-    z = finde(d, 'Einstellung', 2) or finde(d, 'Settings', 2)
-    if z is not None:
-        z.click(); time.sleep(3); return True
-    g = d.get_window_size()
-    d.tap([(int(g['width'] * 0.56), int(g['height'] * 0.1375))])  # Hamburger
-    time.sleep(2)
-    z = finde(d, 'Einstellung', 4) or finde(d, 'Settings', 4)
-    if z is not None:
-        z.click(); time.sleep(3); return True
-    return False
+    """Über das Hamburger-Menü zu den Einstellungen - in jeder Sprache."""
+    return navigiere(d, 'Einstellungen')
 
 
 def edgar_token_count():
@@ -61,15 +52,16 @@ def main():
             return log.abschluss()
         screenshot(d, 'n_settings')
 
-        # Mitteilungen-Switch finden (Biometrie ist am Emulator meist ausgeblendet)
-        switches = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.Switch')
-        if not switches:
-            log('N01', 'Mitteilungen-Schalter', False, 'kein Switch gefunden')
+        # Den Schalter NEBEN "Push-Mitteilungen" nehmen - der Abschnitt steht
+        # unten und wird erst nach dem Wischen Teil der Hierarchie. Wer
+        # stattdessen "den letzten Schalter" nimmt, erwischt die Biometrie.
+        schalter = schalter_neben(d, 'Push-Mitteilungen')
+        if schalter is None:
+            log('N01', 'Mitteilungen-Schalter', False, 'kein Schalter gefunden')
             log('N02', 'Zustand', False, 'uebersprungen')
             return log.abschluss()
 
-        sw = switches[-1]
-        sw.click()          # anschalten
+        schalter.click()    # anschalten
         time.sleep(2)
         erlaube_dialog(d)   # evtl. Berechtigungsdialog
         time.sleep(4)
@@ -79,9 +71,12 @@ def main():
         log('N01', f'Token nach Toggle registriert (vorher={vorher}, nachher={nachher})',
             nachher > 0)
 
-        status_da = (finde(d, 'Aktiviert', 3) is not None
-                     or finde(d, 'aktiv', 3) is not None
-                     or finde(d, 'Nicht', 2) is not None)
+        # Der Zustand steht unter der Beschriftung ("Aktiviert" / "Nicht
+        # aktiviert"). Vollstaendige Begriffe suchen, damit begriffe.Begriffe
+        # die englische Entsprechung mitprueft.
+        status_da = (scrolle_zu(d, 'Aktiviert', 1) is not None
+                     or finde(d, 'Nicht aktiviert', 2) is not None
+                     or finde(d, 'Nicht aktiv', 2) is not None)
         log('N02', 'Zustandsanzeige sichtbar', status_da)
 
         return log.abschluss()

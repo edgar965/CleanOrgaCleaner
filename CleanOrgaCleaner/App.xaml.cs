@@ -85,6 +85,12 @@ public partial class App : Application
                 // Änderungen (z.B. Aufgabenbeschreibungen) kamen nicht an.
                 // Daten-Reload der offenen Seiten anstoßen.
                 WebSocketService.Instance.NotifyTaskUpdate();
+
+                // Offline Abgesetztes nachreichen. Zweiter Weg neben dem
+                // Verbindungsaufbau: Stand die Verbindung durchgehend, gab es
+                // vorher gar keinen Auslöser - Nachrichten und Arbeitszeiten
+                // blieben dann unbemerkt in der Warteschlange liegen.
+                WebSocketService.Instance.WarteschlangeNachholen();
             }
         }
         catch (Exception ex)

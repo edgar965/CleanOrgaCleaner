@@ -199,7 +199,6 @@ public class WebSocketService : IDisposable
 
             if (_socket.State == WebSocketState.Open)
             {
-                var warOffline = !_istOnline;
                 // VOR dem Melden setzen: die Oberfläche prüft im Handler, ob
                 // schon einmal eine Verbindung bestand
                 WarSchonVerbunden = true;
@@ -209,8 +208,15 @@ public class WebSocketService : IDisposable
                 _ = EmpfangeAsync();
                 _ = WsKeepAlive.LaufeAsync(_socket, _cts);
 
-                if (warOffline)
-                    _ = HoleWarteschlangeNachAsync();
+                // Wartendes IMMER nachholen, sobald die Verbindung steht -
+                // nicht nur, wenn zuvor ein Offline-Zustand erkannt wurde.
+                // Genau daran scheiterte es: Wurde der Netzverlust nie als
+                // solcher vermerkt, blieben offline abgesetzte Nachrichten UND
+                // Arbeitszeit-Buchungen dauerhaft in der Warteschlange liegen -
+                // ohne einen einzigen Zustellversuch (nachgewiesen am
+                // 09.08.2026: RetryCount=0, LastError=leer). Der Aufruf ist
+                // billig und gegen Doppelläufe gesichert.
+                _ = HoleWarteschlangeNachAsync();
             }
         }
         catch (Exception ex)
@@ -286,6 +292,13 @@ public class WebSocketService : IDisposable
         SetzeOnline(false);
         await _wiederverbinder.StarteAsync().ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Wartende Offline-Vorgänge von aussen anstossen (z.B. bei Rückkehr der
+    /// App in den Vordergrund). Zweiter Weg neben dem Verbindungsaufbau,
+    /// damit nichts liegen bleibt, wenn die Verbindung durchgehend stand.
+    /// </summary>
+    public void WarteschlangeNachholen() => _ = HoleWarteschlangeNachAsync();
 
     /// <summary>Wartende Offline-Vorgänge nachholen.</summary>
     private static async Task HoleWarteschlangeNachAsync()

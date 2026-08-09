@@ -10,11 +10,11 @@ Aufruf: python test_chat_realtime.py
 """
 import sys
 import time
-from appium.webdriver.common.appiumby import AppiumBy
-from common import (treiber, finde, finde_desc, edittexts, django, screenshot,
-                    adb, login, PAKET, ACTIVITY, TEST_PREFIX, Protokoll)
+from common import (treiber, finde, django, screenshot, sende_text,
+                    oeffne_chat_mit, adb, login, PAKET, ACTIVITY, TEST_PREFIX,
+                    Protokoll)
 
-ADMIN_ID = 11
+# Die Verwaltung hat bewusst KEINE Cleaner-Id - siehe injiziere().
 TOM_ID = 9
 
 
@@ -28,42 +28,30 @@ def app_bereit(d, timeout=40) -> bool:
     return False
 
 
-def geh_zu_chat(d) -> bool:
-    z = finde(d, 'Chat', 2)
-    if z is not None:
-        z.click(); time.sleep(3); return True
-    g = d.get_window_size()
-    d.tap([(int(g['width'] * 0.56), int(g['height'] * 0.1375))])
-    time.sleep(2)
-    z = finde(d, 'Chat', 5)
-    if z is not None:
-        z.click(); time.sleep(4); return True
-    return False
-
-
 def oeffne_admin(d) -> bool:
-    geh_zu_chat(d)
-    try:
-        b = d.find_element(
-            AppiumBy.ANDROID_UIAUTOMATOR,
-            'new UiSelector().className("android.widget.Button").textContains("Chat").instance(0)')
-        b.click(); time.sleep(4); return True
-    except Exception:
-        z = finde(d, 'Admin', 4)
-        if z is not None:
-            z.click(); time.sleep(4); return True
-    return False
+    """Verlauf mit der Verwaltung öffnen (gemeinsame Fassung in common.py).
+
+    Die frühere Fassung tippte auf eine feste Koordinate und fiel notfalls auf
+    einen Klick auf den Namen zurück - der öffnet den Verlauf aber nicht. Die
+    App blieb in der Liste stehen, und RT02 fand kein Eingabefeld.
+    """
+    return oeffne_chat_mit(d, 'Admin')
 
 
 def injiziere(text) -> str:
+    """Nachricht der Verwaltung an tom - auf demselben Weg wie die Oberfläche.
+
+    ``sender=None`` kennzeichnet die Verwaltung (siehe
+    ``ChatMessage.get_admin_conversation``); das Verschicken übernimmt
+    ``broadcast_chat_message``, damit Nutzlast und Empfängerwahl zum
+    Produktivcode passen.
+    """
     code = (
         "from webinterface.models import ChatMessage, Cleaner; "
-        "from channels.layers import get_channel_layer; from asgiref.sync import async_to_sync; "
-        f"a=Cleaner.objects.using('property_1').get(id={ADMIN_ID}); "
+        "from webinterface.views.shared.websocket import broadcast_chat_message; "
         f"t=Cleaner.objects.using('property_1').get(id={TOM_ID}); "
-        f"m=ChatMessage.objects.using('property_1').create(sender=a, receiver=t, text='{text}'); "
-        "d={'id':m.id,'text':m.text,'is_mine':False,'from_admin':True,'sender':'Admin','sender_name':'Admin','cleaner_id':t.id,'timestamp':m.timestamp.isoformat()}; "
-        "cl=get_channel_layer(); async_to_sync(cl.group_send)('cleaner_%d__p1'%t.id,{'type':'chat_message','message':d}); "
+        f"m=ChatMessage.objects.using('property_1').create(sender=None, receiver=t, text='{text}'); "
+        "broadcast_chat_message(t.id, m); "
         "print(m.id)"
     )
     return django(code).strip()
@@ -73,14 +61,6 @@ def db_count(teil) -> int:
     r = django("from webinterface.models import ChatMessage; "
                f"print(ChatMessage.objects.using('property_1').filter(text__contains='{teil}').count())")
     return int(r) if r.strip().isdigit() else -1
-
-
-def sende_button(d):
-    b = finde_desc(d, 'Send', 3) or finde(d, 'Send', 2)
-    if b is not None:
-        return b
-    k = d.find_elements(AppiumBy.CLASS_NAME, 'android.widget.Button')
-    return k[-1] if k else None
 
 
 def main():
@@ -116,18 +96,16 @@ def main():
         screenshot(d, 'rt01_live')
         log('RT01', f'Injizierte Admin-Nachricht live per WS (msg {mid})', gefunden)
 
-        # RT02: tom sendet an Admin
-        felder = edittexts(d)
-        if felder:
-            felder[-1].click(); time.sleep(1)
-            felder[-1].send_keys(f'{TEST_PREFIX} rt02-send'); time.sleep(1)
-            b = sende_button(d)
-            if b is not None:
-                b.click()
-            time.sleep(4)
+        # RT02: tom sendet an Admin.
+        # Den Rueckgabewert auswerten: Sonst ist bei DB-count=0 nicht zu
+        # unterscheiden, ob das Senden scheiterte oder die Nachricht nur noch
+        # nicht am Server war.
+        gesendet = sende_text(d, f'{TEST_PREFIX} rt02-send')
+        time.sleep(3)
         cnt = db_count('rt02-send')
         screenshot(d, 'rt02_send')
-        log('RT02', 'tom sendet an Admin -> am Server', cnt >= 1, f'DB-count={cnt}')
+        log('RT02', 'tom sendet an Admin -> am Server', cnt >= 1,
+            f'abgeschickt={gesendet}, DB-count={cnt}')
 
         return log.abschluss()
     finally:
