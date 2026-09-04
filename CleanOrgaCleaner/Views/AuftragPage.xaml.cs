@@ -24,6 +24,8 @@ public partial class AuftragPage : ContentPage
     private List<Auftrag> _tasks = new();
     private List<ApartmentInfo> _apartments = new();
     private List<AufgabenartInfo> _aufgabenarten = new();
+    /// <summary>Vorauswahl der Firma; null = keine konfiguriert.</summary>
+    private AufgabenartInfo? _standardAufgabenart;
     private List<CleanerAssignmentInfo> _cleaners = new();
 
     private Auftrag? _currentTask;
@@ -118,7 +120,7 @@ public partial class AuftragPage : ContentPage
         NoLogsLabel.Text = t("no_logs");
 
         // Eingabefelder
-        LabelTaskName.Text = t("task_name_required");
+        LabelTaskTitel.Text = t("task_name_required");
         LabelApartment.Text = t("apartment");
         LabelDate.Text = t("date_required");
         LabelTaskType.Text = t("task_type");
@@ -160,6 +162,7 @@ public partial class AuftragPage : ContentPage
             _tasks = daten.Tasks ?? new List<Auftrag>();
             _apartments = daten.Apartments ?? new List<ApartmentInfo>();
             _aufgabenarten = daten.Aufgabenarten ?? new List<AufgabenartInfo>();
+            _standardAufgabenart = daten.StandardAufgabenart;
             _cleaners = (daten.Cleaners ?? new List<CleanerInfo>())
                 .Select(c => new CleanerAssignmentInfo(c))
                 .ToList();

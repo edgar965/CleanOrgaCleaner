@@ -11,7 +11,7 @@ public sealed class AuftragAnlegen : WarteschlangenAufgabe
     {
         var felder = AuftragFelder.Lies(Daten);
         var antwort = await api.CreateAuftragAsync(
-            felder.Name, felder.GeplantesDatum, felder.ApartmentId, felder.AufgabenartId,
+            felder.Titel, felder.GeplantesDatum, felder.ApartmentId, felder.AufgabenartId,
             felder.Hinweis, felder.Status, felder.Zuordnungen).ConfigureAwait(false);
         return antwort.Success;
     }

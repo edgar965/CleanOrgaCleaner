@@ -8,7 +8,8 @@ namespace CleanOrgaCleaner.Views.Hilfen;
 /// </summary>
 public sealed class AuftragEingaben
 {
-    public string Name { get; }
+    /// <summary>Titel der Aufgabe; steht in der App auf der Kachel.</summary>
+    public string Titel { get; }
     public string GeplantesDatum { get; }
     public int? ApartmentId { get; }
     public int? AufgabenartId { get; }
@@ -19,10 +20,10 @@ public sealed class AuftragEingaben
     /// Datum aus dem Auswahlfeld. Es kann leer sein - dann gilt der heutige Tag,
     /// weil der Server ein geplantes Datum verlangt.
     /// </param>
-    public AuftragEingaben(string name, DateTime? datum, int? apartmentId, int? aufgabenartId,
+    public AuftragEingaben(string titel, DateTime? datum, int? apartmentId, int? aufgabenartId,
         string? hinweis, string status)
     {
-        Name = name;
+        Titel = titel;
         GeplantesDatum = $"{datum ?? DateTime.Today:yyyy-MM-dd}";
         ApartmentId = apartmentId;
         AufgabenartId = aufgabenartId;
@@ -30,6 +31,6 @@ public sealed class AuftragEingaben
         Status = status;
     }
 
-    /// <summary>Ohne Namen lässt sich kein Auftrag anlegen.</summary>
-    public bool IstVollstaendig => !string.IsNullOrEmpty(Name);
+    /// <summary>Ohne Titel lässt sich kein Auftrag anlegen.</summary>
+    public bool IstVollstaendig => !string.IsNullOrEmpty(Titel);
 }

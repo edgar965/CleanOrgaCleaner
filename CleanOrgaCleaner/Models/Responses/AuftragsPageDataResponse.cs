@@ -20,6 +20,14 @@ public class AuftragsPageDataResponse
     [JsonPropertyName("aufgabenarten")]
     public List<AufgabenartInfo>? Aufgabenarten { get; set; }
 
+    /// <summary>
+    /// Vorauswahl der Firma (Konfiguration → Aufgaben, Spalte "Default").
+    /// Ist keine gesetzt, kommt hier null - dann bleibt es beim bisherigen
+    /// Verhalten (keine Vorauswahl, Aufgabenname "Reparatur").
+    /// </summary>
+    [JsonPropertyName("standard_aufgabenart")]
+    public AufgabenartInfo? StandardAufgabenart { get; set; }
+
     [JsonPropertyName("cleaners")]
     public List<CleanerInfo>? Cleaners { get; set; }
 

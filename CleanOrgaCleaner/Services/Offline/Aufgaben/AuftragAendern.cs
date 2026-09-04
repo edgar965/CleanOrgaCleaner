@@ -13,7 +13,7 @@ public sealed class AuftragAendern : WarteschlangenAufgabe
         var felder = AuftragFelder.Lies(Daten);
 
         var antwort = await api.UpdateAuftragAsync(
-            aufgabenId, felder.Name, felder.GeplantesDatum, felder.ApartmentId, felder.AufgabenartId,
+            aufgabenId, felder.Titel, felder.GeplantesDatum, felder.ApartmentId, felder.AufgabenartId,
             felder.Hinweis, felder.Status, felder.Zuordnungen).ConfigureAwait(false);
         return antwort.Success;
     }

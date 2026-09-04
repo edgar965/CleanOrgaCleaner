@@ -37,16 +37,16 @@ public sealed class AuftragApi
     }
 
     /// <summary>Neuen Auftrag anlegen.</summary>
-    public Task<ApiResponse> LegeAnAsync(string name, string geplantesDatum, int? apartmentId,
+    public Task<ApiResponse> LegeAnAsync(string titel, string geplantesDatum, int? apartmentId,
         int? aufgabenartId, string? hinweis, string status, TaskAssignments? zuordnungen)
         => SchreibeAsync("/mobile/api/task/create/", "CreateAuftrag",
-            name, geplantesDatum, apartmentId, aufgabenartId, hinweis, status, zuordnungen);
+            titel, geplantesDatum, apartmentId, aufgabenartId, hinweis, status, zuordnungen);
 
     /// <summary>Bestehenden Auftrag ändern.</summary>
-    public Task<ApiResponse> AendereAsync(int aufgabenId, string name, string geplantesDatum, int? apartmentId,
+    public Task<ApiResponse> AendereAsync(int aufgabenId, string titel, string geplantesDatum, int? apartmentId,
         int? aufgabenartId, string? hinweis, string status, TaskAssignments? zuordnungen)
         => SchreibeAsync($"/mobile/api/task/{aufgabenId}/update/", "UpdateAuftrag",
-            name, geplantesDatum, apartmentId, aufgabenartId, hinweis, status, zuordnungen);
+            titel, geplantesDatum, apartmentId, aufgabenartId, hinweis, status, zuordnungen);
 
     /// <summary>Auftrag löschen.</summary>
     public async Task<ApiResponse> LoescheAsync(int aufgabenId)
@@ -72,14 +72,17 @@ public sealed class AuftragApi
     }
 
     /// <summary>Gemeinsamer Rumpf für Anlegen und Ändern.</summary>
-    private async Task<ApiResponse> SchreibeAsync(string pfad, string merker, string name, string geplantesDatum,
+    private async Task<ApiResponse> SchreibeAsync(string pfad, string merker, string titel, string geplantesDatum,
         int? apartmentId, int? aufgabenartId, string? hinweis, string status, TaskAssignments? zuordnungen)
     {
         try
         {
             var daten = new
             {
-                name = name,
+                // name wird mitgeschickt, damit die Aufgabe in den Weblisten
+                // denselben Text traegt wie auf der Kachel.
+                name = titel,
+                titel = titel,
                 planned_date = geplantesDatum,
                 apartment_id = apartmentId,
                 aufgabenart_id = aufgabenartId,

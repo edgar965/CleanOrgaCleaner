@@ -19,9 +19,14 @@ public partial class AuftragPage
         LeereAnmerkungen();
 
         PopupTitle.Text = Translations.Get("create_auftrag");
-        TaskNameEntry.Text = "Reparatur";
+        // Vorauswahl der Firma: ihre Aufgabenart und ihr Name als Vorschlag.
+        // Ohne Konfiguration bleibt es beim bisherigen "Reparatur".
+        TaskTitelEntry.Text = _standardAufgabenart?.Name ?? "Reparatur";
         ApartmentPicker.SelectedIndex = -1;
-        AufgabenartPicker.SelectedIndex = -1;
+        AufgabenartPicker.SelectedItem = _standardAufgabenart is null
+            ? null
+            : _aufgabenarten.FirstOrDefault(a => a.Id == _standardAufgabenart.Id);
+        if (AufgabenartPicker.SelectedItem is null) AufgabenartPicker.SelectedIndex = -1;
         TaskDatePicker.Date = DateTime.Today;
         TaskHinweisEditor.Text = "";
         _currentStatus = "imported";
@@ -43,7 +48,8 @@ public partial class AuftragPage
         _assignments = auftrag.Assignments ?? LeereZuweisung();
 
         PopupTitle.Text = Translations.Get("edit_auftrag");
-        TaskNameEntry.Text = auftrag.Name;
+        // Aufgaben aus der Zeit vor dem Titelfeld tragen ihn im Namen.
+        TaskTitelEntry.Text = auftrag.Anzeigename;
 
         ApartmentPicker.SelectedItem = auftrag.ApartmentId.HasValue
             ? _apartments.FirstOrDefault(a => a.Id == auftrag.ApartmentId.Value)
@@ -119,7 +125,7 @@ public partial class AuftragPage
 
     /// <summary>Die Angaben aus dem Dialog einsammeln.</summary>
     private AuftragEingaben LiesEingaben() => new(
-        TaskNameEntry.Text?.Trim() ?? "",
+        TaskTitelEntry.Text?.Trim() ?? "",
         TaskDatePicker.Date,
         (ApartmentPicker.SelectedItem as ApartmentInfo)?.Id,
         (AufgabenartPicker.SelectedItem as AufgabenartInfo)?.Id,
@@ -148,9 +154,9 @@ public partial class AuftragPage
             }
 
             var antwort = _isNewTask
-                ? await _apiService.CreateAuftragAsync(eingaben.Name, eingaben.GeplantesDatum, eingaben.ApartmentId,
+                ? await _apiService.CreateAuftragAsync(eingaben.Titel, eingaben.GeplantesDatum, eingaben.ApartmentId,
                     eingaben.AufgabenartId, eingaben.Hinweis, eingaben.Status, _assignments)
-                : await _apiService.UpdateAuftragAsync(_currentTask!.Id, eingaben.Name, eingaben.GeplantesDatum,
+                : await _apiService.UpdateAuftragAsync(_currentTask!.Id, eingaben.Titel, eingaben.GeplantesDatum,
                     eingaben.ApartmentId, eingaben.AufgabenartId, eingaben.Hinweis, eingaben.Status, _assignments);
 
             if (antwort.Success)
@@ -189,10 +195,10 @@ public partial class AuftragPage
         var warteschlange = OfflineQueueService.Instance;
 
         if (_isNewTask)
-            await warteschlange.EnqueueTaskCreateAsync(eingaben.Name, eingaben.GeplantesDatum, eingaben.ApartmentId,
+            await warteschlange.EnqueueTaskCreateAsync(eingaben.Titel, eingaben.GeplantesDatum, eingaben.ApartmentId,
                 eingaben.AufgabenartId, eingaben.Hinweis, eingaben.Status, _assignments);
         else
-            await warteschlange.EnqueueTaskUpdateAsync(_currentTask!.Id, eingaben.Name, eingaben.GeplantesDatum,
+            await warteschlange.EnqueueTaskUpdateAsync(_currentTask!.Id, eingaben.Titel, eingaben.GeplantesDatum,
                 eingaben.ApartmentId, eingaben.AufgabenartId, eingaben.Hinweis, eingaben.Status, _assignments);
     }
 

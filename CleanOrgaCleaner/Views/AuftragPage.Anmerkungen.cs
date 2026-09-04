@@ -161,7 +161,7 @@ public partial class AuftragPage
             return false;
         }
 
-        var antwort = await _apiService.CreateAuftragAsync(eingaben.Name, eingaben.GeplantesDatum,
+        var antwort = await _apiService.CreateAuftragAsync(eingaben.Titel, eingaben.GeplantesDatum,
             eingaben.ApartmentId, eingaben.AufgabenartId, eingaben.Hinweis, eingaben.Status, _assignments);
 
         if (!antwort.Success || !antwort.TaskId.HasValue)
@@ -172,7 +172,7 @@ public partial class AuftragPage
 
         // Ab jetzt im Bearbeiten-Modus
         _isNewTask = false;
-        _currentTask = new Auftrag { Id = antwort.TaskId.Value, Name = eingaben.Name };
+        _currentTask = new Auftrag { Id = antwort.TaskId.Value, Name = eingaben.Titel, Titel = eingaben.Titel };
         PopupTitle.Text = t("edit_auftrag");
         BtnDelete.IsVisible = true;
         _ = LoadDataAsync();

@@ -13,6 +13,10 @@ public class Auftrag
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";
 
+    /// <summary>Kurzer Titel der Aufgabe - steht auf der Kachel und in der Liste.</summary>
+    [JsonPropertyName("titel")]
+    public string? Titel { get; set; }
+
     [JsonPropertyName("checkliste")]
     public List<string>? Checkliste { get; set; }
 
@@ -45,6 +49,15 @@ public class Auftrag
 
     [JsonPropertyName("anmerkungen")]
     public List<ImageListDescription>? Anmerkungen { get; set; }
+
+    /// <summary>
+    /// Beschriftung in der Liste: der Titel, solange es einen gibt.
+    ///
+    /// Aufgaben aus der Zeit vor dem Titelfeld (und die aus dem Kalender-Import)
+    /// haben keinen - dort bleibt der Name stehen, sonst waere die Zeile leer.
+    /// </summary>
+    [JsonIgnore]
+    public string Anzeigename => string.IsNullOrWhiteSpace(Titel) ? Name : Titel!;
 
     /// <summary>True, wenn mindestens eine Arbeitskraft zugewiesen ist.</summary>
     [JsonIgnore]

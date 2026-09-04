@@ -182,13 +182,13 @@ public class ApiService
     /// <summary>Daten der Auftragsseite laden.</summary>
     public Task<AuftragsPageDataResponse> GetAuftragsDataAsync() => _auftraege.HoleUebersichtAsync();
     /// <summary>Neuen Auftrag anlegen.</summary>
-    public Task<ApiResponse> CreateAuftragAsync(string name, string plannedDate, int? apartmentId,
+    public Task<ApiResponse> CreateAuftragAsync(string titel, string plannedDate, int? apartmentId,
         int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
-        => _auftraege.LegeAnAsync(name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments);
+        => _auftraege.LegeAnAsync(titel, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments);
     /// <summary>Auftrag ändern.</summary>
-    public Task<ApiResponse> UpdateAuftragAsync(int taskId, string name, string plannedDate, int? apartmentId,
+    public Task<ApiResponse> UpdateAuftragAsync(int taskId, string titel, string plannedDate, int? apartmentId,
         int? aufgabenartId, string? hinweis, string status, TaskAssignments? assignments)
-        => _auftraege.AendereAsync(taskId, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments);
+        => _auftraege.AendereAsync(taskId, titel, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments);
     /// <summary>Auftrag löschen.</summary>
     public Task<ApiResponse> DeleteAuftragAsync(int taskId) => _auftraege.LoescheAsync(taskId);
 

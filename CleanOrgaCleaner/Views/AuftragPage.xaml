@@ -51,7 +51,7 @@
                                 </Border.Shadow>
                                 <Grid ColumnDefinitions="*,Auto">
                                     <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                        <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
+                                        <Label Text="{Binding Anzeigename}" FontSize="16" FontAttributes="Bold" TextColor="#333"/>
                                         <Label FontSize="13" TextColor="#666">
                                             <Label.FormattedText>
                                                 <FormattedString>
@@ -127,8 +127,8 @@
                                     <!-- Aufgabenname und Apartment nebeneinander -->
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                                         <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                            <Label x:Name="LabelTaskName" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
-                                            <Entry x:Name="TaskNameEntry" Placeholder="Name" Text="Reparatur" FontSize="16" BackgroundColor="#f5f5f5" TextColor="Black"/>
+                                            <Label x:Name="LabelTaskTitel" Text="Aufgabenname *" FontSize="14" FontAttributes="Bold" TextColor="#555"/>
+                                            <Entry x:Name="TaskTitelEntry" Placeholder="Aufgabenname" Text="Reparatur" FontSize="16" BackgroundColor="#f5f5f5" TextColor="Black"/>
                                         </VerticalStackLayout>
                                         <VerticalStackLayout Grid.Column="1" Spacing="4">
                                             <Label x:Name="LabelApartment" Text="Apartment" FontSize="14" FontAttributes="Bold" TextColor="#555"/>

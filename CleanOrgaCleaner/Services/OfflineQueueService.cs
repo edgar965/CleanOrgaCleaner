@@ -68,20 +68,20 @@ public class OfflineQueueService : IDisposable
         }, RangNormal);
 
     /// <summary>Anlegen eines Auftrags einreihen.</summary>
-    public Task EnqueueTaskCreateAsync(string name, string? plannedDate, int? apartmentId, int? aufgabenartId,
+    public Task EnqueueTaskCreateAsync(string titel, string? plannedDate, int? apartmentId, int? aufgabenartId,
         string? hinweis, string status, object? assignments)
         => ReiheEinAsync("task_create", new
         {
-            name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
+            titel, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
             timestamp = DateTime.UtcNow
         }, RangNormal);
 
     /// <summary>Ändern eines Auftrags einreihen.</summary>
-    public Task EnqueueTaskUpdateAsync(int taskId, string name, string? plannedDate, int? apartmentId,
+    public Task EnqueueTaskUpdateAsync(int taskId, string titel, string? plannedDate, int? apartmentId,
         int? aufgabenartId, string? hinweis, string status, object? assignments)
         => ReiheEinAsync("task_update", new
         {
-            taskId, name, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
+            taskId, titel, plannedDate, apartmentId, aufgabenartId, hinweis, status, assignments,
             timestamp = DateTime.UtcNow
         }, RangNormal);
 

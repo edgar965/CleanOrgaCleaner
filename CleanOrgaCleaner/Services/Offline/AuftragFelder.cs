@@ -11,7 +11,7 @@ namespace CleanOrgaCleaner.Services.Offline;
 /// </summary>
 public sealed class AuftragFelder
 {
-    public string Name { get; private set; } = "";
+    public string Titel { get; private set; } = "";
     public string GeplantesDatum { get; private set; } = "";
     public int? ApartmentId { get; private set; }
     public int? AufgabenartId { get; private set; }
@@ -24,7 +24,9 @@ public sealed class AuftragFelder
     {
         var felder = new AuftragFelder
         {
-            Name = daten.GetProperty("name").GetString() ?? "",
+            // "name" ist die alte Schreibweise: Eintraege, die vor dem
+            // Titelfeld in der Warteschlange lagen, sollen nicht verfallen.
+            Titel = LiesText(daten, "titel") ?? LiesText(daten, "name") ?? "",
             GeplantesDatum = LiesText(daten, "plannedDate") ?? "",
             ApartmentId = LiesZahl(daten, "apartmentId"),
             AufgabenartId = LiesZahl(daten, "aufgabenartId"),
