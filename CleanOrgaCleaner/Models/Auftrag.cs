@@ -47,6 +47,15 @@ public class Auftrag
     [JsonPropertyName("assigned_cleaner_names")]
     public List<string>? AssignedCleanerNames { get; set; }
 
+    /// <summary>
+    /// Darf ich die Fotos dieser Aufgabe ändern? Der Server entscheidet das
+    /// nach dem Ersteller: eigene Aufgabe = ja, fremde Anweisung = nur ansehen.
+    /// Fehlt das Feld (älterer Server), bleibt es beim Ändern-Dürfen - die
+    /// Endpunkte weisen einen unerlaubten Zugriff ohnehin mit 403 ab.
+    /// </summary>
+    [JsonPropertyName("fotos_aenderbar")]
+    public bool? FotosAenderbar { get; set; }
+
     [JsonPropertyName("anmerkungen")]
     public List<ImageListDescription>? Anmerkungen { get; set; }
 

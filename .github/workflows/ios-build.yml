@@ -2,6 +2,11 @@ name: iOS Build & Deploy
 
 on:
   workflow_dispatch:  # Nur manueller Trigger - kein automatischer Build bei Push
+    inputs:
+      verteilen:
+        description: 'Nach dem Upload an die externen TestFlight-Tester verteilen'
+        type: boolean
+        default: true
 
 concurrency:
   group: ios-build-${{ github.ref }}
@@ -143,6 +148,22 @@ jobs:
           exit 1
         fi
         echo "Upload successful!"
+
+    - name: An die TestFlight-Tester verteilen
+      # Der Upload legt den Build nur ab. Ohne Zuweisung an eine Gruppe sieht
+      # ihn kein externer Tester - interne Gruppen haben ohnehin Zugriff auf
+      # alle Builds.
+      if: ${{ inputs.verteilen }}
+      env:
+        ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+        ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+        ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        ASC_BUNDLE_ID: com.cleanorga.cleaner
+      run: |
+        BUILD=$(grep -oE '<ApplicationVersion>[0-9]+' ${{ env.PROJECT_PATH }} | tr -dc '0-9')
+        echo "Build-Nummer aus dem Projekt: $BUILD"
+        pip3 install --quiet pyjwt cryptography requests
+        ASC_BUILD="$BUILD" python3 .github/scripts/testflight_verteilen.py
 
     - name: Cleanup
       if: always()

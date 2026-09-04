@@ -39,6 +39,38 @@ public partial class AuftragPage
         UpdateAnmerkungenDisplay();
         _tabs.Zeige("details");
         TaskPopupOverlay.IsVisible = true;
+        NamenMarkieren();
+    }
+
+    /// <summary>Den vorgeschlagenen Aufgabennamen markieren.
+    ///
+    /// Beim Anlegen steht dort ein Vorschlag (die Standard-Aufgabenart bzw.
+    /// "Reparatur"). Markiert laesst er sich mit dem ersten Tastendruck
+    /// ersetzen, statt ihn erst Zeichen fuer Zeichen loeschen zu muessen.
+    ///
+    /// Der Umweg ueber den Dispatcher ist noetig: Vor dem Zeichnen des
+    /// Dialogs geht der Fokus ins Leere, das Feld ist noch nicht angelegt.
+    /// </summary>
+    private void NamenMarkieren()
+    {
+        Dispatcher.Dispatch(async () =>
+        {
+            await Task.Delay(120);          // dem Dialog Zeit zum Erscheinen geben
+            try
+            {
+                var text = TaskTitelEntry.Text ?? "";
+                if (text.Length == 0)
+                    return;
+                TaskTitelEntry.Focus();
+                TaskTitelEntry.CursorPosition = 0;
+                TaskTitelEntry.SelectionLength = text.Length;
+            }
+            catch (Exception ex)
+            {
+                // Eine Markierung ist Komfort - sie darf den Dialog nie kippen.
+                System.Diagnostics.Debug.WriteLine($"[AuftragPage] Markieren: {ex.Message}");
+            }
+        });
     }
 
     private void OeffneBearbeiten(Auftrag auftrag)
@@ -70,23 +102,15 @@ public partial class AuftragPage
 
         LadeAnmerkungen(auftrag.Id);
 
-        // Fotos einer mir zugewiesenen Aufgabe sind eine Anweisung des Büros -
-        // dann nur ansehen. Dieselbe Regel setzt der Server durch.
-        AufgabeFotosZuruecksetzen(nurAnsehen: IstMirZugewiesen());
+        // Über die Fotos entscheidet der Ersteller: meine eigene Aufgabe darf
+        // ich bearbeiten, auch wenn sie mir zugewiesen ist. Die Antwort kommt
+        // vom Server (fotos_aenderbar), damit hier keine zweite Regel entsteht.
+        AufgabeFotosZuruecksetzen(nurAnsehen: auftrag.FotosAenderbar == false);
         _ = AufgabeFotosLadenAsync(auftrag.Id);
 
         ZeigeArbeitskraefte();
         _tabs.Zeige("details");
         TaskPopupOverlay.IsVisible = true;
-    }
-
-    private bool IstMirZugewiesen()
-    {
-        if (_apiService.CleanerId is not int meineId) return false;
-
-        return (_assignments.Cleaning?.Contains(meineId) ?? false)
-            || _assignments.Check == meineId
-            || (_assignments.Repare?.Contains(meineId) ?? false);
     }
 
     private void ZeigeArbeitskraefte()
