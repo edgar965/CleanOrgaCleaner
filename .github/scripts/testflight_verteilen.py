@@ -10,9 +10,13 @@ Interne Gruppen brauchen nichts: sie haben ``hasAccessToAllBuilds`` und sehen
 jeden Build von selbst. Externe Gruppen brauchen zweierlei - die Zuweisung
 und eine Beta-Pruefung durch Apple.
 
+Verteilen heisst hier NICHT benachrichtigen: ``autoNotifyEnabled`` wird vor der
+Zuweisung abgeschaltet, damit keine Arbeitskraft eine Mail von Apple bekommt.
+Der Build steht trotzdem in der TestFlight-App zur Installation bereit.
+
 Aufruf (alle Angaben aus der Umgebung):
     ASC_KEY_ID, ASC_ISSUER_ID, ASC_PRIVATE_KEY, ASC_BUNDLE_ID, ASC_BUILD
-    python testflight_verteilen.py [--nur-pruefen]
+    python testflight_verteilen.py [--nur-pruefen] [--nur-stumm]
 """
 import os
 import sys
@@ -32,13 +36,14 @@ class TestFlightVerteilung:
     WARTEN_TAKT_S = 60
 
     def __init__(self, key_id, issuer, schluessel, bundle_id, build_nummer,
-                 nur_pruefen=False):
+                 nur_pruefen=False, nur_stumm=False):
         self.key_id = key_id
         self.issuer = issuer
         self.schluessel = schluessel
         self.bundle_id = bundle_id
         self.build_nummer = str(build_nummer)
         self.nur_pruefen = nur_pruefen
+        self.nur_stumm = nur_stumm
 
     # ----- Zugang ----------------------------------------------------------
 
@@ -67,8 +72,13 @@ class TestFlightVerteilung:
             raise SystemExit('Keine App mit der Bundle-Id %s' % self.bundle_id)
         return daten['data'][0]['id']
 
-    def build_abwarten(self, app_id):
-        """Gibt den Build zurueck, sobald er verarbeitet ist."""
+    def build_abwarten(self, app_id, nur_sichtbar=False):
+        """Gibt den Build zurueck, sobald er verarbeitet ist.
+
+        Mit ``nur_sichtbar`` genuegt, dass Apple ihn ueberhaupt kennt - das ist
+        der frueheste Zeitpunkt, zu dem sich die Benachrichtigung abschalten
+        laesst, und der liegt vor dem Wechsel auf VALID.
+        """
         frist = time.time() + self.WARTEN_MAX_S
         while True:
             daten = self._holen('builds', **{
@@ -77,11 +87,11 @@ class TestFlightVerteilung:
                 build = daten['data'][0]
                 stand = build['attributes'].get('processingState')
                 print('Build %s: %s' % (self.build_nummer, stand), flush=True)
-                if stand == 'VALID':
-                    return build
                 if stand in ('INVALID', 'FAILED'):
                     raise SystemExit('Build %s ist %s - keine Verteilung.'
                                      % (self.build_nummer, stand))
+                if nur_sichtbar or stand == 'VALID':
+                    return build
             else:
                 print('Build %s noch nicht sichtbar ...' % self.build_nummer,
                       flush=True)
@@ -89,6 +99,30 @@ class TestFlightVerteilung:
                 raise SystemExit('Build %s war nach %d Minuten nicht fertig.'
                                  % (self.build_nummer, self.WARTEN_MAX_S // 60))
             time.sleep(self.WARTEN_TAKT_S)
+
+    def benachrichtigung_abschalten(self, build):
+        """Kein Apple-Rundschreiben an die Tester, wenn der Build freigeht.
+
+        ``autoNotifyEnabled`` haengt am ``buildBetaDetail`` des Builds und ist
+        ab Werk an. Die Arbeitskraefte sollen die neue Fassung in TestFlight
+        finden, aber keine Mail bekommen - deshalb wird der Schalter VOR der
+        Zuweisung an eine Gruppe umgelegt.
+        """
+        daten = self._holen('builds/%s/buildBetaDetail' % build['id'])
+        detail = daten.get('data') or {}
+        if not detail.get('id'):
+            return 'kein buildBetaDetail - Benachrichtigung unveraendert'
+        if detail.get('attributes', {}).get('autoNotifyEnabled') is False:
+            return 'war schon aus'
+        antwort = requests.patch(
+            self.BASIS + 'buildBetaDetails/%s' % detail['id'],
+            headers=self._kopf(),
+            json={'data': {'type': 'buildBetaDetails', 'id': detail['id'],
+                           'attributes': {'autoNotifyEnabled': False}}},
+            timeout=60)
+        if antwort.status_code < 300:
+            return 'abgeschaltet'
+        return 'FEHLER %s: %s' % (antwort.status_code, antwort.text[:200])
 
     def externe_gruppen(self, app_id):
         daten = self._holen('betaGroups', **{'filter[app]': app_id, 'limit': 50})
@@ -127,7 +161,11 @@ class TestFlightVerteilung:
 
     def ausfuehren(self):
         app_id = self.app_id()
-        build = self.build_abwarten(app_id)
+        build = self.build_abwarten(app_id, nur_sichtbar=self.nur_stumm)
+        print('Benachrichtigung: %s' % self.benachrichtigung_abschalten(build),
+              flush=True)
+        if self.nur_stumm:
+            return
         gruppen = self.externe_gruppen(app_id)
         if not gruppen:
             print('Keine externe Gruppe - interne Tester sehen den Build ohnehin.')
@@ -151,7 +189,8 @@ def main():
         os.environ['ASC_KEY_ID'], os.environ['ASC_ISSUER_ID'],
         os.environ['ASC_PRIVATE_KEY'], os.environ['ASC_BUNDLE_ID'],
         os.environ['ASC_BUILD'],
-        nur_pruefen='--nur-pruefen' in sys.argv).ausfuehren()
+        nur_pruefen='--nur-pruefen' in sys.argv,
+        nur_stumm='--nur-stumm' in sys.argv).ausfuehren()
 
 
 if __name__ == '__main__':

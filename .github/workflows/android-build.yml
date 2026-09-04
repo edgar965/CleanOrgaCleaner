@@ -73,8 +73,10 @@ jobs:
         fi
         echo "pfad=$DATEI" >> $GITHUB_OUTPUT
         echo "Gefunden: $DATEI ($(stat -c%s "$DATEI") Bytes)"
-        # Build-Nummer aus dem erzeugten Manifest belegen
-        MANIFEST=$(find . -path "*obj/Release*" -name AndroidManifest.xml | head -1)
+        # Build-Nummer aus dem erzeugten Manifest belegen. -print -quit statt
+        # "| head -1": head schliesst die Pipe, find bricht mit "write error"
+        # ab - und ausgerechnet der Beleg fehlte dann im Log.
+        MANIFEST=$(find . -path "*obj/Release*" -name AndroidManifest.xml -print -quit)
         [ -n "$MANIFEST" ] && grep -o 'versionCode="[0-9]*"' "$MANIFEST" | head -1
 
     - name: AAB als Artefakt sichern

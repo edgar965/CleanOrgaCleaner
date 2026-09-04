@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # Nur manueller Trigger - kein automatischer Build bei Push
     inputs:
       verteilen:
-        description: 'Nach dem Upload an die externen TestFlight-Tester verteilen'
+        description: 'Nach dem Upload an die TestFlight-Tester verteilen (ohne Benachrichtigungs-Mail)'
         type: boolean
         default: true
 
@@ -152,7 +152,9 @@ jobs:
     - name: An die TestFlight-Tester verteilen
       # Der Upload legt den Build nur ab. Ohne Zuweisung an eine Gruppe sieht
       # ihn kein externer Tester - interne Gruppen haben ohnehin Zugriff auf
-      # alle Builds.
+      # alle Builds. Das Skript schaltet vorher die Benachrichtigung ab: die
+      # Arbeitskraefte sollen die neue Fassung in TestFlight vorfinden, aber
+      # bei jedem Build eine Mail von Apple zu bekommen waere Belaestigung.
       if: ${{ inputs.verteilen }}
       env:
         ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -162,8 +164,11 @@ jobs:
       run: |
         BUILD=$(grep -oE '<ApplicationVersion>[0-9]+' ${{ env.PROJECT_PATH }} | tr -dc '0-9')
         echo "Build-Nummer aus dem Projekt: $BUILD"
-        pip3 install --quiet pyjwt cryptography requests
-        ASC_BUILD="$BUILD" python3 .github/scripts/testflight_verteilen.py
+        # Eigene Umgebung: das Python des Runners ist von Homebrew verwaltet
+        # und weist "pip install" seit PEP 668 ab (externally-managed).
+        python3 -m venv $RUNNER_TEMP/tfvenv
+        $RUNNER_TEMP/tfvenv/bin/pip install --quiet pyjwt cryptography requests
+        ASC_BUILD="$BUILD" $RUNNER_TEMP/tfvenv/bin/python .github/scripts/testflight_verteilen.py
 
     - name: Cleanup
       if: always()
