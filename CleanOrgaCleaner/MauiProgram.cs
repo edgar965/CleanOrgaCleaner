@@ -4,6 +4,7 @@ using SkiaSharp.Views.Maui.Controls.Hosting;
 #if ANDROID
 using Plugin.Firebase.Core;
 using Plugin.Firebase.Core.Platforms.Android;
+using Plugin.Firebase.Crashlytics;
 #elif IOS
 using Plugin.Firebase.Core;
 using Plugin.Firebase.Core.Platforms.iOS;
@@ -64,6 +65,9 @@ public static class MauiProgram
 					// einen activityLocator (Func<Activity>), der bei Bedarf die
 					// aktuelle Activity liefert. In 3.x genügte Initialize(activity).
 					CrossFirebase.Initialize(activity, () => Microsoft.Maui.ApplicationModel.Platform.CurrentActivity);
+					// Faengt ab hier auch native Abstuerze ab - nicht nur
+					// verwaltete .NET-Exceptions wie unser CrashReportService.
+					CrossFirebaseCrashlytics.Current.SetCrashlyticsCollectionEnabled(true);
 					Services.FirebaseStatus.Ready = true;
 				}
 				catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"[Firebase] Android-Init übersprungen: {ex.Message}"); }

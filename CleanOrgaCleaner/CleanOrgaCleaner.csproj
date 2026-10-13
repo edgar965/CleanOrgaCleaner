@@ -21,8 +21,8 @@
 		<!-- Gleiche Nummer wie der Django-Server, damit Web und App zusammenpassen -->
 		<ApplicationDisplayVersion>2.09</ApplicationDisplayVersion>
 		<!-- Build-Nummer: muss je Upload eindeutig und aufsteigend sein.
-		     184 liegt bereits in App Store Connect. -->
-		<ApplicationVersion>188</ApplicationVersion>
+		     188 liegt bereits in App Store Connect. -->
+		<ApplicationVersion>189</ApplicationVersion>
 
 		<WindowsPackageType>None</WindowsPackageType>
 
@@ -101,6 +101,10 @@
 		<PackageReference Include="Plugin.Firebase.CloudMessaging" Version="4.0.0" />
 		<PackageReference Include="Plugin.Firebase.Firestore" Version="4.0.0" />
 		<PackageReference Include="Plugin.Firebase.Auth" Version="4.0.0" />
+		<!-- Faengt auch NATIVE Abstuerze (iOS NSException/Signal, Android JVM-Crash)
+		     ab - unser eigenes CrashReportService-System faengt nur verwaltete
+		     .NET-Exceptions (AppDomain.UnhandledException), keine nativen. -->
+		<PackageReference Include="Plugin.Firebase.Crashlytics" Version="4.0.0" />
 	</ItemGroup>
 
 	<!-- Android-specific packages for Edge-to-Edge support -->

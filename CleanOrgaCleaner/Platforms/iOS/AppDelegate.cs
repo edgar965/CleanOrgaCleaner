@@ -3,6 +3,7 @@ using UIKit;
 using CleanOrgaCleaner.Services;
 using Plugin.Firebase.Core;
 using Plugin.Firebase.Core.Platforms.iOS;
+using Plugin.Firebase.Crashlytics;
 
 namespace CleanOrgaCleaner;
 
@@ -25,6 +26,9 @@ public class AppDelegate : MauiUIApplicationDelegate
 			// FCM-Setup: verbindet den APNs-Token mit Firebase, damit
 			// GetTokenAsync() ein Token liefert.
 			Plugin.Firebase.CloudMessaging.FirebaseCloudMessagingImplementation.Initialize();
+			// Faengt ab hier auch native Abstuerze (NSException, Signale) ab -
+			// nicht nur verwaltete .NET-Exceptions wie unser CrashReportService.
+			CrossFirebaseCrashlytics.Current.SetCrashlyticsCollectionEnabled(true);
 			FirebaseStatus.Ready = true;
 			diag = "OK";
 		}

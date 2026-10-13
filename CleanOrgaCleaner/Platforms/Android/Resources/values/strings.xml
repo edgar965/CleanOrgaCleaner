@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pflichteintrag fuer Plugin.Firebase.Crashlytics - ohne ihn meldet
+         Crashlytics zur Laufzeit "build ID is missing" (kein eigenes Mapping-
+         Upload-Tooling eingerichtet, daher "none"). -->
+    <string name="com.google.firebase.crashlytics.mapping_file_id" translatable="false">none</string>
+</resources>

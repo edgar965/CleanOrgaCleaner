@@ -169,18 +169,28 @@ public partial class AufgabePage : ContentPage
                 return;
             }
 
-            TaskNameLabel.Text = $"{_task.ApartmentName} {AufgabenartName.Uebersetzt(_task.DisplayName)}";
+            // HoleAufgabeAsync läuft intern über Task.Run + ConfigureAwait(false)
+            // (Thread-Pool, damit der Serveraufruf den UI-Thread nicht blockiert)
+            // - ab hier daher ausdrücklich zurück auf den Main-Thread, BEVOR
+            // natives UI angefasst wird. Ohne das stürzt die App auf iOS hart ab,
+            // OHNE Crash-Report (kein .NET-Fehler, sondern ein natives
+            // UIKit-Cross-Thread-Problem - siehe UiSicher.cs-Doku).
+            var geladeneAufgabe = _task;
+            UiSicher.AufMainThread(() =>
+            {
+                TaskNameLabel.Text = $"{geladeneAufgabe.ApartmentName} {AufgabenartName.Uebersetzt(geladeneAufgabe.DisplayName)}";
 
-            var beschreibung = UebersetzteAufgabe();
-            NoticeLabel.Text = beschreibung;
-            NoticeLabel.IsVisible = !string.IsNullOrEmpty(beschreibung);
-            NoTaskDescriptionLabel.IsVisible = string.IsNullOrEmpty(beschreibung);
+                var beschreibung = UebersetzteAufgabe();
+                NoticeLabel.Text = beschreibung;
+                NoticeLabel.IsVisible = !string.IsNullOrEmpty(beschreibung);
+                NoTaskDescriptionLabel.IsVisible = string.IsNullOrEmpty(beschreibung);
 
-            AktualisiereStartStopKnopf();
-            BuildProblems();
-            BuildAnmerkungen();
-            _ = AufgabeFotosLadenAsync();
-            _tabs.Zeige(_tabs.Aktiv);
+                AktualisiereStartStopKnopf();
+                BuildProblems();
+                BuildAnmerkungen();
+                _ = AufgabeFotosLadenAsync();
+                _tabs.Zeige(_tabs.Aktiv);
+            }, "AufgabePage");
         }
         catch (Exception ex)
         {
