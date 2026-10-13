@@ -68,24 +68,21 @@ public sealed class AufgabenApi
     /// <summary>
     /// Eine Aufgabe holen. Standardmäßig werden die Tagesdaten frisch geladen,
     /// damit auch neue Fotos dabei sind.
+    ///
+    /// Netzwerk-/Serverfehler werden NICHT geschluckt, sondern weitergeworfen -
+    /// nur so kann die Seite zwischen "Aufgabe wirklich nicht mehr vorhanden"
+    /// (Rückgabe null) und einem vorübergehenden Verbindungsproblem
+    /// unterscheiden, statt bei jedem Netzwerk-Hickser lautlos wegzunavigieren.
     /// </summary>
     public async Task<CleaningTask?> HoleAufgabeAsync(int aufgabenId, bool frischLaden = true)
     {
         if (!frischLaden && _speicher.TryGetValue(aufgabenId, out var gespeichert))
             return gespeichert;
 
-        try
-        {
-            _speicher.Clear();
-            await HoleTagesdatenAsync().ConfigureAwait(false);
-            if (_speicher.TryGetValue(aufgabenId, out var aufgabe))
-                return aufgabe;
-        }
-        catch (Exception ex)
-        {
-            System.Diagnostics.Debug.WriteLine($"[API] HoleAufgabe Fehler: {ex.Message}");
-        }
-        return null;
+        _speicher.Clear();
+        await HoleTagesdatenAsync().ConfigureAwait(false);
+        _speicher.TryGetValue(aufgabenId, out var aufgabe);
+        return aufgabe;
     }
 
     /// <summary>Aufgabenzustand setzen (started, completed, ...).</summary>

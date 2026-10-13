@@ -185,5 +185,20 @@ internal sealed class TexteUk : LanguagePack
         ["name_required"] = "Будь ласка, введіть назву",
         ["network_error_hint"] = "Помилка мережі. Підключіться до WiFi або мобільного інтернету.",
         ["select_image_source"] = "Вибрати зображення",
+
+        // Чек-лист (вкладка завдання)
+        ["checklist_tab"] = "Список",
+        ["no_checklist"] = "Немає чек-листа",
+        ["checklist_comment"] = "Коментар до списку",
+        ["checklist_comment_placeholder"] = "Коментар до всього чек-листа...",
+        ["reference_photos"] = "Еталонні фото",
+        ["no_reference_photos"] = "Немає еталонних фото",
+        ["worker_photos"] = "Фото працівника",
+        ["take_photo"] = "Зробити фото",
+        ["item_note_placeholder"] = "Коментар до цього пункту...",
+
+        // Налаштування: чек-лист
+        ["show_checklist"] = "Показувати чек-лист",
+        ["show_checklist_hint"] = "Показує вкладку «Список» у завданнях",
     };
 }

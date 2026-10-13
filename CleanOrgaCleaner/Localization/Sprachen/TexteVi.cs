@@ -185,5 +185,20 @@ internal sealed class TexteVi : LanguagePack
         ["name_required"] = "Vui lòng nhập tên",
         ["network_error_hint"] = "Lỗi mạng. Vui lòng kết nối WiFi hoặc dữ liệu di động.",
         ["select_image_source"] = "Chọn hình ảnh",
+
+        // Danh sách kiểm tra (tab công việc)
+        ["checklist_tab"] = "Danh sách",
+        ["no_checklist"] = "Không có danh sách kiểm tra",
+        ["checklist_comment"] = "Ghi chú về danh sách",
+        ["checklist_comment_placeholder"] = "Ghi chú cho toàn bộ danh sách kiểm tra...",
+        ["reference_photos"] = "Ảnh mẫu",
+        ["no_reference_photos"] = "Không có ảnh mẫu",
+        ["worker_photos"] = "Ảnh của nhân viên",
+        ["take_photo"] = "Chụp ảnh",
+        ["item_note_placeholder"] = "Ghi chú cho mục này...",
+
+        // Cài đặt: danh sách kiểm tra
+        ["show_checklist"] = "Hiện danh sách kiểm tra",
+        ["show_checklist_hint"] = "Hiện tab “Danh sách” trong công việc",
     };
 }

@@ -1,3 +1,4 @@
+using CleanOrgaCleaner.Localization;
 using CleanOrgaCleaner.Models;
 using Microsoft.Maui.Controls.Shapes;
 
@@ -86,10 +87,11 @@ public partial class AufgabePage
     private View Detailinhalt(PutzlisteEintrag eintrag)
     {
         var inhalt = new VerticalStackLayout { Spacing = 14, Padding = new Thickness(20) };
+        var t = Translations.Get;
 
         if (eintrag.HasBeschreibung)
         {
-            inhalt.Children.Add(Abschnittstitel("Beschreibung"));
+            inhalt.Children.Add(Abschnittstitel(t("description")));
             inhalt.Children.Add(new Label
             {
                 Text = eintrag.Beschreibung,
@@ -98,10 +100,10 @@ public partial class AufgabePage
             });
         }
 
-        inhalt.Children.Add(Abschnittstitel("Anmerkung"));
+        inhalt.Children.Add(Abschnittstitel(t("note")));
         inhalt.Children.Add(Anmerkungsfeld(eintrag));
 
-        inhalt.Children.Add(Abschnittstitel("Ursprungsbilder (Checkliste)"));
+        inhalt.Children.Add(Abschnittstitel(t("reference_photos")));
         if (eintrag.HasBilder)
             inhalt.Children.Add(new ScrollView
             {
@@ -109,15 +111,15 @@ public partial class AufgabePage
                 Content = Bilderreihe(eintrag.Bilder!, loeschbar: false, eintrag)
             });
         else
-            inhalt.Children.Add(Leerhinweis("Keine Vorgabebilder"));
+            inhalt.Children.Add(Leerhinweis(t("no_reference_photos")));
 
-        inhalt.Children.Add(Abschnittstitel("Fotos der Arbeitskraft"));
+        inhalt.Children.Add(Abschnittstitel(t("worker_photos")));
         var eigeneReihe = Bilderreihe(eintrag.Fotos ?? new List<PutzlisteBild>(), loeschbar: true, eintrag);
         inhalt.Children.Add(new ScrollView { Orientation = ScrollOrientation.Horizontal, Content = eigeneReihe });
 
         var aufnehmen = new Button
         {
-            Text = "\U0001F4F7 Foto aufnehmen",
+            Text = $"\U0001F4F7 {t("take_photo")}",
             BackgroundColor = Color.FromArgb("#2196F3"),
             TextColor = Colors.White,
             FontAttributes = FontAttributes.Bold,
@@ -139,7 +141,7 @@ public partial class AufgabePage
             FontSize = 14,
             BackgroundColor = Color.FromArgb("#f5f5f5"),
             TextColor = Colors.Black,
-            Placeholder = "Anmerkung zu diesem Punkt..."
+            Placeholder = Translations.Get("item_note_placeholder")
         };
 
         feld.Unfocused += async (s, e) =>
@@ -167,7 +169,7 @@ public partial class AufgabePage
         Text = text,
         FontSize = 11,
         FontAttributes = FontAttributes.Bold,
-        TextColor = Color.FromArgb("#999999")
+        TextColor = Color.FromArgb("#6b6b6b")
     };
 
     private static Label Leerhinweis(string text) => new()
@@ -175,7 +177,7 @@ public partial class AufgabePage
         Text = text,
         FontSize = 13,
         FontAttributes = FontAttributes.Italic,
-        TextColor = Color.FromArgb("#999999")
+        TextColor = Color.FromArgb("#6b6b6b")
     };
 
     private HorizontalStackLayout Bilderreihe(IEnumerable<PutzlisteBild> bilder, bool loeschbar, PutzlisteEintrag eintrag)

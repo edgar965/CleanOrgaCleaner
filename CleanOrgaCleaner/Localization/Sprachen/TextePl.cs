@@ -185,5 +185,20 @@ internal sealed class TextePl : LanguagePack
         ["name_required"] = "Podaj nazwę",
         ["network_error_hint"] = "Błąd sieci. Połącz się z WiFi lub danymi mobilnymi.",
         ["select_image_source"] = "Wybierz obraz",
+
+        // Lista kontrolna (zakładka zadania)
+        ["checklist_tab"] = "Lista",
+        ["no_checklist"] = "Brak listy kontrolnej",
+        ["checklist_comment"] = "Komentarz do listy",
+        ["checklist_comment_placeholder"] = "Komentarz do całej listy kontrolnej...",
+        ["reference_photos"] = "Zdjęcia wzorcowe",
+        ["no_reference_photos"] = "Brak zdjęć wzorcowych",
+        ["worker_photos"] = "Zdjęcia pracownika",
+        ["take_photo"] = "Zrób zdjęcie",
+        ["item_note_placeholder"] = "Komentarz do tego punktu...",
+
+        // Ustawienia: lista kontrolna
+        ["show_checklist"] = "Pokaż listę kontrolną",
+        ["show_checklist_hint"] = "Pokazuje zakładkę „Lista” przy zadaniach",
     };
 }

@@ -37,6 +37,7 @@ public partial class SettingsPage : ContentPage
             LadeAngemeldetePerson();
             LadeAvatarAnzeige();
             LadeSpracheAnzeige();
+            LadeChecklistenEinstellung();
             _ = LadeBiometrieEinstellungAsync();
             _ = AktualisiereMitteilungsZustandAsync();
         }
@@ -79,6 +80,10 @@ public partial class SettingsPage : ContentPage
         // Mitteilungen
         NotificationsTitleLabel.Text = t("notifications");
         NotificationsLabel.Text = t("push_notifications");
+
+        // Checkliste
+        ShowChecklistLabel.Text = t("show_checklist");
+        ShowChecklistHintLabel.Text = t("show_checklist_hint");
     }
 
     private void LadeAngemeldetePerson()

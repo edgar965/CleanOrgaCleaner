@@ -61,7 +61,7 @@ public partial class AufgabePage : ContentPage
         try
         {
             _ = Header.InitializeAsync();
-            Header.SetPageTitle("today");
+            Header.SetPageTitle("task");
 
             // -= vor += : bei doppeltem OnAppearing ohne OnDisappearing sonst
             // mehrfach abonniert -> jedes Update triggert mehrere Reloads
@@ -69,6 +69,7 @@ public partial class AufgabePage : ContentPage
             _webSocketService.OnTaskUpdate += OnTaskUpdate;
 
             ApplyTranslations();
+            TabChecklisteButton.IsVisible = ChecklistenEinstellung.Aktiv;
             _ = LadeAufgabeAsync();
         }
         catch (Exception ex)
@@ -98,6 +99,7 @@ public partial class AufgabePage : ContentPage
 
         // Reiter
         TabAufgabeButton.Text = t("task_tab");
+        TabChecklisteButton.Text = t("checklist_tab");
         TabProblemeButton.Text = t("problems_tab");
         TabAnmerkungenButton.Text = t("notes");
         TabLogsButton.Text = t("log");
@@ -109,9 +111,14 @@ public partial class AufgabePage : ContentPage
         // Hinweise bei leeren Listen
         NoTaskDescriptionLabel.Text = t("no_task_description");
         AufgabeFotosLabel.Text = t("photos");
+        NoChecklisteLabel.Text = t("no_checklist");
         NoProblemsLabel.Text = t("no_problems");
         NoAnmerkungenLabel.Text = t("no_notes");
         NoLogsLabel.Text = t("no_logs");
+
+        // Checkliste
+        ChecklisteKommentarLabel.Text = t("checklist_comment");
+        ChecklisteKommentarEditor.Placeholder = t("checklist_comment_placeholder");
 
         // Eingabedialog
         ImageListDescriptionDialogNameLabel.Text = $"{t("name")} *";
@@ -136,9 +143,27 @@ public partial class AufgabePage : ContentPage
             // Zuerst den bereits geladenen Zwischenspeicher nutzen (kein voller
             // Reload pro Klick). Fällt automatisch auf Nachladen zurück, wenn
             // die Aufgabe dort nicht liegt.
-            _task = await _apiService.GetAufgabeDetailAsync(_taskId, forceRefresh: false);
+            try
+            {
+                _task = await _apiService.GetAufgabeDetailAsync(_taskId, forceRefresh: false);
+            }
+            catch (Exception ladeFehler)
+            {
+                // Netzwerk-/Serverfehler: NICHT lautlos wegnavigieren (sah vorher
+                // aus wie ein Absturz - die Seite öffnete kurz und schloss sich
+                // nach ein paar Sekunden von selbst). Stattdessen zeigen, WARUM,
+                // und erst danach zurück.
+                System.Diagnostics.Debug.WriteLine($"[AufgabePage] Laden fehlgeschlagen: {ladeFehler.Message}");
+                await DisplayAlertAsync(Translations.Get("connection_error"),
+                    Translations.Get("network_error_hint"), Translations.Get("ok"));
+                UiSicher.AufMainThread(() => ZurueckAsync(), "AufgabePage");
+                return;
+            }
+
             if (_task == null)
             {
+                // Server hat geantwortet, die Aufgabe ist aber nicht (mehr) in der
+                // Liste - z. B. von der Verwaltung gelöscht. Kein Fehler, einfach zurück.
                 System.Diagnostics.Debug.WriteLine($"[AufgabePage] Aufgabe {_taskId} nicht gefunden");
                 UiSicher.AufMainThread(() => ZurueckAsync(), "AufgabePage");
                 return;

@@ -185,5 +185,20 @@ internal sealed class TexteEs : LanguagePack
         ["name_required"] = "Por favor, introduce un nombre",
         ["network_error_hint"] = "Error de red. Conéctate a WiFi o datos móviles.",
         ["select_image_source"] = "Seleccionar imagen",
+
+        // Lista de verificación (pestaña de tarea)
+        ["checklist_tab"] = "Lista",
+        ["no_checklist"] = "Sin lista de verificación",
+        ["checklist_comment"] = "Comentario de la lista",
+        ["checklist_comment_placeholder"] = "Comentario sobre toda la lista de verificación...",
+        ["reference_photos"] = "Fotos de referencia",
+        ["no_reference_photos"] = "Sin fotos de referencia",
+        ["worker_photos"] = "Fotos del personal de limpieza",
+        ["take_photo"] = "Tomar foto",
+        ["item_note_placeholder"] = "Comentario sobre este punto...",
+
+        // Configuración: lista de verificación
+        ["show_checklist"] = "Mostrar lista de verificación",
+        ["show_checklist_hint"] = "Muestra la pestaña «Lista» en las tareas",
     };
 }

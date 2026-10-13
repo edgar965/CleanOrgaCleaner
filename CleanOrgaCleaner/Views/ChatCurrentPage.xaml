@@ -141,7 +141,7 @@
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
                 <CollectionView.EmptyView>
-                    <Label Text="Noch keine Nachrichten" FontSize="16" TextColor="#999"
+                    <Label Text="Noch keine Nachrichten" FontSize="16" TextColor="#6b6b6b"
                            HorizontalOptions="Center" VerticalOptions="Center" Margin="0,50,0,0"/>
                 </CollectionView.EmptyView>
             </CollectionView>

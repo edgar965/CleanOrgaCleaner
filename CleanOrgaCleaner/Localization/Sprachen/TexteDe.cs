@@ -187,5 +187,20 @@ internal sealed class TexteDe : LanguagePack
         ["save_error"] = "Fehler beim Speichern",
         ["delete_chat_title"] = "Chat löschen",
         ["delete_chat_confirm"] = "Alle Nachrichten löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+
+        // Checkliste (Aufgaben-Reiter)
+        ["checklist_tab"] = "Checkliste",
+        ["no_checklist"] = "Keine Checkliste vorhanden",
+        ["checklist_comment"] = "Anmerkung zur Checkliste",
+        ["checklist_comment_placeholder"] = "Anmerkung zur gesamten Checkliste...",
+        ["reference_photos"] = "Vorgabebilder",
+        ["no_reference_photos"] = "Keine Vorgabebilder",
+        ["worker_photos"] = "Fotos der Arbeitskraft",
+        ["take_photo"] = "Foto aufnehmen",
+        ["item_note_placeholder"] = "Anmerkung zu diesem Punkt...",
+
+        // Einstellungen: Checkliste
+        ["show_checklist"] = "Checkliste anzeigen",
+        ["show_checklist_hint"] = "Zeigt den Reiter „Checkliste\" bei Aufgaben",
     };
 }

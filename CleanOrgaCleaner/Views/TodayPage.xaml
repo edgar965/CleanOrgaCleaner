@@ -28,7 +28,7 @@
                 <Label x:Name="NoTasksLabel"
                        Text="Keine Aufgaben für heute"
                        FontSize="16"
-                       TextColor="#999"
+                       TextColor="#6b6b6b"
                        HorizontalOptions="Center"/>
             </VerticalStackLayout>
 

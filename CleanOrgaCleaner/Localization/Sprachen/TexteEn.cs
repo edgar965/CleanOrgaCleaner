@@ -179,5 +179,20 @@ internal sealed class TexteEn : LanguagePack
         ["save_error"] = "Save failed",
         ["delete_chat_title"] = "Delete chat",
         ["delete_chat_confirm"] = "Delete all messages? This action cannot be undone.",
+
+        // Checklist (task tab)
+        ["checklist_tab"] = "Checklist",
+        ["no_checklist"] = "No checklist available",
+        ["checklist_comment"] = "Checklist comment",
+        ["checklist_comment_placeholder"] = "Comment on the entire checklist...",
+        ["reference_photos"] = "Reference photos",
+        ["no_reference_photos"] = "No reference photos",
+        ["worker_photos"] = "Photos by the cleaner",
+        ["take_photo"] = "Take photo",
+        ["item_note_placeholder"] = "Comment on this item...",
+
+        // Settings: checklist
+        ["show_checklist"] = "Show checklist",
+        ["show_checklist_hint"] = "Shows the \"Checklist\" tab on tasks",
     };
 }

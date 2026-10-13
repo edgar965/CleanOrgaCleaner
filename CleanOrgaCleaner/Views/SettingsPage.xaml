@@ -208,6 +208,35 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Checkliste -->
+                <Border BackgroundColor="White"
+                        StrokeShape="RoundRectangle 15"
+                        Stroke="Transparent"
+                        Padding="20">
+                    <Border.Shadow>
+                        <Shadow Brush="Gray" Offset="2,2" Radius="5" Opacity="0.3"/>
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="15">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                            <Label x:Name="ShowChecklistLabel"
+                                   Text="Checkliste anzeigen"
+                                   TextColor="#333"
+                                   FontSize="15"
+                                   VerticalOptions="Center"/>
+                            <Switch x:Name="ShowChecklistSwitch"
+                                    Grid.Column="1"
+                                    OnColor="#2196F3"
+                                    Toggled="OnShowChecklistToggled"/>
+                            <Label Grid.Row="1"
+                                   Grid.ColumnSpan="2"
+                                   x:Name="ShowChecklistHintLabel"
+                                   Text="Zeigt den Reiter &quot;Checkliste&quot; bei Aufgaben"
+                                   FontSize="12"
+                                   TextColor="#888"/>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <!-- App Info -->
                 <Border BackgroundColor="White"
                         StrokeShape="RoundRectangle 15"

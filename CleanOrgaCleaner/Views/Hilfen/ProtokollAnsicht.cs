@@ -15,7 +15,7 @@ public static class ProtokollAnsicht
         {
             Text = zeitpunkt,
             FontSize = 12,
-            TextColor = Color.FromArgb("#999999")
+            TextColor = Color.FromArgb("#6b6b6b")
         });
         inhalt.Children.Add(new Label
         {

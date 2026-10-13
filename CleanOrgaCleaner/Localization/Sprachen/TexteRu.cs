@@ -185,5 +185,20 @@ internal sealed class TexteRu : LanguagePack
         ["name_required"] = "Пожалуйста, введите имя",
         ["network_error_hint"] = "Ошибка сети. Подключитесь к WiFi или мобильному интернету.",
         ["select_image_source"] = "Выбрать изображение",
+
+        // Чек-лист (вкладка задачи)
+        ["checklist_tab"] = "Список",
+        ["no_checklist"] = "Нет чек-листа",
+        ["checklist_comment"] = "Комментарий к списку",
+        ["checklist_comment_placeholder"] = "Комментарий ко всему чек-листу...",
+        ["reference_photos"] = "Эталонные фото",
+        ["no_reference_photos"] = "Нет эталонных фото",
+        ["worker_photos"] = "Фото сотрудника",
+        ["take_photo"] = "Сделать фото",
+        ["item_note_placeholder"] = "Комментарий к этому пункту...",
+
+        // Настройки: чек-лист
+        ["show_checklist"] = "Показывать чек-лист",
+        ["show_checklist_hint"] = "Показывает вкладку «Список» в задачах",
     };
 }

@@ -185,5 +185,20 @@ internal sealed class TexteRo : LanguagePack
         ["name_required"] = "Introdu un nume",
         ["network_error_hint"] = "Eroare de rețea. Conectează-te la WiFi sau date mobile.",
         ["select_image_source"] = "Selectează imaginea",
+
+        // Listă de verificare (fila sarcinii)
+        ["checklist_tab"] = "Listă",
+        ["no_checklist"] = "Nicio listă de verificare",
+        ["checklist_comment"] = "Comentariu la listă",
+        ["checklist_comment_placeholder"] = "Comentariu pentru întreaga listă de verificare...",
+        ["reference_photos"] = "Fotografii de referință",
+        ["no_reference_photos"] = "Nicio fotografie de referință",
+        ["worker_photos"] = "Fotografii ale lucrătorului",
+        ["take_photo"] = "Fă o fotografie",
+        ["item_note_placeholder"] = "Comentariu pentru acest punct...",
+
+        // Setări: listă de verificare
+        ["show_checklist"] = "Afișează lista de verificare",
+        ["show_checklist_hint"] = "Afișează fila „Listă” la sarcini",
     };
 }
