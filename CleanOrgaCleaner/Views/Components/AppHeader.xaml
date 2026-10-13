@@ -82,25 +82,38 @@
             </Grid>
         </Grid>
 
-        <!-- Offline Banner -->
-        <Border x:Name="OfflineBanner"
-                Grid.Row="1"
-                BackgroundColor="#ff9800"
-                Padding="10,8"
-                IsVisible="False">
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
-                <Label x:Name="OfflineLabel"
-                       Text="Offline"
+        <!-- Banner (Offline, Übersetzung eingeschränkt) -->
+        <VerticalStackLayout Grid.Row="1" Spacing="0">
+            <Border x:Name="OfflineBanner"
+                    BackgroundColor="#ff9800"
+                    Padding="10,8"
+                    IsVisible="False">
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                    <Label x:Name="OfflineLabel"
+                           Text="Offline"
+                           TextColor="White"
+                           FontSize="13"
+                           VerticalOptions="Center"/>
+                    <ActivityIndicator x:Name="OfflineSpinner"
+                                       IsRunning="True"
+                                       Color="White"
+                                       WidthRequest="16"
+                                       HeightRequest="16"/>
+                </HorizontalStackLayout>
+            </Border>
+
+            <Border x:Name="TranslationBanner"
+                    BackgroundColor="#9c27b0"
+                    Padding="10,8"
+                    IsVisible="False">
+                <Label x:Name="TranslationBannerLabel"
+                       Text="Übersetzungsdienst eingeschränkt"
                        TextColor="White"
                        FontSize="13"
-                       VerticalOptions="Center"/>
-                <ActivityIndicator x:Name="OfflineSpinner"
-                                   IsRunning="True"
-                                   Color="White"
-                                   WidthRequest="16"
-                                   HeightRequest="16"/>
-            </HorizontalStackLayout>
-        </Border>
+                       HorizontalOptions="Center"
+                       HorizontalTextAlignment="Center"/>
+            </Border>
+        </VerticalStackLayout>
 
         <!-- Menu Overlay -->
         <Grid x:Name="MenuOverlayGrid"

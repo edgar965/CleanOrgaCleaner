@@ -200,5 +200,8 @@ internal sealed class TexteVi : LanguagePack
         // Cài đặt: danh sách kiểm tra
         ["show_checklist"] = "Hiện danh sách kiểm tra",
         ["show_checklist_hint"] = "Hiện tab “Danh sách” trong công việc",
+
+        // Dịch vụ dịch thuật bị hạn chế (biểu ngữ)
+        ["translation_degraded"] = "Dịch vụ dịch thuật bị hạn chế",
     };
 }

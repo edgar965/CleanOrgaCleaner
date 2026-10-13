@@ -200,5 +200,8 @@ internal sealed class TexteUk : LanguagePack
         // Налаштування: чек-лист
         ["show_checklist"] = "Показувати чек-лист",
         ["show_checklist_hint"] = "Показує вкладку «Список» у завданнях",
+
+        // Сервіс перекладу обмежений (банер)
+        ["translation_degraded"] = "Сервіс перекладу обмежений",
     };
 }

@@ -200,5 +200,8 @@ internal sealed class TexteEs : LanguagePack
         // Configuración: lista de verificación
         ["show_checklist"] = "Mostrar lista de verificación",
         ["show_checklist_hint"] = "Muestra la pestaña «Lista» en las tareas",
+
+        // Servicio de traducción limitado (aviso)
+        ["translation_degraded"] = "Servicio de traducción limitado",
     };
 }

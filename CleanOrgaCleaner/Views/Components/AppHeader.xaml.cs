@@ -87,6 +87,7 @@ public partial class AppHeader : ContentView
         WorkStopCancelButton.Text = t("cancel");
 
         OfflineLabel.Text = t("offline");
+        TranslationBannerLabel.Text = t("translation_degraded");
     }
 
     public void SetPageTitle(string titleKey)
@@ -108,5 +109,15 @@ public partial class AppHeader : ContentView
     {
         OfflineBanner.IsVisible = showOffline;
         OfflineSpinner.IsRunning = showOffline;
+    }
+
+    /// <summary>
+    /// Hinweis, dass der Server-Übersetzungsdienst beim letzten Abruf der
+    /// Tagesdaten eingeschränkt war (Google-Rate-Limit oder Hänger) - manche
+    /// Texte können deshalb unübersetzt (Deutsch) sein.
+    /// </summary>
+    public void UpdateTranslationBanner(bool eingeschraenkt)
+    {
+        TranslationBanner.IsVisible = eingeschraenkt;
     }
 }

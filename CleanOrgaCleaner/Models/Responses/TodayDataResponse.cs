@@ -19,4 +19,11 @@ public class TodayDataResponse
 
     [JsonPropertyName("date")]
     public string? Date { get; set; }
+
+    /// <summary>
+    /// True, wenn der Übersetzungsdienst (Google) bei diesem Abruf Rate-Limit
+    /// zeigte oder hing - Texte können dadurch unübersetzt (Deutsch) sein.
+    /// </summary>
+    [JsonPropertyName("translation_degraded")]
+    public bool TranslationDegraded { get; set; }
 }

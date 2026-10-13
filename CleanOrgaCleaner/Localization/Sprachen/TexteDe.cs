@@ -202,5 +202,8 @@ internal sealed class TexteDe : LanguagePack
         // Einstellungen: Checkliste
         ["show_checklist"] = "Checkliste anzeigen",
         ["show_checklist_hint"] = "Zeigt den Reiter „Checkliste\" bei Aufgaben",
+
+        // Übersetzungsdienst eingeschränkt (Banner)
+        ["translation_degraded"] = "Übersetzungsdienst eingeschränkt",
     };
 }

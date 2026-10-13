@@ -200,5 +200,8 @@ internal sealed class TexteRo : LanguagePack
         // Setări: listă de verificare
         ["show_checklist"] = "Afișează lista de verificare",
         ["show_checklist_hint"] = "Afișează fila „Listă” la sarcini",
+
+        // Serviciu de traducere limitat (banner)
+        ["translation_degraded"] = "Serviciu de traducere limitat",
     };
 }

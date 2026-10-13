@@ -200,5 +200,8 @@ internal sealed class TexteRu : LanguagePack
         // Настройки: чек-лист
         ["show_checklist"] = "Показывать чек-лист",
         ["show_checklist_hint"] = "Показывает вкладку «Список» в задачах",
+
+        // Сервис перевода ограничен (баннер)
+        ["translation_degraded"] = "Сервис перевода ограничен",
     };
 }

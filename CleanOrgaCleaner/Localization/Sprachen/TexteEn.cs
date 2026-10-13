@@ -194,5 +194,8 @@ internal sealed class TexteEn : LanguagePack
         // Settings: checklist
         ["show_checklist"] = "Show checklist",
         ["show_checklist_hint"] = "Shows the \"Checklist\" tab on tasks",
+
+        // Translation service degraded (banner)
+        ["translation_degraded"] = "Translation service limited",
     };
 }

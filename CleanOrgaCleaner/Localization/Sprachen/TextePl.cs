@@ -200,5 +200,8 @@ internal sealed class TextePl : LanguagePack
         // Ustawienia: lista kontrolna
         ["show_checklist"] = "Pokaż listę kontrolną",
         ["show_checklist_hint"] = "Pokazuje zakładkę „Lista” przy zadaniach",
+
+        // Usługa tłumaczenia ograniczona (baner)
+        ["translation_degraded"] = "Usługa tłumaczenia ograniczona",
     };
 }

@@ -120,6 +120,7 @@ public partial class TodayPage : ContentPage
             {
                 NoTasksLabel.Text = Translations.Get("no_tasks");
                 BuildTaskGrid();
+                Header.UpdateTranslationBanner(data?.TranslationDegraded ?? false);
             }, "TodayPage");
         }
         catch (Exception ex) when (ex is ServerAntwortFehler || ex is System.Text.Json.JsonException)
