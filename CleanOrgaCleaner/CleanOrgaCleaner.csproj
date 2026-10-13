@@ -19,7 +19,7 @@
 
 		<!-- Versions -->
 		<!-- Gleiche Nummer wie der Django-Server, damit Web und App zusammenpassen -->
-		<ApplicationDisplayVersion>2.09</ApplicationDisplayVersion>
+		<ApplicationDisplayVersion>2.10</ApplicationDisplayVersion>
 		<!-- Build-Nummer: muss je Upload eindeutig und aufsteigend sein.
 		     188 liegt bereits in App Store Connect. -->
 		<ApplicationVersion>189</ApplicationVersion>
